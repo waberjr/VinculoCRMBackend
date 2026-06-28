@@ -1,9 +1,8 @@
 ﻿using VinculoBackend.Domain.Constants;
-using VinculoBackend.Domain.Entities;
-using VinculoBackend.Domain.ValueObjects;
 using VinculoBackend.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -41,9 +40,7 @@ public class ApplicationDbContextInitialiser
     {
         try
         {
-            // See https://jasontaylor.dev/ef-core-database-initialisation-strategies
-            await _context.Database.EnsureDeletedAsync();
-            await _context.Database.EnsureCreatedAsync();
+            await _context.Database.MigrateAsync();
         }
         catch (Exception ex)
         {
@@ -87,24 +84,6 @@ public class ApplicationDbContextInitialiser
             }
         }
 
-        // Default data
-        // Seed, if necessary
-        if (!_context.TodoLists.Any())
-        {
-            _context.TodoLists.Add(new TodoList
-            {
-                Title = "Tasks",
-                Colour = Colour.Green,
-                Items =
-                {
-                    new TodoItem { Title = "Make a todo list 📃" },
-                    new TodoItem { Title = "Check off the first item ✅" },
-                    new TodoItem { Title = "Realise you've already done two things on the list! 🤯"},
-                    new TodoItem { Title = "Reward yourself with a nice, long nap 🏆" },
-                }
-            });
-
-            await _context.SaveChangesAsync();
-        }
+        await _context.SaveChangesAsync();
     }
 }

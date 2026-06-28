@@ -16,6 +16,42 @@ dotnet run --project .\src\AppHost
 
 The Aspire dashboard will open automatically, showing the application URLs and logs.
 
+## Entity Framework Core
+
+Run EF commands from the `VinculoBackend` folder.
+
+Install or update the EF CLI:
+
+```bash
+dotnet tool update --global dotnet-ef
+```
+
+Create a migration after changing the model:
+
+```bash
+dotnet ef migrations add NomeDaMigration --project .\src\Infrastructure --startup-project .\src\Web --output-dir Data\Migrations
+```
+
+Apply pending migrations to the configured local database:
+
+```bash
+dotnet ef database update --project .\src\Infrastructure --startup-project .\src\Web
+```
+
+List migrations:
+
+```bash
+dotnet ef migrations list --project .\src\Infrastructure --startup-project .\src\Web
+```
+
+Generate an idempotent SQL script:
+
+```bash
+dotnet ef migrations script --idempotent --project .\src\Infrastructure --startup-project .\src\Web --output .\artifacts\migrations.sql
+```
+
+Do not create migration files manually. Generate them with the EF CLI and review the generated code before applying it.
+
 ## Code Styles & Formatting
 
 The template includes [EditorConfig](https://editorconfig.org/) support to help maintain consistent coding styles for multiple developers working on the same project across various editors and IDEs. The **.editorconfig** file defines the coding styles applicable to this solution.

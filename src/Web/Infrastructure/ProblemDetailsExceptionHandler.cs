@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using ApplicationNotFoundException = VinculoBackend.Application.Common.Exceptions.NotFoundException;
 
 namespace VinculoBackend.Web.Infrastructure;
 
@@ -21,7 +22,7 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
                 Status = StatusCodes.Status400BadRequest,
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1"
             }),
-            NotFoundException ne => (StatusCodes.Status404NotFound, new ProblemDetails
+            ApplicationNotFoundException ne => (StatusCodes.Status404NotFound, new ProblemDetails
             {
                 Status = StatusCodes.Status404NotFound,
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",

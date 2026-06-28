@@ -9,8 +9,8 @@ public class DeleteTodoListTests : TestBase
     [Test]
     public async Task ShouldRequireValidTodoListId()
     {
-        var command = new DeleteTodoListCommand(99);
-        await Should.ThrowAsync<NotFoundException>(() => TestApp.SendAsync(command));
+        var command = new DeleteTodoListCommand(Guid.NewGuid());
+        await Should.ThrowAsync<VinculoBackend.Application.Common.Exceptions.NotFoundException>(() => TestApp.SendAsync(command));
     }
 
     [Test]

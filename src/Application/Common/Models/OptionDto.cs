@@ -1,0 +1,13 @@
+namespace VinculoBackend.Application.Common.Models;
+
+public sealed class OptionDto
+{
+    public Guid Id { get; init; }
+    public string Category { get; init; } = string.Empty;
+    public string Code { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public string? Color { get; init; }
+    public int SortOrder { get; init; }
+    public bool IsSystem { get; init; }
+    public bool IsActive { get; init; }
+}
