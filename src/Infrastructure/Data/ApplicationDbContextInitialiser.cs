@@ -37,19 +37,40 @@ public class ApplicationDbContextInitialiser
     private static readonly Guid RelationshipMajorId = Guid.Parse("11111111-1111-1111-1111-000000000023");
     private static readonly Guid SourceManualId = Guid.Parse("11111111-1111-1111-1111-000000000031");
     private static readonly Guid SourceReferralId = Guid.Parse("11111111-1111-1111-1111-000000000032");
+    private static readonly Guid SourcePhoneId = Guid.Parse("11111111-1111-1111-1111-000000000033");
+    private static readonly Guid SourceWhatsAppId = Guid.Parse("11111111-1111-1111-1111-000000000034");
+    private static readonly Guid SourceEmailId = Guid.Parse("11111111-1111-1111-1111-000000000035");
+    private static readonly Guid SourceSocialMediaId = Guid.Parse("11111111-1111-1111-1111-000000000036");
+    private static readonly Guid SourceWebsiteId = Guid.Parse("11111111-1111-1111-1111-000000000037");
+    private static readonly Guid SourceEventId = Guid.Parse("11111111-1111-1111-1111-000000000038");
+    private static readonly Guid SourceImportId = Guid.Parse("11111111-1111-1111-1111-000000000039");
+    private static readonly Guid SourceOtherId = Guid.Parse("11111111-1111-1111-1111-000000000040");
     private static readonly Guid ChannelPhoneId = Guid.Parse("11111111-1111-1111-1111-000000000041");
     private static readonly Guid ChannelWhatsAppId = Guid.Parse("11111111-1111-1111-1111-000000000042");
+    private static readonly Guid ChannelEmailId = Guid.Parse("11111111-1111-1111-1111-000000000043");
+    private static readonly Guid ChannelOtherId = Guid.Parse("11111111-1111-1111-1111-000000000044");
     private static readonly Guid DonationTypeOneTimeId = Guid.Parse("11111111-1111-1111-1111-000000000051");
     private static readonly Guid DonationTypeRecurringId = Guid.Parse("11111111-1111-1111-1111-000000000052");
+    private static readonly Guid DonationTypePledgeId = Guid.Parse("11111111-1111-1111-1111-000000000053");
     private static readonly Guid DonationStatusPendingId = Guid.Parse("11111111-1111-1111-1111-000000000061");
     private static readonly Guid DonationStatusConfirmedId = Guid.Parse("11111111-1111-1111-1111-000000000062");
     private static readonly Guid DonationStatusOverdueId = Guid.Parse("11111111-1111-1111-1111-000000000063");
+    private static readonly Guid DonationStatusCancelledId = Guid.Parse("11111111-1111-1111-1111-000000000064");
+    private static readonly Guid DonationStatusRefundedId = Guid.Parse("11111111-1111-1111-1111-000000000065");
     private static readonly Guid PaymentPixId = Guid.Parse("11111111-1111-1111-1111-000000000071");
     private static readonly Guid PaymentBoletoId = Guid.Parse("11111111-1111-1111-1111-000000000072");
     private static readonly Guid PaymentCreditCardId = Guid.Parse("11111111-1111-1111-1111-000000000073");
+    private static readonly Guid PaymentBankTransferId = Guid.Parse("11111111-1111-1111-1111-000000000074");
+    private static readonly Guid PaymentCashId = Guid.Parse("11111111-1111-1111-1111-000000000075");
+    private static readonly Guid PaymentOtherId = Guid.Parse("11111111-1111-1111-1111-000000000076");
     private static readonly Guid TaskTypeCallId = Guid.Parse("11111111-1111-1111-1111-000000000081");
     private static readonly Guid TaskTypeWhatsAppId = Guid.Parse("11111111-1111-1111-1111-000000000082");
     private static readonly Guid TaskTypePaymentReminderId = Guid.Parse("11111111-1111-1111-1111-000000000083");
+    private static readonly Guid TaskTypeEmailId = Guid.Parse("11111111-1111-1111-1111-000000000084");
+    private static readonly Guid TaskTypeFollowUpId = Guid.Parse("11111111-1111-1111-1111-000000000085");
+    private static readonly Guid TaskTypeThankYouId = Guid.Parse("11111111-1111-1111-1111-000000000086");
+    private static readonly Guid TaskTypeDataUpdateId = Guid.Parse("11111111-1111-1111-1111-000000000087");
+    private static readonly Guid TaskTypeOtherId = Guid.Parse("11111111-1111-1111-1111-000000000088");
     private static readonly Guid TaskPriorityLowId = Guid.Parse("11111111-1111-1111-1111-000000000091");
     private static readonly Guid TaskPriorityMediumId = Guid.Parse("11111111-1111-1111-1111-000000000092");
     private static readonly Guid TaskPriorityHighId = Guid.Parse("11111111-1111-1111-1111-000000000093");
@@ -57,11 +78,39 @@ public class ApplicationDbContextInitialiser
     private static readonly Guid TaskStatusOpenId = Guid.Parse("11111111-1111-1111-1111-000000000101");
     private static readonly Guid TaskStatusInProgressId = Guid.Parse("11111111-1111-1111-1111-000000000102");
     private static readonly Guid TaskStatusCompletedId = Guid.Parse("11111111-1111-1111-1111-000000000103");
+    private static readonly Guid TaskStatusCancelledId = Guid.Parse("11111111-1111-1111-1111-000000000104");
     private static readonly Guid OutcomeReachedId = Guid.Parse("11111111-1111-1111-1111-000000000111");
     private static readonly Guid OutcomeNoAnswerId = Guid.Parse("11111111-1111-1111-1111-000000000112");
+    private static readonly Guid OutcomeInvalidContactId = Guid.Parse("11111111-1111-1111-1111-000000000113");
+    private static readonly Guid OutcomeRequestedCallbackId = Guid.Parse("11111111-1111-1111-1111-000000000114");
+    private static readonly Guid OutcomeDonationConfirmedId = Guid.Parse("11111111-1111-1111-1111-000000000115");
+    private static readonly Guid OutcomeNotInterestedId = Guid.Parse("11111111-1111-1111-1111-000000000116");
+    private static readonly Guid OutcomeDoNotContactId = Guid.Parse("11111111-1111-1111-1111-000000000117");
+    private static readonly Guid OutcomeOtherId = Guid.Parse("11111111-1111-1111-1111-000000000118");
     private static readonly Guid CampaignTypeAcquisitionId = Guid.Parse("11111111-1111-1111-1111-000000000121");
+    private static readonly Guid CampaignTypeFundraisingId = Guid.Parse("11111111-1111-1111-1111-000000000122");
+    private static readonly Guid CampaignTypeRetentionId = Guid.Parse("11111111-1111-1111-1111-000000000123");
+    private static readonly Guid CampaignTypeReactivationId = Guid.Parse("11111111-1111-1111-1111-000000000124");
+    private static readonly Guid CampaignTypeEmergencyId = Guid.Parse("11111111-1111-1111-1111-000000000125");
+    private static readonly Guid CampaignTypeOtherId = Guid.Parse("11111111-1111-1111-1111-000000000126");
+    private static readonly Guid CampaignStatusDraftId = Guid.Parse("11111111-1111-1111-1111-000000000130");
     private static readonly Guid CampaignStatusActiveId = Guid.Parse("11111111-1111-1111-1111-000000000131");
+    private static readonly Guid CampaignStatusCompletedId = Guid.Parse("11111111-1111-1111-1111-000000000132");
+    private static readonly Guid CampaignStatusCancelledId = Guid.Parse("11111111-1111-1111-1111-000000000133");
     private static readonly Guid CampaignChannelMixedId = Guid.Parse("11111111-1111-1111-1111-000000000141");
+    private static readonly Guid CampaignChannelPhoneId = Guid.Parse("11111111-1111-1111-1111-000000000142");
+    private static readonly Guid CampaignChannelWhatsAppId = Guid.Parse("11111111-1111-1111-1111-000000000143");
+    private static readonly Guid CampaignChannelEmailId = Guid.Parse("11111111-1111-1111-1111-000000000144");
+    private static readonly Guid CampaignChannelSocialMediaId = Guid.Parse("11111111-1111-1111-1111-000000000145");
+    private static readonly Guid CampaignChannelInPersonId = Guid.Parse("11111111-1111-1111-1111-000000000146");
+    private static readonly Guid CampaignChannelOtherId = Guid.Parse("11111111-1111-1111-1111-000000000147");
+    private static readonly Guid DonationPlanStatusActiveId = Guid.Parse("11111111-1111-1111-1111-000000000151");
+    private static readonly Guid DonationPlanStatusPausedId = Guid.Parse("11111111-1111-1111-1111-000000000152");
+    private static readonly Guid DonationPlanStatusCancelledId = Guid.Parse("11111111-1111-1111-1111-000000000153");
+    private static readonly Guid TimelineTypeNoteId = Guid.Parse("11111111-1111-1111-1111-000000000161");
+    private static readonly Guid TimelineTypeDonationId = Guid.Parse("11111111-1111-1111-1111-000000000162");
+    private static readonly Guid TimelineTypeTaskId = Guid.Parse("11111111-1111-1111-1111-000000000163");
+    private static readonly Guid TimelineTypeContactId = Guid.Parse("11111111-1111-1111-1111-000000000164");
     private static readonly Guid TagRecurringId = Guid.Parse("11111111-1111-1111-1111-000000000201");
     private static readonly Guid TagMajorId = Guid.Parse("11111111-1111-1111-1111-000000000202");
     private static readonly Guid DonorAnaId = Guid.Parse("11111111-1111-1111-1111-000000001001");
@@ -194,19 +243,40 @@ public class ApplicationDbContextInitialiser
             Option(RelationshipMajorId, "RelationshipProfile", "Major", "Grande doador", 3),
             Option(SourceManualId, "DonorSource", "Manual", "Manual", 1),
             Option(SourceReferralId, "DonorSource", "Referral", "Indicacao", 2),
+            Option(SourcePhoneId, "DonorSource", "Phone", "Telefone", 3),
+            Option(SourceWhatsAppId, "DonorSource", "WhatsApp", "WhatsApp", 4),
+            Option(SourceEmailId, "DonorSource", "Email", "E-mail", 5),
+            Option(SourceSocialMediaId, "DonorSource", "SocialMedia", "Redes sociais", 6),
+            Option(SourceWebsiteId, "DonorSource", "Website", "Website", 7),
+            Option(SourceEventId, "DonorSource", "Event", "Evento", 8),
+            Option(SourceImportId, "DonorSource", "Import", "Importacao", 9),
+            Option(SourceOtherId, "DonorSource", "Other", "Outro", 10),
             Option(ChannelPhoneId, "ContactChannel", "Phone", "Telefone", 1),
             Option(ChannelWhatsAppId, "ContactChannel", "WhatsApp", "WhatsApp", 2),
+            Option(ChannelEmailId, "ContactChannel", "Email", "E-mail", 3),
+            Option(ChannelOtherId, "ContactChannel", "Other", "Outro", 4),
             Option(DonationTypeOneTimeId, "DonationType", "OneTime", "Pontual", 1),
             Option(DonationTypeRecurringId, "DonationType", "Recurring", "Recorrente", 2),
+            Option(DonationTypePledgeId, "DonationType", "Pledge", "Promessa", 3),
             Option(DonationStatusPendingId, "DonationStatus", "Pending", "Pendente", 1, "yellow"),
             Option(DonationStatusConfirmedId, "DonationStatus", "Confirmed", "Confirmada", 2, "green"),
             Option(DonationStatusOverdueId, "DonationStatus", "Overdue", "Vencida", 3, "red"),
+            Option(DonationStatusCancelledId, "DonationStatus", "Cancelled", "Cancelada", 4),
+            Option(DonationStatusRefundedId, "DonationStatus", "Refunded", "Estornada", 5, "yellow"),
             Option(PaymentPixId, "PaymentMethod", "Pix", "Pix", 1),
             Option(PaymentBoletoId, "PaymentMethod", "Boleto", "Boleto", 2),
             Option(PaymentCreditCardId, "PaymentMethod", "CreditCard", "Cartao de credito", 3),
+            Option(PaymentBankTransferId, "PaymentMethod", "BankTransfer", "Transferencia bancaria", 4),
+            Option(PaymentCashId, "PaymentMethod", "Cash", "Dinheiro", 5),
+            Option(PaymentOtherId, "PaymentMethod", "Other", "Outro", 6),
             Option(TaskTypeCallId, "TaskType", "Call", "Ligacao", 1),
             Option(TaskTypeWhatsAppId, "TaskType", "WhatsApp", "WhatsApp", 2),
             Option(TaskTypePaymentReminderId, "TaskType", "PaymentReminder", "Lembrete de pagamento", 3),
+            Option(TaskTypeEmailId, "TaskType", "Email", "E-mail", 4),
+            Option(TaskTypeFollowUpId, "TaskType", "FollowUp", "Follow-up", 5),
+            Option(TaskTypeThankYouId, "TaskType", "ThankYou", "Agradecimento", 6),
+            Option(TaskTypeDataUpdateId, "TaskType", "DataUpdate", "Atualizacao cadastral", 7),
+            Option(TaskTypeOtherId, "TaskType", "Other", "Outra", 8),
             Option(TaskPriorityLowId, "TaskPriority", "Low", "Baixa", 1),
             Option(TaskPriorityMediumId, "TaskPriority", "Medium", "Media", 2),
             Option(TaskPriorityHighId, "TaskPriority", "High", "Alta", 3),
@@ -214,11 +284,39 @@ public class ApplicationDbContextInitialiser
             Option(TaskStatusOpenId, "TaskStatus", "Open", "Aberta", 1, "blue"),
             Option(TaskStatusInProgressId, "TaskStatus", "InProgress", "Em andamento", 2, "yellow"),
             Option(TaskStatusCompletedId, "TaskStatus", "Completed", "Concluida", 3, "green"),
+            Option(TaskStatusCancelledId, "TaskStatus", "Cancelled", "Cancelada", 4),
             Option(OutcomeReachedId, "ContactOutcome", "Reached", "Contato realizado", 1),
             Option(OutcomeNoAnswerId, "ContactOutcome", "NoAnswer", "Nao atendeu", 2),
+            Option(OutcomeInvalidContactId, "ContactOutcome", "InvalidContact", "Contato invalido", 3),
+            Option(OutcomeRequestedCallbackId, "ContactOutcome", "RequestedCallback", "Retorno solicitado", 4),
+            Option(OutcomeDonationConfirmedId, "ContactOutcome", "DonationConfirmed", "Doacao confirmada", 5),
+            Option(OutcomeNotInterestedId, "ContactOutcome", "NotInterested", "Sem interesse", 6),
+            Option(OutcomeDoNotContactId, "ContactOutcome", "DoNotContact", "Nao contatar", 7),
+            Option(OutcomeOtherId, "ContactOutcome", "Other", "Outro", 8),
             Option(CampaignTypeAcquisitionId, "CampaignType", "Acquisition", "Captacao", 1),
-            Option(CampaignStatusActiveId, "CampaignStatus", "Active", "Ativa", 1),
+            Option(CampaignTypeFundraisingId, "CampaignType", "Fundraising", "Captacao", 2),
+            Option(CampaignTypeRetentionId, "CampaignType", "Retention", "Retencao", 3),
+            Option(CampaignTypeReactivationId, "CampaignType", "Reactivation", "Reativacao", 4),
+            Option(CampaignTypeEmergencyId, "CampaignType", "Emergency", "Emergencial", 5),
+            Option(CampaignTypeOtherId, "CampaignType", "Other", "Outra", 6),
+            Option(CampaignStatusDraftId, "CampaignStatus", "Draft", "Rascunho", 1),
+            Option(CampaignStatusActiveId, "CampaignStatus", "Active", "Ativa", 2),
+            Option(CampaignStatusCompletedId, "CampaignStatus", "Completed", "Concluida", 3),
+            Option(CampaignStatusCancelledId, "CampaignStatus", "Cancelled", "Cancelada", 4),
             Option(CampaignChannelMixedId, "CampaignChannel", "Mixed", "Multicanal", 1),
+            Option(CampaignChannelPhoneId, "CampaignChannel", "Phone", "Telefone", 2),
+            Option(CampaignChannelWhatsAppId, "CampaignChannel", "WhatsApp", "WhatsApp", 3),
+            Option(CampaignChannelEmailId, "CampaignChannel", "Email", "E-mail", 4),
+            Option(CampaignChannelSocialMediaId, "CampaignChannel", "SocialMedia", "Redes sociais", 5),
+            Option(CampaignChannelInPersonId, "CampaignChannel", "InPerson", "Presencial", 6),
+            Option(CampaignChannelOtherId, "CampaignChannel", "Other", "Outro", 7),
+            Option(DonationPlanStatusActiveId, "DonationPlanStatus", "Active", "Ativa", 1, "green"),
+            Option(DonationPlanStatusPausedId, "DonationPlanStatus", "Paused", "Pausada", 2, "yellow"),
+            Option(DonationPlanStatusCancelledId, "DonationPlanStatus", "Cancelled", "Cancelada", 3),
+            Option(TimelineTypeNoteId, "TimelineType", "Note", "Nota", 1),
+            Option(TimelineTypeDonationId, "TimelineType", "Donation", "Contribuicao", 2, "green"),
+            Option(TimelineTypeTaskId, "TimelineType", "Task", "Tarefa", 3, "blue"),
+            Option(TimelineTypeContactId, "TimelineType", "Contact", "Contato", 4, "yellow"),
         };
 
         var existingIds = await _context.ConfigurableOptions

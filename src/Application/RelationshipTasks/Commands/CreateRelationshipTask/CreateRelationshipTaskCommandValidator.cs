@@ -7,8 +7,7 @@ public sealed class CreateRelationshipTaskCommandValidator : AbstractValidator<C
         RuleFor(v => v.DonorId).NotEmpty();
         RuleFor(v => v.Title).NotEmpty().MaximumLength(180);
         RuleFor(v => v.Description).MaximumLength(1000);
-        RuleFor(v => v.TypeOptionId).NotEmpty();
-        RuleFor(v => v.PriorityOptionId).NotEmpty();
-        RuleFor(v => v.StatusOptionId).NotEmpty();
+        RuleFor(v => v.Type).NotEmpty().MaximumLength(80);
+        RuleFor(v => v.Priority).NotEmpty().MaximumLength(80);
     }
 }

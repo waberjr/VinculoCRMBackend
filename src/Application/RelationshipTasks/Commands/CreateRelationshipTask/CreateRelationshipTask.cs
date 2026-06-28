@@ -1,5 +1,6 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTask;
@@ -12,9 +13,8 @@ public record CreateRelationshipTaskCommand : IRequest<Guid>
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? AssignedUserId { get; init; }
-    public Guid TypeOptionId { get; init; }
-    public Guid PriorityOptionId { get; init; }
-    public Guid StatusOptionId { get; init; }
+    public string Type { get; init; } = "Call";
+    public string Priority { get; init; } = "Medium";
     public DateTimeOffset? DueAtUtc { get; init; }
 }
 
@@ -35,6 +35,12 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
 
+        var donorExists = await _context.Donors.AsNoTracking().AnyAsync(donor => donor.Id == request.DonorId, cancellationToken);
+        if (!donorExists)
+        {
+            throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
+        }
+
         var task = new RelationshipTask
         {
             OrganizationId = organizationId,
@@ -45,9 +51,9 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             Description = request.Description?.Trim(),
             AssignedUserId = request.AssignedUserId,
             CreatedByUserId = _user.Id,
-            TypeOptionId = request.TypeOptionId,
-            PriorityOptionId = request.PriorityOptionId,
-            StatusOptionId = request.StatusOptionId,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskType", request.Type, cancellationToken),
+            PriorityOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskPriority", request.Priority, cancellationToken),
+            StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Open", cancellationToken),
             DueAtUtc = request.DueAtUtc,
         };
 

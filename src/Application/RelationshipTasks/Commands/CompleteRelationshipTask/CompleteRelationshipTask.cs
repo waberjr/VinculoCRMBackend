@@ -7,10 +7,10 @@ namespace VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelation
 
 public record CompleteRelationshipTaskCommand(
     Guid Id,
-    Guid CompletedStatusOptionId,
-    Guid? ContactOutcomeOptionId,
-    DateTimeOffset CompletedAtUtc,
-    string? CompletionNote) : IRequest;
+    string? Outcome,
+    string? CompletionNote,
+    DateTimeOffset? FollowUpAtUtc,
+    string? DoNotContactReason) : IRequest;
 
 public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<CompleteRelationshipTaskCommand>
 {
@@ -33,10 +33,42 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        task.StatusOptionId = request.CompletedStatusOptionId;
-        task.ContactOutcomeOptionId = request.ContactOutcomeOptionId;
-        task.CompletedAtUtc = request.CompletedAtUtc;
+        task.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Completed", cancellationToken);
+        task.ContactOutcomeOptionId = string.IsNullOrWhiteSpace(request.Outcome)
+            ? null
+            : await OptionLookup.RequiredIdAsync(_context, "ContactOutcome", request.Outcome, cancellationToken);
+        task.CompletedAtUtc = DateTimeOffset.UtcNow;
         task.CompletionNote = request.CompletionNote?.Trim();
+
+        if (request.Outcome == "DoNotContact")
+        {
+            var donor = await _context.Donors.FirstOrDefaultAsync(entity => entity.Id == task.DonorId, cancellationToken);
+            if (donor is not null)
+            {
+                donor.DoNotContact = true;
+                donor.AllowsCommunication = false;
+                donor.DoNotContactReason = request.DoNotContactReason?.Trim();
+                donor.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorStatus", "DoNotContact", cancellationToken);
+            }
+        }
+
+        if (request.Outcome == "RequestedCallback" && request.FollowUpAtUtc is not null)
+        {
+            _context.RelationshipTasks.Add(new RelationshipTask
+            {
+                OrganizationId = task.OrganizationId,
+                DonorId = task.DonorId,
+                CampaignId = task.CampaignId,
+                AssignedUserId = task.AssignedUserId,
+                CreatedByUserId = task.CreatedByUserId,
+                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskType", "FollowUp", cancellationToken),
+                PriorityOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskPriority", "High", cancellationToken),
+                StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Open", cancellationToken),
+                DueAtUtc = request.FollowUpAtUtc,
+                Title = "Retorno solicitado",
+                Description = "Follow-up criado automaticamente ao concluir tarefa.",
+            });
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
     }

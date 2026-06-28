@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.DonationPlans.Commands.CreateDonationPlan;
 using VinculoBackend.Application.DonationPlans.Models;
 using VinculoBackend.Application.DonationPlans.Queries.GetDonationPlans;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -11,6 +12,7 @@ public sealed class DonationPlans : IEndpointGroup
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetDonationPlans);
+        groupBuilder.MapPost(CreateDonationPlan);
     }
 
     public static async Task<Ok<PaginatedResult<DonationPlanListItemDto>>> GetDonationPlans(
@@ -29,5 +31,11 @@ public sealed class DonationPlans : IEndpointGroup
         });
 
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<Created<Guid>> CreateDonationPlan(ISender sender, CreateDonationPlanCommand command)
+    {
+        var id = await sender.Send(command);
+        return TypedResults.Created($"/api/DonationPlans/{id}", id);
     }
 }

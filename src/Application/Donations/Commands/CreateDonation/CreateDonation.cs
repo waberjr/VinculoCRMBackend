@@ -1,5 +1,6 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.Donations.Commands.CreateDonation;
@@ -10,9 +11,9 @@ public record CreateDonationCommand : IRequest<Guid>
     public Guid? CampaignId { get; init; }
     public Guid? DonationPlanId { get; init; }
     public decimal Amount { get; init; }
-    public Guid TypeOptionId { get; init; }
-    public Guid StatusOptionId { get; init; }
-    public Guid PaymentMethodOptionId { get; init; }
+    public string Type { get; init; } = "OneTime";
+    public string Status { get; init; } = "Pending";
+    public string PaymentMethod { get; init; } = "Pix";
     public DateTimeOffset? ExpectedAtUtc { get; init; }
     public DateTimeOffset? PaidAtUtc { get; init; }
     public string? Reference { get; init; }
@@ -37,15 +38,21 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
 
+        var donorExists = await _context.Donors.AsNoTracking().AnyAsync(donor => donor.Id == request.DonorId, cancellationToken);
+        if (!donorExists)
+        {
+            throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
+        }
+
         var donation = new Donation
         {
             OrganizationId = organizationId,
             DonorId = request.DonorId,
             CampaignId = request.CampaignId,
             DonationPlanId = request.DonationPlanId,
-            TypeOptionId = request.TypeOptionId,
-            StatusOptionId = request.StatusOptionId,
-            PaymentMethodOptionId = request.PaymentMethodOptionId,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationType", request.Type, cancellationToken),
+            StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationStatus", request.Status, cancellationToken),
+            PaymentMethodOptionId = await OptionLookup.RequiredIdAsync(_context, "PaymentMethod", request.PaymentMethod, cancellationToken),
             ExpectedAtUtc = request.ExpectedAtUtc,
             PaidAtUtc = request.PaidAtUtc,
             Reference = request.Reference?.Trim(),

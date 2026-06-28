@@ -3,22 +3,22 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 
-namespace VinculoBackend.Application.Donations.Commands.ConfirmDonation;
+namespace VinculoBackend.Application.Donations.Commands.RefundDonation;
 
-public record ConfirmDonationCommand(Guid Id, DateTimeOffset PaidAtUtc, string? Reference) : IRequest;
+public record RefundDonationCommand(Guid Id, string Reason) : IRequest;
 
-public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonationCommand>
+public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonationCommand>
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
 
-    public ConfirmDonationCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public RefundDonationCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
     {
         _context = context;
         _organizationContext = organizationContext;
     }
 
-    public async Task Handle(ConfirmDonationCommand request, CancellationToken cancellationToken)
+    public async Task Handle(RefundDonationCommand request, CancellationToken cancellationToken)
     {
         _ = RequiredOrganization.From(_organizationContext);
 
@@ -28,9 +28,9 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        donation.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationStatus", "Confirmed", cancellationToken);
-        donation.PaidAtUtc = request.PaidAtUtc;
-        donation.Reference = request.Reference?.Trim();
+        donation.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationStatus", "Refunded", cancellationToken);
+        donation.RefundedAtUtc = DateTimeOffset.UtcNow;
+        donation.RefundReason = request.Reason.Trim();
 
         await _context.SaveChangesAsync(cancellationToken);
     }

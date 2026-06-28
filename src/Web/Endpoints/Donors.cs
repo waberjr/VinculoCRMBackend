@@ -1,5 +1,7 @@
+using VinculoBackend.Application.Donors.Commands.AddDonorTimelineEntry;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Donors.Commands.CreateDonor;
+using VinculoBackend.Application.Donors.Commands.UpdateDonor;
 using VinculoBackend.Application.Donors.Models;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
 using VinculoBackend.Application.Donors.Queries.GetDonors;
@@ -17,7 +19,9 @@ public sealed class Donors : IEndpointGroup
         groupBuilder.MapGet(GetDonors);
         groupBuilder.MapGet(GetDonorById, "{id}");
         groupBuilder.MapGet(GetDonorTimeline, "{id}/Timeline");
+        groupBuilder.MapPost(AddTimelineEntry, "{id}/Timeline");
         groupBuilder.MapPost(CreateDonor);
+        groupBuilder.MapPut(UpdateDonor, "{id}");
     }
 
     public static async Task<Ok<PaginatedResult<DonorListItemDto>>> GetDonors(
@@ -64,5 +68,17 @@ public sealed class Donors : IEndpointGroup
     {
         var id = await sender.Send(command);
         return TypedResults.Created($"/api/Donors/{id}", id);
+    }
+
+    public static async Task<NoContent> UpdateDonor(ISender sender, Guid id, UpdateDonorCommand command)
+    {
+        await sender.Send(command with { Id = id });
+        return TypedResults.NoContent();
+    }
+
+    public static async Task<Created<Guid>> AddTimelineEntry(ISender sender, Guid id, AddDonorTimelineEntryCommand command)
+    {
+        var entryId = await sender.Send(command with { DonorId = id });
+        return TypedResults.Created($"/api/Donors/{id}/Timeline/{entryId}", entryId);
     }
 }

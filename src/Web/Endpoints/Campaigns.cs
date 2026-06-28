@@ -1,3 +1,4 @@
+using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Common.Models;
@@ -11,6 +12,7 @@ public sealed class Campaigns : IEndpointGroup
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetCampaigns);
+        groupBuilder.MapPost(CreateCampaign);
     }
 
     public static async Task<Ok<PaginatedResult<CampaignListItemDto>>> GetCampaigns(
@@ -29,5 +31,11 @@ public sealed class Campaigns : IEndpointGroup
         });
 
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<Created<Guid>> CreateCampaign(ISender sender, CreateCampaignCommand command)
+    {
+        var id = await sender.Send(command);
+        return TypedResults.Created($"/api/Campaigns/{id}", id);
     }
 }
