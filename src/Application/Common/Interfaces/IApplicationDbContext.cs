@@ -14,6 +14,10 @@ public interface IApplicationDbContext
 
     DbSet<DonorTagAssignment> DonorTagAssignments { get; }
 
+    DbSet<DonorPhone> DonorPhones { get; }
+
+    DbSet<DonorEmail> DonorEmails { get; }
+
     DbSet<Campaign> Campaigns { get; }
 
     DbSet<Donation> Donations { get; }

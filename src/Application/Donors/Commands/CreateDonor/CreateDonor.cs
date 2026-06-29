@@ -4,6 +4,10 @@ using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.Donors.Commands.CreateDonor;
 
+public sealed record DonorPhoneRequest(string TypeCode, string Number, bool IsPrimary);
+
+public sealed record DonorEmailRequest(string TypeCode, string Address, bool IsPrimary);
+
 public record CreateDonorCommand : IRequest<Guid>
 {
     public string FullName { get; init; } = string.Empty;
@@ -28,6 +32,8 @@ public record CreateDonorCommand : IRequest<Guid>
     public string? AssignedUserId { get; init; }
     public Guid? AcquisitionCampaignId { get; init; }
     public string? Notes { get; init; }
+    public IReadOnlyCollection<DonorPhoneRequest> Phones { get; init; } = [];
+    public IReadOnlyCollection<DonorEmailRequest> Emails { get; init; } = [];
     public IReadOnlyCollection<string> Tags { get; init; } = [];
 }
 
@@ -79,6 +85,8 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
             Notes = request.Notes?.Trim(),
         };
 
+        await ApplyContactsAsync(donor, request, organizationId, cancellationToken);
+
         foreach (var tagName in request.Tags.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var normalizedTag = tagName.ToLower();
@@ -110,5 +118,51 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
         await _context.SaveChangesAsync(cancellationToken);
 
         return donor.Id;
+    }
+
+    private async Task ApplyContactsAsync(Donor donor, CreateDonorCommand request, Guid organizationId, CancellationToken cancellationToken)
+    {
+        var phones = request.Phones.Count > 0
+            ? request.Phones
+            : string.IsNullOrWhiteSpace(request.Phone)
+                ? []
+                : [new DonorPhoneRequest(string.IsNullOrWhiteSpace(request.WhatsApp) ? "Mobile" : "WhatsApp", request.Phone, true)];
+        var emails = request.Emails.Count > 0
+            ? request.Emails
+            : string.IsNullOrWhiteSpace(request.Email)
+                ? []
+                : [new DonorEmailRequest("Personal", request.Email, true)];
+
+        var phoneIndex = 0;
+        foreach (var phone in phones.Where(phone => !string.IsNullOrWhiteSpace(phone.Number)))
+        {
+            var typeCode = string.IsNullOrWhiteSpace(phone.TypeCode) ? "Mobile" : phone.TypeCode;
+            donor.Phones.Add(new DonorPhone
+            {
+                OrganizationId = organizationId,
+                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "PhoneType", typeCode, cancellationToken),
+                Number = phone.Number.Trim(),
+                IsPrimary = phone.IsPrimary || phoneIndex == 0,
+            });
+            phoneIndex++;
+        }
+
+        var emailIndex = 0;
+        foreach (var email in emails.Where(email => !string.IsNullOrWhiteSpace(email.Address)))
+        {
+            var typeCode = string.IsNullOrWhiteSpace(email.TypeCode) ? "Personal" : email.TypeCode;
+            donor.Emails.Add(new DonorEmail
+            {
+                OrganizationId = organizationId,
+                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "EmailType", typeCode, cancellationToken),
+                Address = email.Address.Trim(),
+                IsPrimary = email.IsPrimary || emailIndex == 0,
+            });
+            emailIndex++;
+        }
+
+        donor.Phone = donor.Phones.OrderByDescending(phone => phone.IsPrimary).Select(phone => phone.Number).FirstOrDefault();
+        donor.WhatsApp = phones.FirstOrDefault(phone => phone.TypeCode == "WhatsApp")?.Number?.Trim() ?? donor.Phone;
+        donor.Email = donor.Emails.OrderByDescending(email => email.IsPrimary).Select(email => email.Address).FirstOrDefault();
     }
 }

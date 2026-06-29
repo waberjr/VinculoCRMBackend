@@ -26,6 +26,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<DonorTagAssignment> DonorTagAssignments => Set<DonorTagAssignment>();
 
+    public DbSet<DonorPhone> DonorPhones => Set<DonorPhone>();
+
+    public DbSet<DonorEmail> DonorEmails => Set<DonorEmail>();
+
     public DbSet<Campaign> Campaigns => Set<Campaign>();
 
     public DbSet<Donation> Donations => Set<Donation>();
@@ -48,6 +52,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<Donor>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
         builder.Entity<DonorTag>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
         builder.Entity<DonorTagAssignment>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
+        builder.Entity<DonorPhone>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
+        builder.Entity<DonorEmail>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
         builder.Entity<Campaign>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
         builder.Entity<Donation>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
         builder.Entity<DonationPlan>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);

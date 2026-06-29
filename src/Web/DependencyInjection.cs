@@ -18,7 +18,6 @@ public static class DependencyInjection
         builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
 
         builder.Services.AddHttpContextAccessor();
-
         builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
 
         // Customise default API behaviour

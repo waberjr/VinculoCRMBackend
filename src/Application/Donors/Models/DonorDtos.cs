@@ -8,6 +8,24 @@ public sealed class DonorTagDto
     public string Name { get; init; } = string.Empty;
 }
 
+public sealed class DonorPhoneDto
+{
+    public Guid? Id { get; init; }
+    public OptionDto? Type { get; init; }
+    public string TypeCode { get; init; } = string.Empty;
+    public string Number { get; init; } = string.Empty;
+    public bool IsPrimary { get; init; }
+}
+
+public sealed class DonorEmailDto
+{
+    public Guid? Id { get; init; }
+    public OptionDto? Type { get; init; }
+    public string TypeCode { get; init; } = string.Empty;
+    public string Address { get; init; } = string.Empty;
+    public bool IsPrimary { get; init; }
+}
+
 public class DonorListItemDto
 {
     public Guid Id { get; init; }
@@ -21,6 +39,10 @@ public class DonorListItemDto
     public bool DoNotContact { get; init; }
     public OptionDto Status { get; init; } = new();
     public OptionDto? RelationshipProfile { get; init; }
+    public Guid? AcquisitionCampaignId { get; init; }
+    public string? AcquisitionCampaignName { get; init; }
+    public IReadOnlyCollection<DonorPhoneDto> Phones { get; init; } = [];
+    public IReadOnlyCollection<DonorEmailDto> Emails { get; init; } = [];
     public IReadOnlyCollection<DonorTagDto> Tags { get; init; } = [];
     public decimal TotalDonated { get; init; }
     public DateTimeOffset? LastDonationAtUtc { get; init; }

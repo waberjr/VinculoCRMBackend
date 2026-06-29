@@ -30,5 +30,7 @@ public class Donor : OrganizationEntity
     public Guid? AcquisitionCampaignId { get; set; }
     public Campaign? AcquisitionCampaign { get; set; }
     public string? Notes { get; set; }
+    public ICollection<DonorPhone> Phones { get; } = new List<DonorPhone>();
+    public ICollection<DonorEmail> Emails { get; } = new List<DonorEmail>();
     public ICollection<DonorTagAssignment> TagAssignments { get; } = new List<DonorTagAssignment>();
 }

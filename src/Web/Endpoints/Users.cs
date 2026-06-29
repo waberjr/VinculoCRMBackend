@@ -15,6 +15,7 @@ public sealed class Users : IEndpointGroup
     {
         groupBuilder.MapPost(Login, "login");
         groupBuilder.MapGet(Me, "me").RequireAuthorization();
+        groupBuilder.MapGet(Attendants, "attendants").RequireAuthorization();
         groupBuilder.MapPost(Logout, "logout").RequireAuthorization();
     }
 
@@ -28,6 +29,8 @@ public sealed class Users : IEndpointGroup
         string Email,
         string Role,
         CurrentOrganizationResponse Organization);
+
+    public sealed record AttendantResponse(string Id, string DisplayName, string Email);
 
     [EndpointSummary("Log in")]
     [EndpointDescription("Authenticates a user and returns a bearer token response.")]
@@ -92,6 +95,32 @@ public sealed class Users : IEndpointGroup
             organization);
 
         return TypedResults.Ok(response);
+    }
+
+    [EndpointSummary("Attendants")]
+    [EndpointDescription("Returns active users from the current organization for assignment fields.")]
+    public static async Task<Results<Ok<IReadOnlyCollection<AttendantResponse>>, UnauthorizedHttpResult>> Attendants(
+        ClaimsPrincipal principal,
+        UserManager<ApplicationUser> userManager)
+    {
+        var currentUser = await userManager.GetUserAsync(principal);
+        if (currentUser?.OrganizationId is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var users = await userManager.Users
+            .AsNoTracking()
+            .Where(user => user.OrganizationId == currentUser.OrganizationId && user.IsActive)
+            .OrderBy(user => user.DisplayName)
+            .ThenBy(user => user.Email)
+            .Select(user => new AttendantResponse(
+                user.Id,
+                string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuario" : user.DisplayName,
+                user.Email ?? string.Empty))
+            .ToListAsync();
+
+        return TypedResults.Ok<IReadOnlyCollection<AttendantResponse>>(users);
     }
 
     [EndpointSummary("Log out")]

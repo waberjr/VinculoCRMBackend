@@ -35,6 +35,9 @@ public class ApplicationDbContextInitialiser
     private static readonly Guid RelationshipNewId = Guid.Parse("11111111-1111-1111-1111-000000000021");
     private static readonly Guid RelationshipRecurringId = Guid.Parse("11111111-1111-1111-1111-000000000022");
     private static readonly Guid RelationshipMajorId = Guid.Parse("11111111-1111-1111-1111-000000000023");
+    private static readonly Guid RelationshipLapsedId = Guid.Parse("11111111-1111-1111-1111-000000000024");
+    private static readonly Guid RelationshipReactivatedId = Guid.Parse("11111111-1111-1111-1111-000000000025");
+    private static readonly Guid RelationshipProspectId = Guid.Parse("11111111-1111-1111-1111-000000000026");
     private static readonly Guid SourceManualId = Guid.Parse("11111111-1111-1111-1111-000000000031");
     private static readonly Guid SourceReferralId = Guid.Parse("11111111-1111-1111-1111-000000000032");
     private static readonly Guid SourcePhoneId = Guid.Parse("11111111-1111-1111-1111-000000000033");
@@ -111,6 +114,13 @@ public class ApplicationDbContextInitialiser
     private static readonly Guid TimelineTypeDonationId = Guid.Parse("11111111-1111-1111-1111-000000000162");
     private static readonly Guid TimelineTypeTaskId = Guid.Parse("11111111-1111-1111-1111-000000000163");
     private static readonly Guid TimelineTypeContactId = Guid.Parse("11111111-1111-1111-1111-000000000164");
+    private static readonly Guid PhoneTypeMobileId = Guid.Parse("11111111-1111-1111-1111-000000000171");
+    private static readonly Guid PhoneTypeWhatsAppId = Guid.Parse("11111111-1111-1111-1111-000000000172");
+    private static readonly Guid PhoneTypeHomeId = Guid.Parse("11111111-1111-1111-1111-000000000173");
+    private static readonly Guid PhoneTypeWorkId = Guid.Parse("11111111-1111-1111-1111-000000000174");
+    private static readonly Guid EmailTypePersonalId = Guid.Parse("11111111-1111-1111-1111-000000000175");
+    private static readonly Guid EmailTypeWorkId = Guid.Parse("11111111-1111-1111-1111-000000000176");
+    private static readonly Guid EmailTypeBillingId = Guid.Parse("11111111-1111-1111-1111-000000000177");
     private static readonly Guid TagRecurringId = Guid.Parse("11111111-1111-1111-1111-000000000201");
     private static readonly Guid TagMajorId = Guid.Parse("11111111-1111-1111-1111-000000000202");
     private static readonly Guid DonorAnaId = Guid.Parse("11111111-1111-1111-1111-000000001001");
@@ -241,6 +251,9 @@ public class ApplicationDbContextInitialiser
             Option(RelationshipNewId, "RelationshipProfile", "New", "Novo", 1),
             Option(RelationshipRecurringId, "RelationshipProfile", "Recurring", "Recorrente", 2),
             Option(RelationshipMajorId, "RelationshipProfile", "Major", "Grande doador", 3),
+            Option(RelationshipLapsedId, "RelationshipProfile", "Lapsed", "Inativo", 4),
+            Option(RelationshipReactivatedId, "RelationshipProfile", "Reactivated", "Reativado", 5),
+            Option(RelationshipProspectId, "RelationshipProfile", "Prospect", "Prospect", 6),
             Option(SourceManualId, "DonorSource", "Manual", "Manual", 1),
             Option(SourceReferralId, "DonorSource", "Referral", "Indicacao", 2),
             Option(SourcePhoneId, "DonorSource", "Phone", "Telefone", 3),
@@ -317,6 +330,13 @@ public class ApplicationDbContextInitialiser
             Option(TimelineTypeDonationId, "TimelineType", "Donation", "Contribuicao", 2, "green"),
             Option(TimelineTypeTaskId, "TimelineType", "Task", "Tarefa", 3, "blue"),
             Option(TimelineTypeContactId, "TimelineType", "Contact", "Contato", 4, "yellow"),
+            Option(PhoneTypeMobileId, "PhoneType", "Mobile", "Celular", 1),
+            Option(PhoneTypeWhatsAppId, "PhoneType", "WhatsApp", "WhatsApp", 2),
+            Option(PhoneTypeHomeId, "PhoneType", "Home", "Residencial", 3),
+            Option(PhoneTypeWorkId, "PhoneType", "Work", "Comercial", 4),
+            Option(EmailTypePersonalId, "EmailType", "Personal", "Pessoal", 1),
+            Option(EmailTypeWorkId, "EmailType", "Work", "Comercial", 2),
+            Option(EmailTypeBillingId, "EmailType", "Billing", "Cobranca", 3),
         };
 
         var existingIds = await _context.ConfigurableOptions
@@ -423,7 +443,7 @@ public class ApplicationDbContextInitialiser
 
         if (!existingIds.Contains(DonorCarlosId))
         {
-            _context.Donors.Add(new Donor
+            var donor = new Donor
             {
                 Id = DonorCarlosId,
                 OrganizationId = DemoOrganizationId,
@@ -438,7 +458,8 @@ public class ApplicationDbContextInitialiser
                 RelationshipProfileOptionId = RelationshipNewId,
                 PreferredContactChannelOptionId = ChannelPhoneId,
                 AssignedUserId = "administrator@localhost",
-            });
+            };
+            _context.Donors.Add(donor);
         }
 
         if (!existingIds.Contains(DonorCompanyId))

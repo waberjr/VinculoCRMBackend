@@ -2,6 +2,7 @@
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Infrastructure.Data.Interceptors;
 using VinculoBackend.Infrastructure.Identity;
+using VinculoBackend.Infrastructure.Locations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -32,6 +33,10 @@ public static class DependencyInjection
         builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
         builder.Services.AddScoped<ApplicationDbContextInitialiser>();
+        builder.Services.AddHttpClient<ILocationLookupService, IbgeLocationLookupService>(client =>
+        {
+            client.BaseAddress = new Uri("https://servicodados.ibge.gov.br/api/v1/");
+        });
 
         builder.Services.AddAuthentication()
             .AddBearerToken(IdentityConstants.BearerScheme);

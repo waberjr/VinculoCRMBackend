@@ -14,6 +14,16 @@ public sealed class CreateDonorCommandValidator : AbstractValidator<CreateDonorC
         RuleFor(v => v.Email).MaximumLength(254).EmailAddress().When(v => !string.IsNullOrWhiteSpace(v.Email));
         RuleFor(v => v.Phone).MaximumLength(32);
         RuleFor(v => v.WhatsApp).MaximumLength(32);
+        RuleForEach(v => v.Phones).ChildRules(phone =>
+        {
+            phone.RuleFor(v => v.TypeCode).NotEmpty().MaximumLength(80);
+            phone.RuleFor(v => v.Number).NotEmpty().MaximumLength(32);
+        });
+        RuleForEach(v => v.Emails).ChildRules(email =>
+        {
+            email.RuleFor(v => v.TypeCode).NotEmpty().MaximumLength(80);
+            email.RuleFor(v => v.Address).NotEmpty().MaximumLength(254).EmailAddress();
+        });
         RuleFor(v => v.City).MaximumLength(120);
         RuleFor(v => v.State).MaximumLength(2);
         RuleFor(v => v.AddressLine1).MaximumLength(250);
