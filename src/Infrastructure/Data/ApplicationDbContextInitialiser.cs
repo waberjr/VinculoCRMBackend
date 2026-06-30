@@ -192,7 +192,7 @@ public class ApplicationDbContextInitialiser
             {
                 UserName = "administrator@localhost",
                 Email = "administrator@localhost",
-                DisplayName = "Marina Alves",
+                DisplayName = "Administrator",
                 OrganizationId = DemoOrganizationId,
                 EmailConfirmed = true,
             };
@@ -206,7 +206,7 @@ public class ApplicationDbContextInitialiser
         else
         {
             administrator.DisplayName = string.IsNullOrWhiteSpace(administrator.DisplayName)
-                ? "Marina Alves"
+                ? "Administrator"
                 : administrator.DisplayName;
             administrator.OrganizationId ??= DemoOrganizationId;
             administrator.EmailConfirmed = true;

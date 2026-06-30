@@ -27,14 +27,16 @@ if (app.Environment.IsDevelopment())
     await app.InitialiseDatabaseAsync();
 }
 
-app.UseCors("FrontendCorsPolicy");
-
 app.UseFileServer();
 
 app.MapOpenApi();
 app.MapScalarApiReference();
 
 app.UseExceptionHandler(options => { });
+app.UseRouting();
+app.UseCors("FrontendCorsPolicy");
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.Map("/", () => Results.Redirect("/scalar"));
 

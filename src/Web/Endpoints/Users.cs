@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace VinculoBackend.Web.Endpoints;
 
@@ -14,12 +15,15 @@ public sealed class Users : IEndpointGroup
     public static void Map(RouteGroupBuilder groupBuilder)
     {
         groupBuilder.MapPost(Login, "login");
+        groupBuilder.MapPost(Refresh, "refresh");
         groupBuilder.MapGet(Me, "me").RequireAuthorization();
         groupBuilder.MapGet(Attendants, "attendants").RequireAuthorization();
         groupBuilder.MapPost(Logout, "logout").RequireAuthorization();
     }
 
     public sealed record LoginRequest(string Email, string Password);
+
+    public sealed record RefreshRequest(string RefreshToken);
 
     public sealed record CurrentOrganizationResponse(Guid Id, string Name, decimal? DefaultMonthlyGoal);
 
@@ -51,6 +55,38 @@ public sealed class Users : IEndpointGroup
             : TypedResults.Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
                 title: "Invalid credentials.");
+    }
+
+    [EndpointSummary("Refresh token")]
+    [EndpointDescription("Returns a new bearer token response using a valid refresh token.")]
+    public static async Task<Results<SignInHttpResult, UnauthorizedHttpResult>> Refresh(
+        SignInManager<ApplicationUser> signInManager,
+        IOptionsMonitor<BearerTokenOptions> bearerTokenOptions,
+        TimeProvider timeProvider,
+        [FromBody] RefreshRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var options = bearerTokenOptions.Get(IdentityConstants.BearerScheme);
+        var refreshTicket = options.RefreshTokenProtector.Unprotect(request.RefreshToken);
+
+        if (refreshTicket?.Properties?.ExpiresUtc is not { } expiresUtc ||
+            timeProvider.GetUtcNow() >= expiresUtc)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var user = await signInManager.ValidateSecurityStampAsync(refreshTicket.Principal);
+        if (user is null || !user.IsActive)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var principal = await signInManager.CreateUserPrincipalAsync(user);
+        return TypedResults.SignIn(principal, authenticationScheme: IdentityConstants.BearerScheme);
     }
 
     [EndpointSummary("Current user")]
