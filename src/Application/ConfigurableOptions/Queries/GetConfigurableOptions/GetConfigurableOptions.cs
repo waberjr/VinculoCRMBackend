@@ -1,9 +1,10 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.ConfigurableOptions.Queries.GetConfigurableOptions;
 
-public record GetConfigurableOptionsQuery(string? Category = null, bool IncludeInactive = false) : IRequest<IReadOnlyCollection<OptionDto>>;
+public record GetConfigurableOptionsQuery(ConfigurableOptionCategory? Category = null, bool IncludeInactive = false) : IRequest<IReadOnlyCollection<OptionDto>>;
 
 public sealed class GetConfigurableOptionsQueryHandler : IRequestHandler<GetConfigurableOptionsQuery, IReadOnlyCollection<OptionDto>>
 {
@@ -22,9 +23,10 @@ public sealed class GetConfigurableOptionsQueryHandler : IRequestHandler<GetConf
 
         var query = _context.ConfigurableOptions.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(request.Category))
+        if (request.Category is not null)
         {
-            query = query.Where(option => option.Category == request.Category);
+            var category = request.Category.Value.ToString();
+            query = query.Where(option => option.Category == category);
         }
 
         if (!request.IncludeInactive)

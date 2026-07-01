@@ -39,8 +39,9 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             : await OptionLookup.RequiredIdAsync(_context, "ContactOutcome", request.Outcome, cancellationToken);
         task.CompletedAtUtc = DateTimeOffset.UtcNow;
         task.CompletionNote = request.CompletionNote?.Trim();
+        var outcomeCode = string.IsNullOrWhiteSpace(request.Outcome) ? null : ConfigurableOptionCode.FromName(request.Outcome);
 
-        if (request.Outcome == "DoNotContact")
+        if (outcomeCode == "do-not-contact")
         {
             var donor = await _context.Donors.FirstOrDefaultAsync(entity => entity.Id == task.DonorId, cancellationToken);
             if (donor is not null)
@@ -52,7 +53,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             }
         }
 
-        if (request.Outcome == "RequestedCallback" && request.FollowUpAtUtc is not null)
+        if (outcomeCode == "requested-callback" && request.FollowUpAtUtc is not null)
         {
             _context.RelationshipTasks.Add(new RelationshipTask
             {

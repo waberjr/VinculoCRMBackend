@@ -1,14 +1,15 @@
+using FluentValidation.Results;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.ConfigurableOptions.Commands.UpdateConfigurableOption;
 
 public record UpdateConfigurableOptionCommand : IRequest
 {
     public Guid Id { get; init; }
-    public string Category { get; init; } = string.Empty;
-    public string Code { get; init; } = string.Empty;
+    public ConfigurableOptionCategory Category { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? Color { get; init; }
@@ -29,7 +30,7 @@ public sealed class UpdateConfigurableOptionCommandHandler : IRequestHandler<Upd
 
     public async Task Handle(UpdateConfigurableOptionCommand request, CancellationToken cancellationToken)
     {
-        _ = RequiredOrganization.From(_organizationContext);
+        var organizationId = RequiredOrganization.From(_organizationContext);
 
         var entity = await _context.ConfigurableOptions.FirstOrDefaultAsync(option => option.Id == request.Id, cancellationToken);
         if (entity is null)
@@ -37,14 +38,56 @@ public sealed class UpdateConfigurableOptionCommandHandler : IRequestHandler<Upd
             throw new Common.Exceptions.NotFoundException(nameof(ConfigurableOptions), request.Id.ToString());
         }
 
-        entity.Category = request.Category.Trim();
-        entity.Code = request.Code.Trim();
-        entity.Name = request.Name.Trim();
+        var category = request.Category.ToString();
+        var name = request.Name.Trim();
+        var nameAlreadyExists = await _context.ConfigurableOptions
+            .IgnoreQueryFilters()
+            .AnyAsync(option =>
+                option.Id != request.Id &&
+                option.OrganizationId == organizationId &&
+                option.Category == category &&
+                option.Name.ToLower() == name.ToLower(),
+                cancellationToken);
+
+        if (nameAlreadyExists)
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(request.Name), "Ja existe uma opcao com este nome para a categoria.")
+            ]);
+        }
+
+        if (entity.IsSystem && entity.Category != category)
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(request.Category), "Nao e possivel alterar a categoria de uma opcao do sistema.")
+            ]);
+        }
+
+        entity.Category = category;
+        if (!entity.IsSystem)
+        {
+            entity.Code = await CreateUniqueCodeAsync(organizationId, category, name, request.Id, cancellationToken);
+        }
+
+        entity.Name = name;
         entity.Description = request.Description?.Trim();
         entity.Color = request.Color?.Trim();
         entity.SortOrder = request.SortOrder;
         entity.IsActive = request.IsActive;
 
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task<string> CreateUniqueCodeAsync(Guid organizationId, string category, string name, Guid currentOptionId, CancellationToken cancellationToken)
+    {
+        var existingCodes = await _context.ConfigurableOptions
+            .IgnoreQueryFilters()
+            .Where(option => option.Id != currentOptionId && option.OrganizationId == organizationId && option.Category == category)
+            .Select(option => option.Code)
+            .ToListAsync(cancellationToken);
+
+        return ConfigurableOptionCode.CreateUnique(name, existingCodes);
     }
 }

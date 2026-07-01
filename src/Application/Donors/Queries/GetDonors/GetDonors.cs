@@ -227,16 +227,16 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
     {
         return segment switch
         {
-            "Inactive" => query.Where(donor => donor.StatusOption.Code == "Inactive"),
-            "AtRisk" => query.Where(donor => donor.StatusOption.Code == "AtRisk"),
+            "Inactive" => query.Where(donor => donor.StatusOption.Code == "inactive"),
+            "AtRisk" => query.Where(donor => donor.StatusOption.Code == "at-risk"),
             "LeadsWithoutDonation" => query.Where(donor =>
-                donor.StatusOption.Code == "Lead" &&
+                donor.StatusOption.Code == "lead" &&
                 !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
             "NewDonors" => query.Where(donor => _context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
             "NoRecentContact" => query.Where(donor =>
                 !_context.RelationshipTasks.Any(task =>
                     task.DonorId == donor.Id &&
-                    (task.StatusOption.Code == "Open" || task.StatusOption.Code == "InProgress"))),
+                    (task.StatusOption.Code == "open" || task.StatusOption.Code == "in-progress"))),
             _ => query,
         };
     }

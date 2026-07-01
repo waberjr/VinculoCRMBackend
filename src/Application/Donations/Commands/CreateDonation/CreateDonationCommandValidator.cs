@@ -1,3 +1,5 @@
+using VinculoBackend.Application.Common.Models;
+
 namespace VinculoBackend.Application.Donations.Commands.CreateDonation;
 
 public sealed class CreateDonationCommandValidator : AbstractValidator<CreateDonationCommand>
@@ -14,11 +16,11 @@ public sealed class CreateDonationCommandValidator : AbstractValidator<CreateDon
         RuleFor(v => v.Notes).MaximumLength(1000);
         RuleFor(v => v.PaidAtUtc)
             .NotNull()
-            .When(v => v.Status == "Confirmed")
+            .When(v => ConfigurableOptionCode.FromName(v.Status) == "confirmed")
             .WithMessage("A data de pagamento e obrigatoria para contribuicoes confirmadas.");
         RuleFor(v => v.ExpectedAtUtc)
             .NotNull()
-            .When(v => v.Status == "Pending")
+            .When(v => ConfigurableOptionCode.FromName(v.Status) == "pending")
             .WithMessage("A data esperada e obrigatoria para contribuicoes pendentes.");
     }
 }

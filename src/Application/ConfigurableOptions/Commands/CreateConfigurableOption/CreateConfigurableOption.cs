@@ -1,13 +1,14 @@
+using FluentValidation.Results;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.ConfigurableOptions.Commands.CreateConfigurableOption;
 
 public record CreateConfigurableOptionCommand : IRequest<Guid>
 {
-    public string Category { get; init; } = string.Empty;
-    public string Code { get; init; } = string.Empty;
+    public ConfigurableOptionCategory Category { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? Color { get; init; }
@@ -28,13 +29,33 @@ public sealed class CreateConfigurableOptionCommandHandler : IRequestHandler<Cre
     public async Task<Guid> Handle(CreateConfigurableOptionCommand request, CancellationToken cancellationToken)
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
+        var category = request.Category.ToString();
+        var name = request.Name.Trim();
+
+        var nameAlreadyExists = await _context.ConfigurableOptions
+            .IgnoreQueryFilters()
+            .AnyAsync(option =>
+                option.OrganizationId == organizationId &&
+                option.Category == category &&
+                option.Name.ToLower() == name.ToLower(),
+                cancellationToken);
+
+        if (nameAlreadyExists)
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(request.Name), "Ja existe uma opcao com este nome para a categoria.")
+            ]);
+        }
+
+        var code = await CreateUniqueCodeAsync(organizationId, category, name, cancellationToken);
 
         var entity = new ConfigurableOption
         {
             OrganizationId = organizationId,
-            Category = request.Category.Trim(),
-            Code = request.Code.Trim(),
-            Name = request.Name.Trim(),
+            Category = category,
+            Code = code,
+            Name = name,
             Description = request.Description?.Trim(),
             Color = request.Color?.Trim(),
             SortOrder = request.SortOrder,
@@ -44,5 +65,16 @@ public sealed class CreateConfigurableOptionCommandHandler : IRequestHandler<Cre
         await _context.SaveChangesAsync(cancellationToken);
 
         return entity.Id;
+    }
+
+    private async Task<string> CreateUniqueCodeAsync(Guid organizationId, string category, string name, CancellationToken cancellationToken)
+    {
+        var existingCodes = await _context.ConfigurableOptions
+            .IgnoreQueryFilters()
+            .Where(option => option.OrganizationId == organizationId && option.Category == category)
+            .Select(option => option.Code)
+            .ToListAsync(cancellationToken);
+
+        return ConfigurableOptionCode.CreateUnique(name, existingCodes);
     }
 }

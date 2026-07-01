@@ -3,6 +3,7 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json.Serialization;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,8 @@ public static class DependencyInjection
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();
+        builder.Services.ConfigureHttpJsonOptions(options =>
+            options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
         // Customise default API behaviour
         builder.Services.Configure<ApiBehaviorOptions>(options =>

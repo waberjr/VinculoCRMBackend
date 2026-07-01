@@ -11,9 +11,10 @@ public static class OptionLookup
         string code,
         CancellationToken cancellationToken)
     {
+        var normalizedCode = ConfigurableOptionCode.FromName(code);
         var optionId = await context.ConfigurableOptions
             .AsNoTracking()
-            .Where(option => option.Category == category && option.Code == code && option.IsActive)
+            .Where(option => option.Category == category && option.Code == normalizedCode && option.IsActive)
             .Select(option => (Guid?)option.Id)
             .FirstOrDefaultAsync(cancellationToken);
 

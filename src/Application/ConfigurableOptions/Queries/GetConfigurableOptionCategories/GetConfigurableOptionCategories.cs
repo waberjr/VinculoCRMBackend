@@ -1,5 +1,6 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.ConfigurableOptions.Queries.GetConfigurableOptionCategories;
 
@@ -9,25 +10,25 @@ public sealed class GetConfigurableOptionCategoriesQueryHandler : IRequestHandle
 {
     private static readonly IReadOnlyCollection<OptionCategoryDto> EditableCategories =
     [
-        Category("DonorPersonType", "Tipo de pessoa", 10),
-        Category("DonorStatus", "Status de doador", 20),
-        Category("RelationshipProfile", "Perfil de relacionamento", 30),
-        Category("DonorSource", "Origem do doador", 40),
-        Category("ContactChannel", "Canal de contato", 50),
-        Category("PhoneType", "Tipo de telefone", 60),
-        Category("EmailType", "Tipo de e-mail", 70),
-        Category("DonationType", "Tipo de contribuicao", 80),
-        Category("DonationStatus", "Status de contribuicao", 90),
-        Category("PaymentMethod", "Forma de pagamento", 100),
-        Category("DonationPlanStatus", "Status de recorrencia", 110),
-        Category("CampaignType", "Tipo de campanha", 120),
-        Category("CampaignStatus", "Status de campanha", 130),
-        Category("CampaignChannel", "Canal de campanha", 140),
-        Category("TaskType", "Tipo de tarefa", 150),
-        Category("TaskPriority", "Prioridade de tarefa", 160),
-        Category("TaskStatus", "Status de tarefa", 170),
-        Category("ContactOutcome", "Resultado de contato", 180),
-        Category("TimelineType", "Tipo de historico", 190),
+        Category(ConfigurableOptionCategory.DonorPersonType, "Tipo de pessoa", 10),
+        Category(ConfigurableOptionCategory.DonorStatus, "Status de doador", 20),
+        Category(ConfigurableOptionCategory.RelationshipProfile, "Perfil de relacionamento", 30),
+        Category(ConfigurableOptionCategory.DonorSource, "Origem do doador", 40),
+        Category(ConfigurableOptionCategory.ContactChannel, "Canal de contato", 50),
+        Category(ConfigurableOptionCategory.PhoneType, "Tipo de telefone", 60),
+        Category(ConfigurableOptionCategory.EmailType, "Tipo de e-mail", 70),
+        Category(ConfigurableOptionCategory.DonationType, "Tipo de contribuicao", 80),
+        Category(ConfigurableOptionCategory.DonationStatus, "Status de contribuicao", 90),
+        Category(ConfigurableOptionCategory.PaymentMethod, "Forma de pagamento", 100),
+        Category(ConfigurableOptionCategory.DonationPlanStatus, "Status de recorrencia", 110),
+        Category(ConfigurableOptionCategory.CampaignType, "Tipo de campanha", 120),
+        Category(ConfigurableOptionCategory.CampaignStatus, "Status de campanha", 130),
+        Category(ConfigurableOptionCategory.CampaignChannel, "Canal de campanha", 140),
+        Category(ConfigurableOptionCategory.TaskType, "Tipo de tarefa", 150),
+        Category(ConfigurableOptionCategory.TaskPriority, "Prioridade de tarefa", 160),
+        Category(ConfigurableOptionCategory.TaskStatus, "Status de tarefa", 170),
+        Category(ConfigurableOptionCategory.ContactOutcome, "Resultado de contato", 180),
+        Category(ConfigurableOptionCategory.TimelineType, "Tipo de historico", 190),
     ];
 
     private readonly IApplicationDbContext _context;
@@ -56,11 +57,11 @@ public sealed class GetConfigurableOptionCategoriesQueryHandler : IRequestHandle
             .ToList();
     }
 
-    private static OptionCategoryDto Category(string code, string name, int sortOrder)
+    private static OptionCategoryDto Category(ConfigurableOptionCategory category, string name, int sortOrder)
     {
         return new OptionCategoryDto
         {
-            Code = code,
+            Code = category.ToString(),
             Name = name,
             SortOrder = sortOrder,
         };

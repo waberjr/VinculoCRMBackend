@@ -38,11 +38,11 @@ public sealed class GetDonorTimelineQueryHandler : IRequestHandler<GetDonorTimel
                 Title = entry.Title,
                 Description = entry.Description ?? string.Empty,
                 OccurredAt = entry.OccurredAtUtc,
-                Tone = entry.TypeOption.Code == "Donation"
+                Tone = entry.TypeOption.Code == "donation"
                     ? "green"
-                    : entry.TypeOption.Code == "Task"
+                    : entry.TypeOption.Code == "task"
                         ? "blue"
-                        : entry.TypeOption.Code == "Contact"
+                        : entry.TypeOption.Code == "contact"
                             ? "yellow"
                             : "neutral",
             })

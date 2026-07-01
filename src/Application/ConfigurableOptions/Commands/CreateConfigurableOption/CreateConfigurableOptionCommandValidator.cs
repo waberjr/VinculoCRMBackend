@@ -4,8 +4,7 @@ public sealed class CreateConfigurableOptionCommandValidator : AbstractValidator
 {
     public CreateConfigurableOptionCommandValidator()
     {
-        RuleFor(v => v.Category).NotEmpty().MaximumLength(80);
-        RuleFor(v => v.Code).NotEmpty().MaximumLength(80);
+        RuleFor(v => v.Category).IsInEnum();
         RuleFor(v => v.Name).NotEmpty().MaximumLength(120);
         RuleFor(v => v.Description).MaximumLength(500);
         RuleFor(v => v.Color).MaximumLength(32);

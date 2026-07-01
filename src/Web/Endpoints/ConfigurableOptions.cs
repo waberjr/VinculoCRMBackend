@@ -4,6 +4,7 @@ using VinculoBackend.Application.ConfigurableOptions.Commands.UpdateConfigurable
 using VinculoBackend.Application.ConfigurableOptions.Queries.GetConfigurableOptionCategories;
 using VinculoBackend.Application.ConfigurableOptions.Queries.GetConfigurableOptions;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Enums;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace VinculoBackend.Web.Endpoints;
@@ -29,7 +30,7 @@ public sealed class ConfigurableOptions : IEndpointGroup
 
     public static async Task<Ok<IReadOnlyCollection<OptionDto>>> GetConfigurableOptions(
         ISender sender,
-        string? category,
+        ConfigurableOptionCategory? category,
         bool includeInactive = false)
     {
         var result = await sender.Send(new GetConfigurableOptionsQuery(category, includeInactive));

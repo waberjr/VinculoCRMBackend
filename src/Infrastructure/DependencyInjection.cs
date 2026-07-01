@@ -3,6 +3,7 @@ using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Infrastructure.Data.Interceptors;
 using VinculoBackend.Infrastructure.Identity;
 using VinculoBackend.Infrastructure.Locations;
+using VinculoBackend.Infrastructure.Organizations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -51,5 +52,6 @@ public static class DependencyInjection
 
         builder.Services.AddSingleton(TimeProvider.System);
         builder.Services.AddTransient<IIdentityService, IdentityService>();
+        builder.Services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
     }
 }

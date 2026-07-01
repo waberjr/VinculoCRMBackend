@@ -174,7 +174,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         }
 
         donor.Phone = donor.Phones.OrderByDescending(phone => phone.IsPrimary).Select(phone => phone.Number).FirstOrDefault();
-        donor.WhatsApp = phones.FirstOrDefault(phone => phone.TypeCode == "WhatsApp")?.Number?.Trim() ?? donor.Phone;
+        donor.WhatsApp = phones.FirstOrDefault(phone => ConfigurableOptionCode.FromName(phone.TypeCode) == "whats-app")?.Number?.Trim() ?? donor.Phone;
         donor.Email = donor.Emails.OrderByDescending(email => email.IsPrimary).Select(email => email.Address).FirstOrDefault();
     }
 }

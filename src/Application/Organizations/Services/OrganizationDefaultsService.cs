@@ -1,5 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Organizations.Services;
 
@@ -17,12 +19,34 @@ public sealed class OrganizationDefaultsService : IOrganizationDefaultsService
         var existingOptions = await _context.ConfigurableOptions
             .IgnoreQueryFilters()
             .Where(option => option.OrganizationId == organizationId)
-            .Select(option => new { option.Category, option.Code })
             .ToListAsync(cancellationToken);
 
         foreach (var option in DefaultOptions())
         {
-            if (existingOptions.Any(existing => existing.Category == option.Category && existing.Code == option.Code))
+            var category = option.Category.ToString();
+            var existingCodes = existingOptions
+                .Where(existing => existing.Category == category)
+                .Select(existing => existing.Code)
+                .ToList();
+            var baseCode = ConfigurableOptionCode.FromName(option.Code);
+            if (existingCodes.Contains(baseCode, StringComparer.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var existingLegacyOption = existingOptions.FirstOrDefault(existing =>
+                existing.Category == category &&
+                string.Equals(existing.Code, option.Code, StringComparison.OrdinalIgnoreCase));
+
+            if (existingLegacyOption is not null)
+            {
+                existingLegacyOption.Code = baseCode;
+                continue;
+            }
+
+            var code = ConfigurableOptionCode.CreateUnique(option.Code, existingCodes);
+
+            if (existingCodes.Contains(code, StringComparer.OrdinalIgnoreCase))
             {
                 continue;
             }
@@ -30,13 +54,20 @@ public sealed class OrganizationDefaultsService : IOrganizationDefaultsService
             _context.ConfigurableOptions.Add(new ConfigurableOption
             {
                 OrganizationId = organizationId,
-                Category = option.Category,
-                Code = option.Code,
+                Category = category,
+                Code = code,
                 Name = option.Name,
                 Color = option.Color,
                 SortOrder = option.SortOrder,
                 IsSystem = true,
                 IsActive = true,
+            });
+
+            existingOptions.Add(new ConfigurableOption
+            {
+                OrganizationId = organizationId,
+                Category = category,
+                Code = code,
             });
         }
 
@@ -65,102 +96,102 @@ public sealed class OrganizationDefaultsService : IOrganizationDefaultsService
 
     private static IReadOnlyCollection<DefaultOption> DefaultOptions() =>
     [
-        Option("DonorPersonType", "Individual", "Pessoa fisica", 1),
-        Option("DonorPersonType", "Company", "Pessoa juridica", 2),
-        Option("DonorStatus", "Lead", "Lead", 1, "blue"),
-        Option("DonorStatus", "Active", "Ativo", 2, "green"),
-        Option("DonorStatus", "Inactive", "Inativo", 3, "neutral"),
-        Option("DonorStatus", "AtRisk", "Em risco", 4, "yellow"),
-        Option("DonorStatus", "DoNotContact", "Nao contatar", 5, "red"),
-        Option("RelationshipProfile", "New", "Novo", 1),
-        Option("RelationshipProfile", "Recurring", "Recorrente", 2),
-        Option("RelationshipProfile", "Major", "Grande doador", 3),
-        Option("RelationshipProfile", "Lapsed", "Inativo", 4),
-        Option("RelationshipProfile", "Reactivated", "Reativado", 5),
-        Option("RelationshipProfile", "Prospect", "Prospect", 6),
-        Option("DonorSource", "Manual", "Manual", 1),
-        Option("DonorSource", "Referral", "Indicacao", 2),
-        Option("DonorSource", "Phone", "Telefone", 3),
-        Option("DonorSource", "WhatsApp", "WhatsApp", 4),
-        Option("DonorSource", "Email", "E-mail", 5),
-        Option("DonorSource", "SocialMedia", "Redes sociais", 6),
-        Option("DonorSource", "Website", "Website", 7),
-        Option("DonorSource", "Event", "Evento", 8),
-        Option("DonorSource", "Import", "Importacao", 9),
-        Option("DonorSource", "Other", "Outro", 10),
-        Option("ContactChannel", "Phone", "Telefone", 1),
-        Option("ContactChannel", "WhatsApp", "WhatsApp", 2),
-        Option("ContactChannel", "Email", "E-mail", 3),
-        Option("ContactChannel", "Other", "Outro", 4),
-        Option("DonationType", "OneTime", "Pontual", 1),
-        Option("DonationType", "Recurring", "Recorrente", 2),
-        Option("DonationType", "Pledge", "Promessa", 3),
-        Option("DonationStatus", "Pending", "Pendente", 1, "yellow"),
-        Option("DonationStatus", "Confirmed", "Confirmada", 2, "green"),
-        Option("DonationStatus", "Overdue", "Vencida", 3, "red"),
-        Option("DonationStatus", "Cancelled", "Cancelada", 4),
-        Option("DonationStatus", "Refunded", "Estornada", 5, "yellow"),
-        Option("PaymentMethod", "Pix", "Pix", 1),
-        Option("PaymentMethod", "Boleto", "Boleto", 2),
-        Option("PaymentMethod", "CreditCard", "Cartao de credito", 3),
-        Option("PaymentMethod", "BankTransfer", "Transferencia bancaria", 4),
-        Option("PaymentMethod", "Cash", "Dinheiro", 5),
-        Option("PaymentMethod", "Other", "Outro", 6),
-        Option("TaskType", "Call", "Ligacao", 1),
-        Option("TaskType", "WhatsApp", "WhatsApp", 2),
-        Option("TaskType", "PaymentReminder", "Lembrete de pagamento", 3),
-        Option("TaskType", "Email", "E-mail", 4),
-        Option("TaskType", "FollowUp", "Follow-up", 5),
-        Option("TaskType", "ThankYou", "Agradecimento", 6),
-        Option("TaskType", "DataUpdate", "Atualizacao cadastral", 7),
-        Option("TaskType", "Other", "Outra", 8),
-        Option("TaskPriority", "Low", "Baixa", 1),
-        Option("TaskPriority", "Medium", "Media", 2),
-        Option("TaskPriority", "High", "Alta", 3),
-        Option("TaskPriority", "Urgent", "Urgente", 4),
-        Option("TaskStatus", "Open", "Aberta", 1, "blue"),
-        Option("TaskStatus", "InProgress", "Em andamento", 2, "yellow"),
-        Option("TaskStatus", "Completed", "Concluida", 3, "green"),
-        Option("TaskStatus", "Cancelled", "Cancelada", 4),
-        Option("ContactOutcome", "Reached", "Contato realizado", 1),
-        Option("ContactOutcome", "NoAnswer", "Nao atendeu", 2),
-        Option("ContactOutcome", "InvalidContact", "Contato invalido", 3),
-        Option("ContactOutcome", "RequestedCallback", "Retorno solicitado", 4),
-        Option("ContactOutcome", "DonationConfirmed", "Doacao confirmada", 5),
-        Option("ContactOutcome", "NotInterested", "Sem interesse", 6),
-        Option("ContactOutcome", "DoNotContact", "Nao contatar", 7),
-        Option("ContactOutcome", "Other", "Outro", 8),
-        Option("CampaignType", "Acquisition", "Captacao", 1),
-        Option("CampaignType", "Fundraising", "Captacao", 2),
-        Option("CampaignType", "Retention", "Retencao", 3),
-        Option("CampaignType", "Reactivation", "Reativacao", 4),
-        Option("CampaignType", "Emergency", "Emergencial", 5),
-        Option("CampaignType", "Other", "Outra", 6),
-        Option("CampaignStatus", "Draft", "Rascunho", 1),
-        Option("CampaignStatus", "Active", "Ativa", 2),
-        Option("CampaignStatus", "Completed", "Concluida", 3),
-        Option("CampaignStatus", "Cancelled", "Cancelada", 4),
-        Option("CampaignChannel", "Mixed", "Multicanal", 1),
-        Option("CampaignChannel", "Phone", "Telefone", 2),
-        Option("CampaignChannel", "WhatsApp", "WhatsApp", 3),
-        Option("CampaignChannel", "Email", "E-mail", 4),
-        Option("CampaignChannel", "SocialMedia", "Redes sociais", 5),
-        Option("CampaignChannel", "InPerson", "Presencial", 6),
-        Option("CampaignChannel", "Other", "Outro", 7),
-        Option("DonationPlanStatus", "Active", "Ativa", 1, "green"),
-        Option("DonationPlanStatus", "Paused", "Pausada", 2, "yellow"),
-        Option("DonationPlanStatus", "Cancelled", "Cancelada", 3),
-        Option("TimelineType", "Note", "Nota", 1),
-        Option("TimelineType", "Donation", "Contribuicao", 2, "green"),
-        Option("TimelineType", "Task", "Tarefa", 3, "blue"),
-        Option("TimelineType", "Contact", "Contato", 4, "yellow"),
-        Option("PhoneType", "Mobile", "Celular", 1),
-        Option("PhoneType", "WhatsApp", "WhatsApp", 2),
-        Option("PhoneType", "Home", "Residencial", 3),
-        Option("PhoneType", "Work", "Comercial", 4),
-        Option("EmailType", "Personal", "Pessoal", 1),
-        Option("EmailType", "Work", "Comercial", 2),
-        Option("EmailType", "Billing", "Cobranca", 3),
+        Option(ConfigurableOptionCategory.DonorPersonType, "Individual", "Pessoa fisica", 1),
+        Option(ConfigurableOptionCategory.DonorPersonType, "Company", "Pessoa juridica", 2),
+        Option(ConfigurableOptionCategory.DonorStatus, "Lead", "Lead", 1, "blue"),
+        Option(ConfigurableOptionCategory.DonorStatus, "Active", "Ativo", 2, "green"),
+        Option(ConfigurableOptionCategory.DonorStatus, "Inactive", "Inativo", 3, "neutral"),
+        Option(ConfigurableOptionCategory.DonorStatus, "AtRisk", "Em risco", 4, "yellow"),
+        Option(ConfigurableOptionCategory.DonorStatus, "DoNotContact", "Nao contatar", 5, "red"),
+        Option(ConfigurableOptionCategory.RelationshipProfile, "New", "Novo", 1),
+        Option(ConfigurableOptionCategory.RelationshipProfile, "Recurring", "Recorrente", 2),
+        Option(ConfigurableOptionCategory.RelationshipProfile, "Major", "Grande doador", 3),
+        Option(ConfigurableOptionCategory.RelationshipProfile, "Lapsed", "Inativo", 4),
+        Option(ConfigurableOptionCategory.RelationshipProfile, "Reactivated", "Reativado", 5),
+        Option(ConfigurableOptionCategory.RelationshipProfile, "Prospect", "Prospect", 6),
+        Option(ConfigurableOptionCategory.DonorSource, "Manual", "Manual", 1),
+        Option(ConfigurableOptionCategory.DonorSource, "Referral", "Indicacao", 2),
+        Option(ConfigurableOptionCategory.DonorSource, "Phone", "Telefone", 3),
+        Option(ConfigurableOptionCategory.DonorSource, "WhatsApp", "WhatsApp", 4),
+        Option(ConfigurableOptionCategory.DonorSource, "Email", "E-mail", 5),
+        Option(ConfigurableOptionCategory.DonorSource, "SocialMedia", "Redes sociais", 6),
+        Option(ConfigurableOptionCategory.DonorSource, "Website", "Website", 7),
+        Option(ConfigurableOptionCategory.DonorSource, "Event", "Evento", 8),
+        Option(ConfigurableOptionCategory.DonorSource, "Import", "Importacao", 9),
+        Option(ConfigurableOptionCategory.DonorSource, "Other", "Outro", 10),
+        Option(ConfigurableOptionCategory.ContactChannel, "Phone", "Telefone", 1),
+        Option(ConfigurableOptionCategory.ContactChannel, "WhatsApp", "WhatsApp", 2),
+        Option(ConfigurableOptionCategory.ContactChannel, "Email", "E-mail", 3),
+        Option(ConfigurableOptionCategory.ContactChannel, "Other", "Outro", 4),
+        Option(ConfigurableOptionCategory.DonationType, "OneTime", "Pontual", 1),
+        Option(ConfigurableOptionCategory.DonationType, "Recurring", "Recorrente", 2),
+        Option(ConfigurableOptionCategory.DonationType, "Pledge", "Promessa", 3),
+        Option(ConfigurableOptionCategory.DonationStatus, "Pending", "Pendente", 1, "yellow"),
+        Option(ConfigurableOptionCategory.DonationStatus, "Confirmed", "Confirmada", 2, "green"),
+        Option(ConfigurableOptionCategory.DonationStatus, "Overdue", "Vencida", 3, "red"),
+        Option(ConfigurableOptionCategory.DonationStatus, "Cancelled", "Cancelada", 4),
+        Option(ConfigurableOptionCategory.DonationStatus, "Refunded", "Estornada", 5, "yellow"),
+        Option(ConfigurableOptionCategory.PaymentMethod, "Pix", "Pix", 1),
+        Option(ConfigurableOptionCategory.PaymentMethod, "Boleto", "Boleto", 2),
+        Option(ConfigurableOptionCategory.PaymentMethod, "CreditCard", "Cartao de credito", 3),
+        Option(ConfigurableOptionCategory.PaymentMethod, "BankTransfer", "Transferencia bancaria", 4),
+        Option(ConfigurableOptionCategory.PaymentMethod, "Cash", "Dinheiro", 5),
+        Option(ConfigurableOptionCategory.PaymentMethod, "Other", "Outro", 6),
+        Option(ConfigurableOptionCategory.TaskType, "Call", "Ligacao", 1),
+        Option(ConfigurableOptionCategory.TaskType, "WhatsApp", "WhatsApp", 2),
+        Option(ConfigurableOptionCategory.TaskType, "PaymentReminder", "Lembrete de pagamento", 3),
+        Option(ConfigurableOptionCategory.TaskType, "Email", "E-mail", 4),
+        Option(ConfigurableOptionCategory.TaskType, "FollowUp", "Follow-up", 5),
+        Option(ConfigurableOptionCategory.TaskType, "ThankYou", "Agradecimento", 6),
+        Option(ConfigurableOptionCategory.TaskType, "DataUpdate", "Atualizacao cadastral", 7),
+        Option(ConfigurableOptionCategory.TaskType, "Other", "Outra", 8),
+        Option(ConfigurableOptionCategory.TaskPriority, "Low", "Baixa", 1),
+        Option(ConfigurableOptionCategory.TaskPriority, "Medium", "Media", 2),
+        Option(ConfigurableOptionCategory.TaskPriority, "High", "Alta", 3),
+        Option(ConfigurableOptionCategory.TaskPriority, "Urgent", "Urgente", 4),
+        Option(ConfigurableOptionCategory.TaskStatus, "Open", "Aberta", 1, "blue"),
+        Option(ConfigurableOptionCategory.TaskStatus, "InProgress", "Em andamento", 2, "yellow"),
+        Option(ConfigurableOptionCategory.TaskStatus, "Completed", "Concluida", 3, "green"),
+        Option(ConfigurableOptionCategory.TaskStatus, "Cancelled", "Cancelada", 4),
+        Option(ConfigurableOptionCategory.ContactOutcome, "Reached", "Contato realizado", 1),
+        Option(ConfigurableOptionCategory.ContactOutcome, "NoAnswer", "Nao atendeu", 2),
+        Option(ConfigurableOptionCategory.ContactOutcome, "InvalidContact", "Contato invalido", 3),
+        Option(ConfigurableOptionCategory.ContactOutcome, "RequestedCallback", "Retorno solicitado", 4),
+        Option(ConfigurableOptionCategory.ContactOutcome, "DonationConfirmed", "Doacao confirmada", 5),
+        Option(ConfigurableOptionCategory.ContactOutcome, "NotInterested", "Sem interesse", 6),
+        Option(ConfigurableOptionCategory.ContactOutcome, "DoNotContact", "Nao contatar", 7),
+        Option(ConfigurableOptionCategory.ContactOutcome, "Other", "Outro", 8),
+        Option(ConfigurableOptionCategory.CampaignType, "Acquisition", "Captacao", 1),
+        Option(ConfigurableOptionCategory.CampaignType, "Fundraising", "Captacao", 2),
+        Option(ConfigurableOptionCategory.CampaignType, "Retention", "Retencao", 3),
+        Option(ConfigurableOptionCategory.CampaignType, "Reactivation", "Reativacao", 4),
+        Option(ConfigurableOptionCategory.CampaignType, "Emergency", "Emergencial", 5),
+        Option(ConfigurableOptionCategory.CampaignType, "Other", "Outra", 6),
+        Option(ConfigurableOptionCategory.CampaignStatus, "Draft", "Rascunho", 1),
+        Option(ConfigurableOptionCategory.CampaignStatus, "Active", "Ativa", 2),
+        Option(ConfigurableOptionCategory.CampaignStatus, "Completed", "Concluida", 3),
+        Option(ConfigurableOptionCategory.CampaignStatus, "Cancelled", "Cancelada", 4),
+        Option(ConfigurableOptionCategory.CampaignChannel, "Mixed", "Multicanal", 1),
+        Option(ConfigurableOptionCategory.CampaignChannel, "Phone", "Telefone", 2),
+        Option(ConfigurableOptionCategory.CampaignChannel, "WhatsApp", "WhatsApp", 3),
+        Option(ConfigurableOptionCategory.CampaignChannel, "Email", "E-mail", 4),
+        Option(ConfigurableOptionCategory.CampaignChannel, "SocialMedia", "Redes sociais", 5),
+        Option(ConfigurableOptionCategory.CampaignChannel, "InPerson", "Presencial", 6),
+        Option(ConfigurableOptionCategory.CampaignChannel, "Other", "Outro", 7),
+        Option(ConfigurableOptionCategory.DonationPlanStatus, "Active", "Ativa", 1, "green"),
+        Option(ConfigurableOptionCategory.DonationPlanStatus, "Paused", "Pausada", 2, "yellow"),
+        Option(ConfigurableOptionCategory.DonationPlanStatus, "Cancelled", "Cancelada", 3),
+        Option(ConfigurableOptionCategory.TimelineType, "Note", "Nota", 1),
+        Option(ConfigurableOptionCategory.TimelineType, "Donation", "Contribuicao", 2, "green"),
+        Option(ConfigurableOptionCategory.TimelineType, "Task", "Tarefa", 3, "blue"),
+        Option(ConfigurableOptionCategory.TimelineType, "Contact", "Contato", 4, "yellow"),
+        Option(ConfigurableOptionCategory.PhoneType, "Mobile", "Celular", 1),
+        Option(ConfigurableOptionCategory.PhoneType, "WhatsApp", "WhatsApp", 2),
+        Option(ConfigurableOptionCategory.PhoneType, "Home", "Residencial", 3),
+        Option(ConfigurableOptionCategory.PhoneType, "Work", "Comercial", 4),
+        Option(ConfigurableOptionCategory.EmailType, "Personal", "Pessoal", 1),
+        Option(ConfigurableOptionCategory.EmailType, "Work", "Comercial", 2),
+        Option(ConfigurableOptionCategory.EmailType, "Billing", "Cobranca", 3),
     ];
 
     private static IReadOnlyCollection<DefaultTag> DefaultTags() =>
@@ -169,10 +200,10 @@ public sealed class OrganizationDefaultsService : IOrganizationDefaultsService
         new("Alto valor", "Doador com historico relevante de contribuicoes."),
     ];
 
-    private static DefaultOption Option(string category, string code, string name, int sortOrder, string? color = null) =>
+    private static DefaultOption Option(ConfigurableOptionCategory category, string code, string name, int sortOrder, string? color = null) =>
         new(category, code, name, sortOrder, color);
 
-    private sealed record DefaultOption(string Category, string Code, string Name, int SortOrder, string? Color);
+    private sealed record DefaultOption(ConfigurableOptionCategory Category, string Code, string Name, int SortOrder, string? Color);
 
     private sealed record DefaultTag(string Name, string Description);
 }

@@ -53,22 +53,22 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .ToListAsync(cancellationToken);
 
         var totalDonors = await _context.Donors.AsNoTracking().CountAsync(cancellationToken);
-        var activeDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.StatusOption.Code == "Active", cancellationToken);
+        var activeDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.StatusOption.Code == "active", cancellationToken);
         var pendingOrOverdue = await _context.Donations.AsNoTracking().CountAsync(donation =>
-            donation.StatusOption.Code == "Pending" || donation.StatusOption.Code == "Overdue", cancellationToken);
+            donation.StatusOption.Code == "pending" || donation.StatusOption.Code == "overdue", cancellationToken);
         var dueToday = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
             task.DueAtUtc != null &&
             task.DueAtUtc.Value.Date == today.Date &&
-            task.StatusOption.Code != "Completed" &&
-            task.StatusOption.Code != "Cancelled", cancellationToken);
+            task.StatusOption.Code != "completed" &&
+            task.StatusOption.Code != "cancelled", cancellationToken);
         var overdueTasks = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
             task.DueAtUtc != null &&
             task.DueAtUtc.Value.Date < today.Date &&
-            task.StatusOption.Code != "Completed" &&
-            task.StatusOption.Code != "Cancelled", cancellationToken);
-        var atRiskDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.StatusOption.Code == "AtRisk", cancellationToken);
+            task.StatusOption.Code != "completed" &&
+            task.StatusOption.Code != "cancelled", cancellationToken);
+        var atRiskDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.StatusOption.Code == "at-risk", cancellationToken);
         var leadsWithoutDonation = await _context.Donors.AsNoTracking().CountAsync(donor =>
-            donor.StatusOption.Code == "Lead" && !_context.Donations.Any(donation => donation.DonorId == donor.Id), cancellationToken);
+            donor.StatusOption.Code == "lead" && !_context.Donations.Any(donation => donation.DonorId == donor.Id), cancellationToken);
         var missingDocuments = await _context.Donors.AsNoTracking().CountAsync(donor => donor.Document == null || donor.Document == string.Empty, cancellationToken);
 
         var confirmedAmount = confirmedDonations.Sum(donation => donation.Amount);
@@ -86,14 +86,14 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .CountAsync(cancellationToken);
         var recurringDonors = await _context.DonationPlans
             .AsNoTracking()
-            .Where(plan => plan.StatusOption.Code == "Active")
+            .Where(plan => plan.StatusOption.Code == "active")
             .Select(plan => plan.DonorId)
             .Distinct()
             .CountAsync(cancellationToken);
         var consentOk = totalDonors == 0 ? 0 : (int)Math.Round(
             await _context.Donors.AsNoTracking().CountAsync(donor => donor.AllowsCommunication && !donor.DoNotContact, cancellationToken) * 100m / totalDonors);
         var openTasks = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
-            task.StatusOption.Code == "Open" || task.StatusOption.Code == "InProgress", cancellationToken);
+            task.StatusOption.Code == "open" || task.StatusOption.Code == "in-progress", cancellationToken);
 
         return new DashboardOverviewDto
         {
@@ -154,7 +154,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .Select(group => new
             {
                 UserName = group.Key,
-                CompletedTasks = group.Count(task => task.StatusOption.Code == "Completed"),
+                CompletedTasks = group.Count(task => task.StatusOption.Code == "completed"),
             })
             .ToListAsync(cancellationToken);
 
