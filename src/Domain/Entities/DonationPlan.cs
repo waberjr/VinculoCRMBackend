@@ -31,9 +31,9 @@ public class DonationPlan : OrganizationEntity
 
     public void SetBillingDay(int billingDay)
     {
-        if (billingDay is < 1 or > 28)
+        if (billingDay is < 1 or > 31)
         {
-            throw new ArgumentOutOfRangeException(nameof(billingDay), "Billing day must be between 1 and 28.");
+            throw new ArgumentOutOfRangeException(nameof(billingDay), "Billing day must be between 1 and 31.");
         }
 
         BillingDay = billingDay;

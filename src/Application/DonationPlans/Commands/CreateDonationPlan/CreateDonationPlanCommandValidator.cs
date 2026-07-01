@@ -6,7 +6,7 @@ public sealed class CreateDonationPlanCommandValidator : AbstractValidator<Creat
     {
         RuleFor(v => v.DonorId).NotEmpty();
         RuleFor(v => v.ExpectedAmount).GreaterThan(0);
-        RuleFor(v => v.BillingDay).InclusiveBetween(1, 28);
+        RuleFor(v => v.BillingDay).InclusiveBetween(1, 31);
         RuleFor(v => v.PreferredPaymentMethod).NotEmpty().MaximumLength(80);
         RuleFor(v => v.StartDateUtc)
             .NotEmpty()

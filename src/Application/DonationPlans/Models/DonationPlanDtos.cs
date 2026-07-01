@@ -3,6 +3,7 @@ namespace VinculoBackend.Application.DonationPlans.Models;
 public sealed class DonationPlanListItemDto
 {
     public Guid Id { get; init; }
+    public Guid DonorId { get; init; }
     public string DonorName { get; init; } = string.Empty;
     public decimal ExpectedAmount { get; init; }
     public int BillingDay { get; init; }
