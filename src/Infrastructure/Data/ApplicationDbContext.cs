@@ -18,6 +18,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<Organization> Organizations => Set<Organization>();
 
+    public DbSet<OrganizationMember> OrganizationMembers => Set<OrganizationMember>();
+
+    public DbSet<OrganizationInvitation> OrganizationInvitations => Set<OrganizationInvitation>();
+
     public DbSet<ConfigurableOption> ConfigurableOptions => Set<ConfigurableOption>();
 
     public DbSet<Donor> Donors => Set<Donor>();

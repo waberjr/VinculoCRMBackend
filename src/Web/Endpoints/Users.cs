@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Infrastructure.Identity;
 using Microsoft.AspNetCore.Authentication.BearerToken;
@@ -25,14 +26,16 @@ public sealed class Users : IEndpointGroup
 
     public sealed record RefreshRequest(string RefreshToken);
 
-    public sealed record CurrentOrganizationResponse(Guid Id, string Name, decimal? DefaultMonthlyGoal);
+    public sealed record CurrentOrganizationResponse(Guid Id, string Name, decimal? DefaultMonthlyGoal, string Role);
 
     public sealed record CurrentUserResponse(
         string Id,
         string DisplayName,
         string Email,
         string Role,
-        CurrentOrganizationResponse Organization);
+        bool IsPlatformAdministrator,
+        CurrentOrganizationResponse Organization,
+        IReadOnlyCollection<CurrentOrganizationResponse> Organizations);
 
     public sealed record AttendantResponse(string Id, string DisplayName, string Email);
 
@@ -94,7 +97,8 @@ public sealed class Users : IEndpointGroup
     public static async Task<Results<Ok<CurrentUserResponse>, UnauthorizedHttpResult, NotFound>> Me(
         ClaimsPrincipal principal,
         UserManager<ApplicationUser> userManager,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        HttpContext httpContext)
     {
         var user = await userManager.GetUserAsync(principal);
         if (user is null)
@@ -102,33 +106,65 @@ public sealed class Users : IEndpointGroup
             return TypedResults.Unauthorized();
         }
 
-        if (user.OrganizationId is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var organization = await context.Organizations
+        var memberships = await context.OrganizationMembers
             .AsNoTracking()
             .IgnoreQueryFilters()
-            .Where(entity => entity.Id == user.OrganizationId.Value)
-            .Select(entity => new CurrentOrganizationResponse(
-                entity.Id,
-                entity.Name,
-                entity.DefaultMonthlyGoal))
-            .FirstOrDefaultAsync();
+            .Where(member => member.UserId == user.Id && member.IsActive)
+            .Join(
+                context.Organizations.AsNoTracking().IgnoreQueryFilters().Where(organization => organization.IsActive),
+                member => member.OrganizationId,
+                organization => organization.Id,
+                (member, organization) => new
+                {
+                    member.Role,
+                    Organization = organization,
+                })
+            .OrderBy(item => item.Organization.Name)
+            .Select(item => new CurrentOrganizationResponse(
+                    item.Organization.Id,
+                    item.Organization.Name,
+                    item.Organization.DefaultMonthlyGoal,
+                    item.Role))
+            .ToListAsync();
 
-        if (organization is null)
+        if (memberships.Count == 0 && user.OrganizationId is not null)
+        {
+            var legacyOrganization = await context.Organizations
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .Where(entity => entity.Id == user.OrganizationId.Value && entity.IsActive)
+                .Select(entity => new CurrentOrganizationResponse(
+                    entity.Id,
+                    entity.Name,
+                    entity.DefaultMonthlyGoal,
+                    Roles.Agent))
+                .FirstOrDefaultAsync();
+
+            if (legacyOrganization is not null)
+            {
+                memberships.Add(legacyOrganization);
+            }
+        }
+
+        if (memberships.Count == 0)
         {
             return TypedResults.NotFound();
         }
+
+        var requestedOrganizationId = TryGetRequestedOrganizationId(principal, httpContext);
+        var organization = memberships.FirstOrDefault(item => item.Id == requestedOrganizationId)
+            ?? memberships.FirstOrDefault(item => item.Id == user.OrganizationId)
+            ?? memberships[0];
 
         var roles = await userManager.GetRolesAsync(user);
         var response = new CurrentUserResponse(
             user.Id,
             string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuario" : user.DisplayName,
             user.Email ?? string.Empty,
-            roles.FirstOrDefault() ?? "Agent",
-            organization);
+            organization.Role,
+            roles.Contains(Roles.Administrator),
+            organization,
+            memberships);
 
         return TypedResults.Ok(response);
     }
@@ -137,17 +173,36 @@ public sealed class Users : IEndpointGroup
     [EndpointDescription("Returns active users from the current organization for assignment fields.")]
     public static async Task<Results<Ok<IReadOnlyCollection<AttendantResponse>>, UnauthorizedHttpResult>> Attendants(
         ClaimsPrincipal principal,
-        UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ApplicationDbContext context,
+        HttpContext httpContext)
     {
         var currentUser = await userManager.GetUserAsync(principal);
-        if (currentUser?.OrganizationId is null)
+        var organizationId = TryGetRequestedOrganizationId(principal, httpContext) ?? currentUser?.OrganizationId;
+        if (currentUser is null || organizationId is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        var canAccessOrganization = await userManager.IsInRoleAsync(currentUser, Roles.Administrator) ||
+            await context.OrganizationMembers
+                .AsNoTracking()
+                .IgnoreQueryFilters()
+                .AnyAsync(member => member.UserId == currentUser.Id && member.OrganizationId == organizationId && member.IsActive);
+
+        if (!canAccessOrganization)
         {
             return TypedResults.Unauthorized();
         }
 
         var users = await userManager.Users
             .AsNoTracking()
-            .Where(user => user.OrganizationId == currentUser.OrganizationId && user.IsActive)
+            .Join(
+                context.OrganizationMembers.AsNoTracking().IgnoreQueryFilters().Where(member => member.OrganizationId == organizationId && member.IsActive),
+                user => user.Id,
+                member => member.UserId,
+                (user, member) => user)
+            .Where(user => user.IsActive)
             .OrderBy(user => user.DisplayName)
             .ThenBy(user => user.Email)
             .Select(user => new AttendantResponse(
@@ -157,6 +212,14 @@ public sealed class Users : IEndpointGroup
             .ToListAsync();
 
         return TypedResults.Ok<IReadOnlyCollection<AttendantResponse>>(users);
+    }
+
+    private static Guid? TryGetRequestedOrganizationId(ClaimsPrincipal principal, HttpContext httpContext)
+    {
+        var value = principal.FindFirstValue("organization_id")
+            ?? principal.FindFirstValue("OrganizationId")
+            ?? httpContext.Request.Headers["X-Org-Id"].FirstOrDefault();
+        return Guid.TryParse(value, out var organizationId) ? organizationId : null;
     }
 
     [EndpointSummary("Log out")]

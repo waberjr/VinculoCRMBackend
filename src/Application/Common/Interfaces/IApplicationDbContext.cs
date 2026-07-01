@@ -6,6 +6,10 @@ public interface IApplicationDbContext
 {
     DbSet<Organization> Organizations { get; }
 
+    DbSet<OrganizationMember> OrganizationMembers { get; }
+
+    DbSet<OrganizationInvitation> OrganizationInvitations { get; }
+
     DbSet<ConfigurableOption> ConfigurableOptions { get; }
 
     DbSet<Donor> Donors { get; }

@@ -169,11 +169,12 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        var administratorRole = new IdentityRole(Roles.Administrator);
-
-        if (_roleManager.Roles.All(r => r.Name != administratorRole.Name))
+        foreach (var roleName in new[] { Roles.Administrator, Roles.Manager, Roles.Agent })
         {
-            await _roleManager.CreateAsync(administratorRole);
+            if (_roleManager.Roles.All(r => r.Name != roleName))
+            {
+                await _roleManager.CreateAsync(new IdentityRole(roleName));
+            }
         }
 
         await SeedOrganizationAsync();
@@ -198,10 +199,7 @@ public class ApplicationDbContextInitialiser
             };
 
             await _userManager.CreateAsync(administrator, "Administrator1!");
-            if (!string.IsNullOrWhiteSpace(administratorRole.Name))
-            {
-                await _userManager.AddToRolesAsync(administrator, new [] { administratorRole.Name });
-            }
+            await _userManager.AddToRolesAsync(administrator, new [] { Roles.Administrator });
         }
         else
         {
@@ -211,6 +209,18 @@ public class ApplicationDbContextInitialiser
             administrator.OrganizationId ??= DemoOrganizationId;
             administrator.EmailConfirmed = true;
             await _userManager.UpdateAsync(administrator);
+        }
+
+        if (!await _context.OrganizationMembers.AnyAsync(member => member.OrganizationId == DemoOrganizationId && member.UserId == administrator.Id))
+        {
+            _context.OrganizationMembers.Add(new OrganizationMember
+            {
+                OrganizationId = DemoOrganizationId,
+                UserId = administrator.Id,
+                Role = Roles.Administrator,
+                IsActive = true,
+                JoinedAtUtc = DateTimeOffset.UtcNow,
+            });
         }
 
         await _context.SaveChangesAsync();

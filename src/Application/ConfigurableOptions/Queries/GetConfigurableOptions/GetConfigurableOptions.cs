@@ -42,6 +42,7 @@ public sealed class GetConfigurableOptionsQueryHandler : IRequestHandler<GetConf
                 Category = option.Category,
                 Code = option.Code,
                 Name = option.Name,
+                Description = option.Description,
                 Color = option.Color,
                 SortOrder = option.SortOrder,
                 IsSystem = option.IsSystem,
