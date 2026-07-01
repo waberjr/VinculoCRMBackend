@@ -52,16 +52,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-        builder.Entity<ConfigurableOption>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<Donor>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<DonorTag>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<DonorTagAssignment>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<DonorPhone>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<DonorEmail>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<Campaign>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<Donation>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<DonationPlan>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<RelationshipTask>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
-        builder.Entity<DonorTimelineEntry>().HasQueryFilter(e => !_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId);
+        builder.Entity<Organization>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<OrganizationMember>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<OrganizationInvitation>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<TodoList>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<TodoItem>().HasQueryFilter(e => !e.IsDeleted);
+        builder.Entity<ConfigurableOption>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<Donor>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<DonorTag>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<DonorTagAssignment>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<DonorPhone>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<DonorEmail>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<Campaign>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<Donation>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<DonationPlan>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<RelationshipTask>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<DonorTimelineEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
     }
 }

@@ -27,7 +27,7 @@ public sealed class DeleteDonorTagCommandHandler : IRequestHandler<DeleteDonorTa
             throw new Common.Exceptions.NotFoundException(nameof(DonorTags), request.Id.ToString());
         }
 
-        entity.IsActive = false;
+        _context.DonorTags.Remove(entity);
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

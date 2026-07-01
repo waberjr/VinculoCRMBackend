@@ -10,7 +10,9 @@ public class OrganizationMemberConfiguration : IEntityTypeConfiguration<Organiza
     {
         builder.Property(e => e.UserId).HasMaxLength(450).IsRequired();
         builder.Property(e => e.Role).HasMaxLength(40).IsRequired();
-        builder.HasIndex(e => new { e.OrganizationId, e.UserId }).IsUnique();
+        builder.HasIndex(e => new { e.OrganizationId, e.UserId })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
         builder.HasIndex(e => new { e.UserId, e.IsActive });
         builder.HasOne<Organization>().WithMany().HasForeignKey(e => e.OrganizationId).OnDelete(DeleteBehavior.Restrict);
     }

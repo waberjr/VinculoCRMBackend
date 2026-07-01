@@ -10,6 +10,8 @@ public class DonorTagConfiguration : IEntityTypeConfiguration<DonorTag>
     {
         builder.Property(e => e.Name).HasMaxLength(80).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(300);
-        builder.HasIndex(e => new { e.OrganizationId, e.Name }).IsUnique();
+        builder.HasIndex(e => new { e.OrganizationId, e.Name })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
     }
 }

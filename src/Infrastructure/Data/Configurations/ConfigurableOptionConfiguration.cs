@@ -13,7 +13,9 @@ public class ConfigurableOptionConfiguration : IEntityTypeConfiguration<Configur
         builder.Property(e => e.Name).HasMaxLength(120).IsRequired();
         builder.Property(e => e.Description).HasMaxLength(500);
         builder.Property(e => e.Color).HasMaxLength(32);
-        builder.HasIndex(e => new { e.OrganizationId, e.Category, e.Code }).IsUnique();
+        builder.HasIndex(e => new { e.OrganizationId, e.Category, e.Code })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
         builder.HasIndex(e => new { e.OrganizationId, e.Category, e.IsActive });
     }
 }

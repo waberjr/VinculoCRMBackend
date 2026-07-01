@@ -84,9 +84,11 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
 
         await ApplyContactsAsync(donor, request, organizationId, cancellationToken);
 
-        await _context.DonorTagAssignments
+        var currentAssignments = await _context.DonorTagAssignments
             .Where(assignment => assignment.DonorId == donor.Id)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        _context.DonorTagAssignments.RemoveRange(currentAssignments);
 
         foreach (var tagName in request.Tags.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         {
@@ -131,12 +133,15 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
                 ? []
                 : [new DonorEmailRequest("Personal", request.Email, true)];
 
-        await _context.DonorPhones
+        var currentPhones = await _context.DonorPhones
             .Where(phone => phone.DonorId == donor.Id)
-            .ExecuteDeleteAsync(cancellationToken);
-        await _context.DonorEmails
+            .ToListAsync(cancellationToken);
+        var currentEmails = await _context.DonorEmails
             .Where(email => email.DonorId == donor.Id)
-            .ExecuteDeleteAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        _context.DonorPhones.RemoveRange(currentPhones);
+        _context.DonorEmails.RemoveRange(currentEmails);
 
         var phoneIndex = 0;
         foreach (var phone in phones.Where(phone => !string.IsNullOrWhiteSpace(phone.Number)))

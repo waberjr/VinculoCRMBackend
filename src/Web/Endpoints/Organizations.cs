@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
+using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Infrastructure.Data;
@@ -74,12 +75,11 @@ public sealed class Organizations : IEndpointGroup
             return TypedResults.Ok<IReadOnlyCollection<OrganizationResponse>>([]);
         }
 
-        var isPlatformAdministrator = await userManager.IsInRoleAsync(currentUser, Roles.Administrator);
-        if (isPlatformAdministrator)
+        var isSystemAdministrator = await userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator);
+        if (isSystemAdministrator)
         {
             var organizations = await context.Organizations
                 .AsNoTracking()
-                .IgnoreQueryFilters()
                 .Where(organization => organization.IsActive)
                 .OrderBy(organization => organization.Name)
                 .Select(organization => new OrganizationResponse(
@@ -104,11 +104,12 @@ public sealed class Organizations : IEndpointGroup
         ClaimsPrincipal principal,
         UserManager<ApplicationUser> userManager,
         ApplicationDbContext context,
+        IOrganizationDefaultsService organizationDefaultsService,
         [FromBody] CreateOrganizationRequest request,
         CancellationToken cancellationToken)
     {
         var currentUser = await userManager.GetUserAsync(principal);
-        if (currentUser is null || !await userManager.IsInRoleAsync(currentUser, Roles.Administrator))
+        if (currentUser is null || !await userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator))
         {
             return TypedResults.Forbid();
         }
@@ -128,6 +129,7 @@ public sealed class Organizations : IEndpointGroup
         };
 
         context.Organizations.Add(organization);
+        await organizationDefaultsService.EnsureDefaultsAsync(organization.Id, cancellationToken);
         context.OrganizationMembers.Add(new OrganizationMember
         {
             OrganizationId = organization.Id,
@@ -161,7 +163,7 @@ public sealed class Organizations : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var currentUser = await userManager.GetUserAsync(principal);
-        if (currentUser is null || !await userManager.IsInRoleAsync(currentUser, Roles.Administrator))
+        if (currentUser is null || !await userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator))
         {
             return TypedResults.Forbid();
         }
@@ -171,7 +173,7 @@ public sealed class Organizations : IEndpointGroup
             return TypedResults.BadRequest("Organization name is required.");
         }
 
-        var organization = await context.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var organization = await context.Organizations.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (organization is null)
         {
             return TypedResults.NotFound();
@@ -197,18 +199,18 @@ public sealed class Organizations : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var currentUser = await userManager.GetUserAsync(principal);
-        if (currentUser is null || !await userManager.IsInRoleAsync(currentUser, Roles.Administrator))
+        if (currentUser is null || !await userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator))
         {
             return TypedResults.Forbid();
         }
 
-        var organization = await context.Organizations.IgnoreQueryFilters().FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
+        var organization = await context.Organizations.FirstOrDefaultAsync(item => item.Id == id, cancellationToken);
         if (organization is null)
         {
             return TypedResults.NotFound();
         }
 
-        organization.IsActive = false;
+        context.Organizations.Remove(organization);
         await context.SaveChangesAsync(cancellationToken);
         return TypedResults.NoContent();
     }
@@ -235,7 +237,6 @@ public sealed class Organizations : IEndpointGroup
 
         var members = await context.OrganizationMembers
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Where(member => member.OrganizationId == organizationId.Value)
             .Join(
                 userManager.Users.AsNoTracking(),
@@ -259,7 +260,6 @@ public sealed class Organizations : IEndpointGroup
 
         var invitations = await context.OrganizationInvitations
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Where(invitation => invitation.OrganizationId == organizationId.Value && !invitation.IsRevoked && invitation.AcceptedAtUtc == null)
             .OrderByDescending(invitation => invitation.Created)
             .Select(invitation => new OrganizationInvitationResponse(
@@ -303,7 +303,6 @@ public sealed class Organizations : IEndpointGroup
         }
 
         var member = await context.OrganizationMembers
-            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(item => item.Id == memberId && item.OrganizationId == organizationId.Value, cancellationToken);
 
         if (member is null)
@@ -341,7 +340,6 @@ public sealed class Organizations : IEndpointGroup
         }
 
         var member = await context.OrganizationMembers
-            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(item => item.Id == memberId && item.OrganizationId == organizationId.Value, cancellationToken);
 
         if (member is null)
@@ -349,7 +347,7 @@ public sealed class Organizations : IEndpointGroup
             return TypedResults.NotFound();
         }
 
-        member.IsActive = false;
+        context.OrganizationMembers.Remove(member);
         await context.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();
@@ -371,8 +369,8 @@ public sealed class Organizations : IEndpointGroup
             return TypedResults.Unauthorized();
         }
 
-        var isPlatformAdministrator = await userManager.IsInRoleAsync(currentUser, Roles.Administrator);
-        var organizationId = isPlatformAdministrator && request.OrganizationId is not null
+        var isSystemAdministrator = await userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator);
+        var organizationId = isSystemAdministrator && request.OrganizationId is not null
             ? request.OrganizationId
             : TryGetRequestedOrganizationId(principal, httpContext);
 
@@ -381,7 +379,7 @@ public sealed class Organizations : IEndpointGroup
             return TypedResults.Unauthorized();
         }
 
-        if (!isPlatformAdministrator && !await CanManageUsersAsync(userManager, context, currentUser, organizationId.Value))
+        if (!isSystemAdministrator && !await CanManageUsersAsync(userManager, context, currentUser, organizationId.Value))
         {
             return TypedResults.Forbid();
         }
@@ -394,7 +392,6 @@ public sealed class Organizations : IEndpointGroup
 
         var organizationExists = await context.Organizations
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .AnyAsync(organization => organization.Id == organizationId.Value && organization.IsActive, cancellationToken);
 
         if (!organizationExists)
@@ -407,7 +404,6 @@ public sealed class Organizations : IEndpointGroup
         {
             var alreadyMember = await context.OrganizationMembers
                 .AsNoTracking()
-                .IgnoreQueryFilters()
                 .AnyAsync(member => member.OrganizationId == organizationId.Value && member.UserId == invitedUser.Id && member.IsActive, cancellationToken);
 
             if (alreadyMember)
@@ -463,7 +459,6 @@ public sealed class Organizations : IEndpointGroup
         }
 
         var invitation = await context.OrganizationInvitations
-            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(item => item.Id == invitationId && item.OrganizationId == organizationId.Value, cancellationToken);
 
         if (invitation is null)
@@ -471,7 +466,7 @@ public sealed class Organizations : IEndpointGroup
             return TypedResults.NotFound();
         }
 
-        invitation.IsRevoked = true;
+        context.OrganizationInvitations.Remove(invitation);
         await context.SaveChangesAsync(cancellationToken);
 
         return TypedResults.NoContent();
@@ -488,7 +483,6 @@ public sealed class Organizations : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var invitation = await context.OrganizationInvitations
-            .IgnoreQueryFilters()
             .FirstOrDefaultAsync(item => item.Token == token, cancellationToken);
 
         if (invitation is null)
@@ -531,7 +525,7 @@ public sealed class Organizations : IEndpointGroup
             }
         }
 
-        if (!await context.OrganizationMembers.IgnoreQueryFilters().AnyAsync(member => member.OrganizationId == invitation.OrganizationId && member.UserId == currentUser.Id, cancellationToken))
+        if (!await context.OrganizationMembers.AnyAsync(member => member.OrganizationId == invitation.OrganizationId && member.UserId == currentUser.Id, cancellationToken))
         {
             context.OrganizationMembers.Add(new OrganizationMember
             {
@@ -549,7 +543,6 @@ public sealed class Organizations : IEndpointGroup
 
         var organization = await context.Organizations
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Where(item => item.Id == invitation.OrganizationId)
             .Select(item => new OrganizationResponse(
                 item.Id,
@@ -567,10 +560,9 @@ public sealed class Organizations : IEndpointGroup
     {
         return context.OrganizationMembers
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Where(member => member.UserId == userId && member.IsActive)
             .Join(
-                context.Organizations.AsNoTracking().IgnoreQueryFilters().Where(organization => organization.IsActive),
+                context.Organizations.AsNoTracking().Where(organization => organization.IsActive),
                 member => member.OrganizationId,
                 organization => organization.Id,
                 (member, organization) => new
@@ -594,14 +586,13 @@ public sealed class Organizations : IEndpointGroup
         ApplicationUser currentUser,
         Guid organizationId)
     {
-        if (await userManager.IsInRoleAsync(currentUser, Roles.Administrator))
+        if (await userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator))
         {
             return true;
         }
 
         var role = await context.OrganizationMembers
             .AsNoTracking()
-            .IgnoreQueryFilters()
             .Where(member => member.UserId == currentUser.Id && member.OrganizationId == organizationId && member.IsActive)
             .Select(member => member.Role)
             .FirstOrDefaultAsync();

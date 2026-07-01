@@ -8,6 +8,8 @@ public class DonorTagAssignmentConfiguration : IEntityTypeConfiguration<DonorTag
 {
     public void Configure(EntityTypeBuilder<DonorTagAssignment> builder)
     {
-        builder.HasIndex(e => new { e.OrganizationId, e.DonorId, e.DonorTagId }).IsUnique();
+        builder.HasIndex(e => new { e.OrganizationId, e.DonorId, e.DonorTagId })
+            .IsUnique()
+            .HasFilter("\"IsDeleted\" = false");
     }
 }

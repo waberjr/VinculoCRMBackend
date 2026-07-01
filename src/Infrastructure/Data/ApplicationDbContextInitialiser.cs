@@ -1,5 +1,6 @@
 ﻿using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -132,13 +133,20 @@ public class ApplicationDbContextInitialiser
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IOrganizationDefaultsService _organizationDefaultsService;
 
-    public ApplicationDbContextInitialiser(ILogger<ApplicationDbContextInitialiser> logger, ApplicationDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
+    public ApplicationDbContextInitialiser(
+        ILogger<ApplicationDbContextInitialiser> logger,
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        IOrganizationDefaultsService organizationDefaultsService)
     {
         _logger = logger;
         _context = context;
         _userManager = userManager;
         _roleManager = roleManager;
+        _organizationDefaultsService = organizationDefaultsService;
     }
 
     public async Task InitialiseAsync()
@@ -169,7 +177,7 @@ public class ApplicationDbContextInitialiser
 
     public async Task TrySeedAsync()
     {
-        foreach (var roleName in new[] { Roles.Administrator, Roles.Manager, Roles.Agent })
+        foreach (var roleName in new[] { Roles.SystemAdministrator, Roles.Administrator, Roles.Manager, Roles.Agent })
         {
             if (_roleManager.Roles.All(r => r.Name != roleName))
             {
@@ -178,12 +186,7 @@ public class ApplicationDbContextInitialiser
         }
 
         await SeedOrganizationAsync();
-        await SeedConfigurableOptionsAsync();
-        await SeedDonorTagsAsync();
-        await SeedCampaignsAsync();
-        await SeedDonorsAsync();
-        await SeedDonationsAsync();
-        await SeedRelationshipTasksAsync();
+        await _organizationDefaultsService.EnsureDefaultsAsync(DemoOrganizationId, CancellationToken.None);
 
         var administrator = await _userManager.FindByNameAsync("administrator@localhost");
 
@@ -199,7 +202,7 @@ public class ApplicationDbContextInitialiser
             };
 
             await _userManager.CreateAsync(administrator, "Administrator1!");
-            await _userManager.AddToRolesAsync(administrator, new [] { Roles.Administrator });
+            await _userManager.AddToRolesAsync(administrator, [Roles.SystemAdministrator]);
         }
         else
         {
@@ -209,6 +212,11 @@ public class ApplicationDbContextInitialiser
             administrator.OrganizationId ??= DemoOrganizationId;
             administrator.EmailConfirmed = true;
             await _userManager.UpdateAsync(administrator);
+        }
+
+        if (!await _userManager.IsInRoleAsync(administrator, Roles.SystemAdministrator))
+        {
+            await _userManager.AddToRoleAsync(administrator, Roles.SystemAdministrator);
         }
 
         if (!await _context.OrganizationMembers.AnyAsync(member => member.OrganizationId == DemoOrganizationId && member.UserId == administrator.Id))
@@ -236,8 +244,8 @@ public class ApplicationDbContextInitialiser
         _context.Organizations.Add(new Organization
         {
             Id = DemoOrganizationId,
-            Name = "Instituto Esperanca Viva",
-            LegalName = "Instituto Esperanca Viva",
+            Name = "Administração",
+            LegalName = "Administração",
             DefaultMonthlyGoal = 85000,
             TimeZone = "America/Sao_Paulo",
             Currency = "BRL",
@@ -247,360 +255,4 @@ public class ApplicationDbContextInitialiser
         await _context.SaveChangesAsync();
     }
 
-    private async Task SeedConfigurableOptionsAsync()
-    {
-        var options = new[]
-        {
-            Option(PersonTypeIndividualId, "DonorPersonType", "Individual", "Pessoa fisica", 1),
-            Option(PersonTypeCompanyId, "DonorPersonType", "Company", "Pessoa juridica", 2),
-            Option(DonorStatusLeadId, "DonorStatus", "Lead", "Lead", 1, "blue"),
-            Option(DonorStatusActiveId, "DonorStatus", "Active", "Ativo", 2, "green"),
-            Option(DonorStatusInactiveId, "DonorStatus", "Inactive", "Inativo", 3, "neutral"),
-            Option(DonorStatusAtRiskId, "DonorStatus", "AtRisk", "Em risco", 4, "yellow"),
-            Option(DonorStatusDoNotContactId, "DonorStatus", "DoNotContact", "Nao contatar", 5, "red"),
-            Option(RelationshipNewId, "RelationshipProfile", "New", "Novo", 1),
-            Option(RelationshipRecurringId, "RelationshipProfile", "Recurring", "Recorrente", 2),
-            Option(RelationshipMajorId, "RelationshipProfile", "Major", "Grande doador", 3),
-            Option(RelationshipLapsedId, "RelationshipProfile", "Lapsed", "Inativo", 4),
-            Option(RelationshipReactivatedId, "RelationshipProfile", "Reactivated", "Reativado", 5),
-            Option(RelationshipProspectId, "RelationshipProfile", "Prospect", "Prospect", 6),
-            Option(SourceManualId, "DonorSource", "Manual", "Manual", 1),
-            Option(SourceReferralId, "DonorSource", "Referral", "Indicacao", 2),
-            Option(SourcePhoneId, "DonorSource", "Phone", "Telefone", 3),
-            Option(SourceWhatsAppId, "DonorSource", "WhatsApp", "WhatsApp", 4),
-            Option(SourceEmailId, "DonorSource", "Email", "E-mail", 5),
-            Option(SourceSocialMediaId, "DonorSource", "SocialMedia", "Redes sociais", 6),
-            Option(SourceWebsiteId, "DonorSource", "Website", "Website", 7),
-            Option(SourceEventId, "DonorSource", "Event", "Evento", 8),
-            Option(SourceImportId, "DonorSource", "Import", "Importacao", 9),
-            Option(SourceOtherId, "DonorSource", "Other", "Outro", 10),
-            Option(ChannelPhoneId, "ContactChannel", "Phone", "Telefone", 1),
-            Option(ChannelWhatsAppId, "ContactChannel", "WhatsApp", "WhatsApp", 2),
-            Option(ChannelEmailId, "ContactChannel", "Email", "E-mail", 3),
-            Option(ChannelOtherId, "ContactChannel", "Other", "Outro", 4),
-            Option(DonationTypeOneTimeId, "DonationType", "OneTime", "Pontual", 1),
-            Option(DonationTypeRecurringId, "DonationType", "Recurring", "Recorrente", 2),
-            Option(DonationTypePledgeId, "DonationType", "Pledge", "Promessa", 3),
-            Option(DonationStatusPendingId, "DonationStatus", "Pending", "Pendente", 1, "yellow"),
-            Option(DonationStatusConfirmedId, "DonationStatus", "Confirmed", "Confirmada", 2, "green"),
-            Option(DonationStatusOverdueId, "DonationStatus", "Overdue", "Vencida", 3, "red"),
-            Option(DonationStatusCancelledId, "DonationStatus", "Cancelled", "Cancelada", 4),
-            Option(DonationStatusRefundedId, "DonationStatus", "Refunded", "Estornada", 5, "yellow"),
-            Option(PaymentPixId, "PaymentMethod", "Pix", "Pix", 1),
-            Option(PaymentBoletoId, "PaymentMethod", "Boleto", "Boleto", 2),
-            Option(PaymentCreditCardId, "PaymentMethod", "CreditCard", "Cartao de credito", 3),
-            Option(PaymentBankTransferId, "PaymentMethod", "BankTransfer", "Transferencia bancaria", 4),
-            Option(PaymentCashId, "PaymentMethod", "Cash", "Dinheiro", 5),
-            Option(PaymentOtherId, "PaymentMethod", "Other", "Outro", 6),
-            Option(TaskTypeCallId, "TaskType", "Call", "Ligacao", 1),
-            Option(TaskTypeWhatsAppId, "TaskType", "WhatsApp", "WhatsApp", 2),
-            Option(TaskTypePaymentReminderId, "TaskType", "PaymentReminder", "Lembrete de pagamento", 3),
-            Option(TaskTypeEmailId, "TaskType", "Email", "E-mail", 4),
-            Option(TaskTypeFollowUpId, "TaskType", "FollowUp", "Follow-up", 5),
-            Option(TaskTypeThankYouId, "TaskType", "ThankYou", "Agradecimento", 6),
-            Option(TaskTypeDataUpdateId, "TaskType", "DataUpdate", "Atualizacao cadastral", 7),
-            Option(TaskTypeOtherId, "TaskType", "Other", "Outra", 8),
-            Option(TaskPriorityLowId, "TaskPriority", "Low", "Baixa", 1),
-            Option(TaskPriorityMediumId, "TaskPriority", "Medium", "Media", 2),
-            Option(TaskPriorityHighId, "TaskPriority", "High", "Alta", 3),
-            Option(TaskPriorityUrgentId, "TaskPriority", "Urgent", "Urgente", 4),
-            Option(TaskStatusOpenId, "TaskStatus", "Open", "Aberta", 1, "blue"),
-            Option(TaskStatusInProgressId, "TaskStatus", "InProgress", "Em andamento", 2, "yellow"),
-            Option(TaskStatusCompletedId, "TaskStatus", "Completed", "Concluida", 3, "green"),
-            Option(TaskStatusCancelledId, "TaskStatus", "Cancelled", "Cancelada", 4),
-            Option(OutcomeReachedId, "ContactOutcome", "Reached", "Contato realizado", 1),
-            Option(OutcomeNoAnswerId, "ContactOutcome", "NoAnswer", "Nao atendeu", 2),
-            Option(OutcomeInvalidContactId, "ContactOutcome", "InvalidContact", "Contato invalido", 3),
-            Option(OutcomeRequestedCallbackId, "ContactOutcome", "RequestedCallback", "Retorno solicitado", 4),
-            Option(OutcomeDonationConfirmedId, "ContactOutcome", "DonationConfirmed", "Doacao confirmada", 5),
-            Option(OutcomeNotInterestedId, "ContactOutcome", "NotInterested", "Sem interesse", 6),
-            Option(OutcomeDoNotContactId, "ContactOutcome", "DoNotContact", "Nao contatar", 7),
-            Option(OutcomeOtherId, "ContactOutcome", "Other", "Outro", 8),
-            Option(CampaignTypeAcquisitionId, "CampaignType", "Acquisition", "Captacao", 1),
-            Option(CampaignTypeFundraisingId, "CampaignType", "Fundraising", "Captacao", 2),
-            Option(CampaignTypeRetentionId, "CampaignType", "Retention", "Retencao", 3),
-            Option(CampaignTypeReactivationId, "CampaignType", "Reactivation", "Reativacao", 4),
-            Option(CampaignTypeEmergencyId, "CampaignType", "Emergency", "Emergencial", 5),
-            Option(CampaignTypeOtherId, "CampaignType", "Other", "Outra", 6),
-            Option(CampaignStatusDraftId, "CampaignStatus", "Draft", "Rascunho", 1),
-            Option(CampaignStatusActiveId, "CampaignStatus", "Active", "Ativa", 2),
-            Option(CampaignStatusCompletedId, "CampaignStatus", "Completed", "Concluida", 3),
-            Option(CampaignStatusCancelledId, "CampaignStatus", "Cancelled", "Cancelada", 4),
-            Option(CampaignChannelMixedId, "CampaignChannel", "Mixed", "Multicanal", 1),
-            Option(CampaignChannelPhoneId, "CampaignChannel", "Phone", "Telefone", 2),
-            Option(CampaignChannelWhatsAppId, "CampaignChannel", "WhatsApp", "WhatsApp", 3),
-            Option(CampaignChannelEmailId, "CampaignChannel", "Email", "E-mail", 4),
-            Option(CampaignChannelSocialMediaId, "CampaignChannel", "SocialMedia", "Redes sociais", 5),
-            Option(CampaignChannelInPersonId, "CampaignChannel", "InPerson", "Presencial", 6),
-            Option(CampaignChannelOtherId, "CampaignChannel", "Other", "Outro", 7),
-            Option(DonationPlanStatusActiveId, "DonationPlanStatus", "Active", "Ativa", 1, "green"),
-            Option(DonationPlanStatusPausedId, "DonationPlanStatus", "Paused", "Pausada", 2, "yellow"),
-            Option(DonationPlanStatusCancelledId, "DonationPlanStatus", "Cancelled", "Cancelada", 3),
-            Option(TimelineTypeNoteId, "TimelineType", "Note", "Nota", 1),
-            Option(TimelineTypeDonationId, "TimelineType", "Donation", "Contribuicao", 2, "green"),
-            Option(TimelineTypeTaskId, "TimelineType", "Task", "Tarefa", 3, "blue"),
-            Option(TimelineTypeContactId, "TimelineType", "Contact", "Contato", 4, "yellow"),
-            Option(PhoneTypeMobileId, "PhoneType", "Mobile", "Celular", 1),
-            Option(PhoneTypeWhatsAppId, "PhoneType", "WhatsApp", "WhatsApp", 2),
-            Option(PhoneTypeHomeId, "PhoneType", "Home", "Residencial", 3),
-            Option(PhoneTypeWorkId, "PhoneType", "Work", "Comercial", 4),
-            Option(EmailTypePersonalId, "EmailType", "Personal", "Pessoal", 1),
-            Option(EmailTypeWorkId, "EmailType", "Work", "Comercial", 2),
-            Option(EmailTypeBillingId, "EmailType", "Billing", "Cobranca", 3),
-        };
-
-        var existingIds = await _context.ConfigurableOptions
-            .Where(option => option.OrganizationId == DemoOrganizationId)
-            .Select(option => option.Id)
-            .ToListAsync();
-
-        foreach (var option in options.Where(option => !existingIds.Contains(option.Id)))
-        {
-            _context.ConfigurableOptions.Add(option);
-        }
-
-        await _context.SaveChangesAsync();
-    }
-
-    private async Task SeedDonorTagsAsync()
-    {
-        var existingIds = await _context.DonorTags
-            .Where(tag => tag.OrganizationId == DemoOrganizationId)
-            .Select(tag => tag.Id)
-            .ToListAsync();
-
-        if (!existingIds.Contains(TagRecurringId))
-        {
-            _context.DonorTags.Add(new DonorTag
-            {
-                Id = TagRecurringId,
-                OrganizationId = DemoOrganizationId,
-                Name = "Recorrente",
-                Description = "Doador com relacionamento recorrente.",
-            });
-        }
-
-        if (!existingIds.Contains(TagMajorId))
-        {
-            _context.DonorTags.Add(new DonorTag
-            {
-                Id = TagMajorId,
-                OrganizationId = DemoOrganizationId,
-                Name = "Alto valor",
-                Description = "Doador com historico relevante de contribuicoes.",
-            });
-        }
-
-        await _context.SaveChangesAsync();
-    }
-
-    private async Task SeedCampaignsAsync()
-    {
-        if (await _context.Campaigns.AnyAsync(campaign => campaign.Id == CampaignWinterId))
-        {
-            return;
-        }
-
-        var campaign = new Campaign
-        {
-            Id = CampaignWinterId,
-            OrganizationId = DemoOrganizationId,
-            Name = "Campanha Inverno Solidario",
-            Description = "Campanha inicial para validacao do MVP.",
-            TypeOptionId = CampaignTypeAcquisitionId,
-            StatusOptionId = CampaignStatusActiveId,
-            ChannelOptionId = CampaignChannelMixedId,
-            GoalAmount = 35000,
-        };
-        campaign.SetPeriod(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(30));
-
-        _context.Campaigns.Add(campaign);
-
-        await _context.SaveChangesAsync();
-    }
-
-    private async Task SeedDonorsAsync()
-    {
-        var existingIds = await _context.Donors
-            .Where(donor => donor.OrganizationId == DemoOrganizationId)
-            .Select(donor => donor.Id)
-            .ToListAsync();
-
-        if (!existingIds.Contains(DonorAnaId))
-        {
-            var donor = new Donor
-            {
-                Id = DonorAnaId,
-                OrganizationId = DemoOrganizationId,
-                FullName = "Ana Pereira",
-                PersonTypeOptionId = PersonTypeIndividualId,
-                Document = "12345678910",
-                Email = "ana.pereira@example.org",
-                Phone = "+55 11 99999-0001",
-                WhatsApp = "+55 11 99999-0001",
-                City = "Sao Paulo",
-                State = "SP",
-                StatusOptionId = DonorStatusActiveId,
-                SourceOptionId = SourceReferralId,
-                RelationshipProfileOptionId = RelationshipRecurringId,
-                PreferredContactChannelOptionId = ChannelWhatsAppId,
-                AcquisitionCampaignId = CampaignWinterId,
-                AssignedUserId = "administrator@localhost",
-                Notes = "Doadora recorrente seedada para desenvolvimento.",
-            };
-            donor.TagAssignments.Add(new DonorTagAssignment { OrganizationId = DemoOrganizationId, DonorTagId = TagRecurringId });
-            _context.Donors.Add(donor);
-        }
-
-        if (!existingIds.Contains(DonorCarlosId))
-        {
-            var donor = new Donor
-            {
-                Id = DonorCarlosId,
-                OrganizationId = DemoOrganizationId,
-                FullName = "Carlos Nogueira",
-                PersonTypeOptionId = PersonTypeIndividualId,
-                Email = "carlos.nogueira@example.org",
-                Phone = "+55 11 98888-0002",
-                City = "Campinas",
-                State = "SP",
-                StatusOptionId = DonorStatusAtRiskId,
-                SourceOptionId = SourceManualId,
-                RelationshipProfileOptionId = RelationshipNewId,
-                PreferredContactChannelOptionId = ChannelPhoneId,
-                AssignedUserId = "administrator@localhost",
-            };
-            _context.Donors.Add(donor);
-        }
-
-        if (!existingIds.Contains(DonorCompanyId))
-        {
-            var donor = new Donor
-            {
-                Id = DonorCompanyId,
-                OrganizationId = DemoOrganizationId,
-                FullName = "Grupo Horizonte Ltda.",
-                PersonTypeOptionId = PersonTypeCompanyId,
-                Document = "12345678000190",
-                Email = "contato@grupohorizonte.example",
-                Phone = "+55 11 3777-0000",
-                City = "Sao Paulo",
-                State = "SP",
-                StatusOptionId = DonorStatusActiveId,
-                SourceOptionId = SourceManualId,
-                RelationshipProfileOptionId = RelationshipMajorId,
-                PreferredContactChannelOptionId = ChannelPhoneId,
-                AcquisitionCampaignId = CampaignWinterId,
-                AssignedUserId = "administrator@localhost",
-            };
-            donor.TagAssignments.Add(new DonorTagAssignment { OrganizationId = DemoOrganizationId, DonorTagId = TagMajorId });
-            _context.Donors.Add(donor);
-        }
-
-        await _context.SaveChangesAsync();
-    }
-
-    private async Task SeedDonationsAsync()
-    {
-        if (await _context.Donations.AnyAsync(donation => donation.OrganizationId == DemoOrganizationId))
-        {
-            return;
-        }
-
-        var donations = new[]
-        {
-            Donation(DonorAnaId, 250, DonationStatusConfirmedId, PaymentPixId, DateTimeOffset.UtcNow.AddDays(-3), "PIX-ANA-001"),
-            Donation(DonorCompanyId, 1800, DonationStatusConfirmedId, PaymentBoletoId, DateTimeOffset.UtcNow.AddDays(-2), "BOL-HORIZONTE-001"),
-            Donation(DonorCarlosId, 95, DonationStatusPendingId, PaymentPixId, null, "PEND-CARLOS-001", DateTimeOffset.UtcNow.AddDays(5)),
-        };
-
-        foreach (var donation in donations)
-        {
-            _context.Donations.Add(donation);
-        }
-
-        await _context.SaveChangesAsync();
-    }
-
-    private async Task SeedRelationshipTasksAsync()
-    {
-        if (await _context.RelationshipTasks.AnyAsync(task => task.OrganizationId == DemoOrganizationId))
-        {
-            return;
-        }
-
-        _context.RelationshipTasks.AddRange(
-            new RelationshipTask
-            {
-                OrganizationId = DemoOrganizationId,
-                DonorId = DonorCarlosId,
-                Title = "Retomar contato com Carlos",
-                Description = "Confirmar interesse e atualizar preferencia de contato.",
-                AssignedUserId = "administrator@localhost",
-                CreatedByUserId = "administrator@localhost",
-                TypeOptionId = TaskTypeCallId,
-                PriorityOptionId = TaskPriorityHighId,
-                StatusOptionId = TaskStatusOpenId,
-                DueAtUtc = DateTimeOffset.UtcNow.AddDays(1),
-            },
-            new RelationshipTask
-            {
-                OrganizationId = DemoOrganizationId,
-                DonorId = DonorAnaId,
-                CampaignId = CampaignWinterId,
-                Title = "Agradecer contribuicao",
-                Description = "Enviar mensagem de agradecimento pela doacao recente.",
-                AssignedUserId = "administrator@localhost",
-                CreatedByUserId = "administrator@localhost",
-                TypeOptionId = TaskTypeWhatsAppId,
-                PriorityOptionId = TaskPriorityMediumId,
-                StatusOptionId = TaskStatusOpenId,
-                DueAtUtc = DateTimeOffset.UtcNow,
-            });
-
-        await _context.SaveChangesAsync();
-    }
-
-    private static ConfigurableOption Option(Guid id, string category, string code, string name, int sortOrder, string? color = null)
-    {
-        return new ConfigurableOption
-        {
-            Id = id,
-            OrganizationId = DemoOrganizationId,
-            Category = category,
-            Code = code,
-            Name = name,
-            Color = color,
-            SortOrder = sortOrder,
-            IsSystem = true,
-            IsActive = true,
-        };
-    }
-
-    private static Donation Donation(
-        Guid donorId,
-        decimal amount,
-        Guid statusOptionId,
-        Guid paymentMethodOptionId,
-        DateTimeOffset? paidAtUtc,
-        string reference,
-        DateTimeOffset? expectedAtUtc = null)
-    {
-        var donation = new Donation
-        {
-            OrganizationId = DemoOrganizationId,
-            DonorId = donorId,
-            CampaignId = CampaignWinterId,
-            TypeOptionId = DonationTypeOneTimeId,
-            StatusOptionId = statusOptionId,
-            PaymentMethodOptionId = paymentMethodOptionId,
-            ExpectedAtUtc = expectedAtUtc,
-            PaidAtUtc = paidAtUtc,
-            Reference = reference,
-            CreatedByUserId = "administrator@localhost",
-        };
-
-        donation.SetAmount(amount);
-        return donation;
-    }
 }

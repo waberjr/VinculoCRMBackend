@@ -27,7 +27,7 @@ public sealed class DeleteConfigurableOptionCommandHandler : IRequestHandler<Del
             throw new Common.Exceptions.NotFoundException(nameof(ConfigurableOptions), request.Id.ToString());
         }
 
-        entity.IsActive = false;
+        _context.ConfigurableOptions.Remove(entity);
         await _context.SaveChangesAsync(cancellationToken);
     }
 }
