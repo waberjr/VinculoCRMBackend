@@ -391,7 +391,7 @@ public class ApplicationDbContextInitialiser
             return;
         }
 
-        _context.Campaigns.Add(new Campaign
+        var campaign = new Campaign
         {
             Id = CampaignWinterId,
             OrganizationId = DemoOrganizationId,
@@ -401,9 +401,10 @@ public class ApplicationDbContextInitialiser
             StatusOptionId = CampaignStatusActiveId,
             ChannelOptionId = CampaignChannelMixedId,
             GoalAmount = 35000,
-            StartDateUtc = DateTimeOffset.UtcNow.AddDays(-30),
-            EndDateUtc = DateTimeOffset.UtcNow.AddDays(30),
-        });
+        };
+        campaign.SetPeriod(DateTimeOffset.UtcNow.AddDays(-30), DateTimeOffset.UtcNow.AddDays(30));
+
+        _context.Campaigns.Add(campaign);
 
         await _context.SaveChangesAsync();
     }

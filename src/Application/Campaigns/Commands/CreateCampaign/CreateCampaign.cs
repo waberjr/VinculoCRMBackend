@@ -43,10 +43,9 @@ public sealed class CreateCampaignCommandHandler : IRequestHandler<CreateCampaig
                 ? null
                 : await OptionLookup.RequiredIdAsync(_context, "CampaignChannel", request.Channel, cancellationToken),
             GoalAmount = request.GoalAmount,
-            StartDateUtc = request.StartDateUtc,
-            EndDateUtc = request.EndDateUtc,
             AssignedUserId = _user.Id,
         };
+        campaign.SetPeriod(request.StartDateUtc, request.EndDateUtc);
 
         _context.Campaigns.Add(campaign);
         await _context.SaveChangesAsync(cancellationToken);

@@ -6,14 +6,14 @@ public sealed class CreateCampaignCommandValidator : AbstractValidator<CreateCam
     {
         RuleFor(v => v.Name).NotEmpty().MaximumLength(180);
         RuleFor(v => v.Type).NotEmpty().MaximumLength(80);
-        RuleFor(v => v.Channel).NotEmpty().MaximumLength(80);
+        RuleFor(v => v.Channel).MaximumLength(80);
         RuleFor(v => v.GoalAmount).NotNull().GreaterThan(0);
         RuleFor(v => v.StartDateUtc).NotNull();
         RuleFor(v => v.EndDateUtc).NotNull();
         RuleFor(v => v.EndDateUtc)
-            .GreaterThanOrEqualTo(v => v.StartDateUtc)
+            .GreaterThan(v => v.StartDateUtc)
             .When(v => v.StartDateUtc is not null && v.EndDateUtc is not null)
-            .WithMessage("A data final deve ser maior ou igual a data inicial.");
+            .WithMessage("A data final deve ser maior que a data inicial.");
         RuleFor(v => v.Description).MaximumLength(1000);
     }
 }
