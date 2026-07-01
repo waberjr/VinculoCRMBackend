@@ -1,4 +1,5 @@
 using VinculoBackend.Application.ConfigurableOptions.Commands.CreateConfigurableOption;
+using VinculoBackend.Application.ConfigurableOptions.Queries.GetConfigurableOptionCategories;
 using VinculoBackend.Application.ConfigurableOptions.Queries.GetConfigurableOptions;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -12,7 +13,14 @@ public sealed class ConfigurableOptions : IEndpointGroup
         groupBuilder.RequireAuthorization();
 
         groupBuilder.MapGet(GetConfigurableOptions);
+        groupBuilder.MapGet(GetConfigurableOptionCategories, "Categories");
         groupBuilder.MapPost(CreateConfigurableOption);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<OptionCategoryDto>>> GetConfigurableOptionCategories(ISender sender)
+    {
+        var result = await sender.Send(new GetConfigurableOptionCategoriesQuery());
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Ok<IReadOnlyCollection<OptionDto>>> GetConfigurableOptions(
