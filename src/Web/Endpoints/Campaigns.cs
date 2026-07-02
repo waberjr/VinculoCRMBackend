@@ -1,6 +1,8 @@
 using VinculoBackend.Application.Campaigns.Commands.ActivateCampaign;
+using VinculoBackend.Application.Campaigns.Commands.CancelCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CompleteCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
+using VinculoBackend.Application.Campaigns.Commands.UpdateCampaign;
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Common.Models;
@@ -15,8 +17,10 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetCampaigns);
         groupBuilder.MapPost(CreateCampaign);
+        groupBuilder.MapPut(UpdateCampaign, "{id}");
         groupBuilder.MapPost(ActivateCampaign, "{id}/Activate");
         groupBuilder.MapPost(CompleteCampaign, "{id}/Complete");
+        groupBuilder.MapPost(CancelCampaign, "{id}/Cancel");
     }
 
     public static async Task<Ok<PaginatedResult<CampaignListItemDto>>> GetCampaigns(
@@ -43,6 +47,12 @@ public sealed class Campaigns : IEndpointGroup
         return TypedResults.Created($"/api/Campaigns/{id}", id);
     }
 
+    public static async Task<NoContent> UpdateCampaign(ISender sender, Guid id, UpdateCampaignCommand command)
+    {
+        await sender.Send(command with { Id = id });
+        return TypedResults.NoContent();
+    }
+
     public static async Task<NoContent> ActivateCampaign(ISender sender, Guid id)
     {
         await sender.Send(new ActivateCampaignCommand(id));
@@ -52,6 +62,12 @@ public sealed class Campaigns : IEndpointGroup
     public static async Task<NoContent> CompleteCampaign(ISender sender, Guid id)
     {
         await sender.Send(new CompleteCampaignCommand(id));
+        return TypedResults.NoContent();
+    }
+
+    public static async Task<NoContent> CancelCampaign(ISender sender, Guid id)
+    {
+        await sender.Send(new CancelCampaignCommand(id));
         return TypedResults.NoContent();
     }
 }
