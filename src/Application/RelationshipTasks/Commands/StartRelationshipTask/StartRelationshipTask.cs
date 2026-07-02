@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.StartRelationshipTask;
 
@@ -22,10 +23,20 @@ public sealed class StartRelationshipTaskCommandHandler : IRequestHandler<StartR
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var task = await _context.RelationshipTasks.FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
+        var task = await _context.RelationshipTasks
+            .Include(entity => entity.StatusOption)
+            .FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
         if (task is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
+        }
+
+        if (task.StatusOption.Code != "open")
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(StartRelationshipTaskCommand.Id), "Apenas tarefas abertas podem ser iniciadas."),
+            ]);
         }
 
         task.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "InProgress", cancellationToken);

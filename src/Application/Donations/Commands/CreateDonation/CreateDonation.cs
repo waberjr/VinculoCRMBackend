@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Domain.Entities;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.CreateDonation;
 
@@ -44,6 +45,27 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
         }
 
+        if (request.CampaignId is not null &&
+            !await _context.Campaigns.AsNoTracking().AnyAsync(campaign => campaign.Id == request.CampaignId, cancellationToken))
+        {
+            throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.CampaignId.Value.ToString());
+        }
+
+        if (request.DonationPlanId is not null)
+        {
+            var planBelongsToDonor = await _context.DonationPlans
+                .AsNoTracking()
+                .AnyAsync(plan => plan.Id == request.DonationPlanId && plan.DonorId == request.DonorId, cancellationToken);
+
+            if (!planBelongsToDonor)
+            {
+                throw new Common.Exceptions.ValidationException(
+                [
+                    new ValidationFailure(nameof(CreateDonationCommand.DonationPlanId), "O plano recorrente informado nao pertence ao doador."),
+                ]);
+            }
+        }
+
         var donation = new Donation
         {
             OrganizationId = organizationId,
@@ -64,6 +86,20 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
         donation.SetAmount(request.Amount);
 
         _context.Donations.Add(donation);
+        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        {
+            OrganizationId = organizationId,
+            DonorId = donation.DonorId,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Donation", cancellationToken),
+            Title = ConfigurableOptionCode.FromName(request.Status) == "confirmed"
+                ? "Contribuicao registrada como confirmada"
+                : "Contribuicao registrada",
+            Description = $"Valor: {donation.Amount:C}.",
+            OccurredAtUtc = DateTimeOffset.UtcNow,
+            CreatedByUserId = _user.Id,
+            RelatedEntityType = nameof(Donation),
+            RelatedEntityId = donation.Id,
+        });
         await _context.SaveChangesAsync(cancellationToken);
 
         return donation.Id;

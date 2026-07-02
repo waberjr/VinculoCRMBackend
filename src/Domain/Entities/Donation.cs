@@ -35,4 +35,40 @@ public class Donation : OrganizationEntity
 
         Amount = amount;
     }
+
+    public void Confirm(Guid confirmedStatusOptionId, DateTimeOffset paidAtUtc, string? reference, string currentStatusCode)
+    {
+        if (currentStatusCode is not ("pending" or "overdue"))
+        {
+            throw new InvalidOperationException("Only pending or overdue donations can be confirmed.");
+        }
+
+        StatusOptionId = confirmedStatusOptionId;
+        PaidAtUtc = paidAtUtc;
+        Reference = reference?.Trim();
+    }
+
+    public void Cancel(Guid cancelledStatusOptionId, string reason, string currentStatusCode, DateTimeOffset cancelledAtUtc)
+    {
+        if (currentStatusCode is not ("pending" or "overdue"))
+        {
+            throw new InvalidOperationException("Only pending or overdue donations can be cancelled.");
+        }
+
+        StatusOptionId = cancelledStatusOptionId;
+        CancelledAtUtc = cancelledAtUtc;
+        CancellationReason = reason.Trim();
+    }
+
+    public void Refund(Guid refundedStatusOptionId, string reason, string currentStatusCode, DateTimeOffset refundedAtUtc)
+    {
+        if (currentStatusCode != "confirmed")
+        {
+            throw new InvalidOperationException("Only confirmed donations can be refunded.");
+        }
+
+        StatusOptionId = refundedStatusOptionId;
+        RefundedAtUtc = refundedAtUtc;
+        RefundReason = reason.Trim();
+    }
 }

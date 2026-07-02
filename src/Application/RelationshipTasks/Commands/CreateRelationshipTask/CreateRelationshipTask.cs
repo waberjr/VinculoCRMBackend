@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Domain.Entities;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTask;
 
@@ -16,6 +17,8 @@ public record CreateRelationshipTaskCommand : IRequest<Guid>
     public string Type { get; init; } = "Call";
     public string Priority { get; init; } = "Medium";
     public DateTimeOffset? DueAtUtc { get; init; }
+    public bool ConfirmBlockedContact { get; init; }
+    public string? BlockedContactJustification { get; init; }
 }
 
 public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<CreateRelationshipTaskCommand, Guid>
@@ -35,10 +38,44 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
 
-        var donorExists = await _context.Donors.AsNoTracking().AnyAsync(donor => donor.Id == request.DonorId, cancellationToken);
-        if (!donorExists)
+        var donor = await _context.Donors
+            .AsNoTracking()
+            .FirstOrDefaultAsync(entity => entity.Id == request.DonorId, cancellationToken);
+        if (donor is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
+        }
+
+        if (donor.DoNotContact || !donor.AllowsCommunication)
+        {
+            if (!request.ConfirmBlockedContact || string.IsNullOrWhiteSpace(request.BlockedContactJustification))
+            {
+                throw new Common.Exceptions.ValidationException(
+                [
+                    new ValidationFailure(nameof(CreateRelationshipTaskCommand.DonorId), "Doador bloqueado para contato exige confirmacao explicita e justificativa."),
+                ]);
+            }
+        }
+
+        if (request.CampaignId is not null &&
+            !await _context.Campaigns.AsNoTracking().AnyAsync(campaign => campaign.Id == request.CampaignId, cancellationToken))
+        {
+            throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.CampaignId.Value.ToString());
+        }
+
+        if (request.DonationId is not null)
+        {
+            var donationBelongsToDonor = await _context.Donations
+                .AsNoTracking()
+                .AnyAsync(donation => donation.Id == request.DonationId && donation.DonorId == request.DonorId, cancellationToken);
+
+            if (!donationBelongsToDonor)
+            {
+                throw new Common.Exceptions.ValidationException(
+                [
+                    new ValidationFailure(nameof(CreateRelationshipTaskCommand.DonationId), "A contribuicao informada nao pertence ao doador."),
+                ]);
+            }
         }
 
         var task = new RelationshipTask
@@ -58,6 +95,18 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
         };
 
         _context.RelationshipTasks.Add(task);
+        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        {
+            OrganizationId = organizationId,
+            DonorId = task.DonorId,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Task", cancellationToken),
+            Title = "Tarefa criada",
+            Description = task.Title,
+            OccurredAtUtc = DateTimeOffset.UtcNow,
+            CreatedByUserId = _user.Id,
+            RelatedEntityType = nameof(RelationshipTask),
+            RelatedEntityId = task.Id,
+        });
         await _context.SaveChangesAsync(cancellationToken);
 
         return task.Id;

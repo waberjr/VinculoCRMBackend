@@ -124,6 +124,17 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
         }
 
         _context.Donors.Add(donor);
+        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        {
+            OrganizationId = organizationId,
+            DonorId = donor.Id,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Note", cancellationToken),
+            Title = "Doador criado",
+            Description = donor.FullName,
+            OccurredAtUtc = DateTimeOffset.UtcNow,
+            RelatedEntityType = nameof(Donor),
+            RelatedEntityId = donor.Id,
+        });
         await _context.SaveChangesAsync(cancellationToken);
 
         return donor.Id;

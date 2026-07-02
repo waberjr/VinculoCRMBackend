@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelationshipTask;
 
@@ -16,21 +17,33 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IUser _user;
 
-    public CompleteRelationshipTaskCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public CompleteRelationshipTaskCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _user = user;
     }
 
     public async Task Handle(CompleteRelationshipTaskCommand request, CancellationToken cancellationToken)
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var task = await _context.RelationshipTasks.FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
+        var task = await _context.RelationshipTasks
+            .Include(entity => entity.StatusOption)
+            .FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
         if (task is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
+        }
+
+        if (task.StatusOption.Code is not ("open" or "in-progress"))
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(CompleteRelationshipTaskCommand.Id), "Apenas tarefas abertas ou em andamento podem ser concluidas."),
+            ]);
         }
 
         task.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Completed", cancellationToken);
@@ -50,6 +63,19 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 donor.AllowsCommunication = false;
                 donor.DoNotContactReason = request.DoNotContactReason?.Trim();
                 donor.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorStatus", "DoNotContact", cancellationToken);
+
+                _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+                {
+                    OrganizationId = task.OrganizationId,
+                    DonorId = task.DonorId,
+                    TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Contact", cancellationToken),
+                    Title = "Contato bloqueado",
+                    Description = donor.DoNotContactReason,
+                    OccurredAtUtc = DateTimeOffset.UtcNow,
+                    CreatedByUserId = _user.Id,
+                    RelatedEntityType = nameof(RelationshipTask),
+                    RelatedEntityId = task.Id,
+                });
             }
         }
 
@@ -70,6 +96,19 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 Description = "Follow-up criado automaticamente ao concluir tarefa.",
             });
         }
+
+        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        {
+            OrganizationId = task.OrganizationId,
+            DonorId = task.DonorId,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Contact", cancellationToken),
+            Title = "Tarefa concluida",
+            Description = request.CompletionNote?.Trim(),
+            OccurredAtUtc = task.CompletedAtUtc.Value,
+            CreatedByUserId = _user.Id,
+            RelatedEntityType = nameof(RelationshipTask),
+            RelatedEntityId = task.Id,
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
     }

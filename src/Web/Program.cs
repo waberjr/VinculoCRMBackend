@@ -37,6 +37,7 @@ app.UseRouting();
 app.UseCors("FrontendCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<VinculoBackend.Web.Infrastructure.OrganizationAccessMiddleware>();
 
 app.Map("/", () => Results.Redirect("/scalar"));
 

@@ -76,6 +76,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
 
         var contactedDonors = await _context.DonorTimelineEntries
             .AsNoTracking()
+            .Where(entry => entry.TypeOption.Code == "contact")
             .Select(entry => entry.DonorId)
             .Distinct()
             .CountAsync(cancellationToken);

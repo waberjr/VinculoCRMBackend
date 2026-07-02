@@ -66,6 +66,8 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
 
         var normalizedDocument = NormalizeDocument(request.Document);
         await EnsureDocumentIsUniqueAsync(normalizedDocument, donor.Id, cancellationToken);
+        var previousAllowsCommunication = donor.AllowsCommunication;
+        var previousDoNotContact = donor.DoNotContact;
 
         donor.FullName = request.FullName.Trim();
         donor.PersonTypeOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorPersonType", request.PersonType, cancellationToken);
@@ -124,6 +126,33 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             {
                 OrganizationId = organizationId,
                 DonorTagId = tagId.Value,
+            });
+        }
+
+        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        {
+            OrganizationId = organizationId,
+            DonorId = donor.Id,
+            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Note", cancellationToken),
+            Title = "Doador atualizado",
+            Description = donor.FullName,
+            OccurredAtUtc = DateTimeOffset.UtcNow,
+            RelatedEntityType = nameof(Donor),
+            RelatedEntityId = donor.Id,
+        });
+
+        if (previousAllowsCommunication != donor.AllowsCommunication || previousDoNotContact != donor.DoNotContact)
+        {
+            _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+            {
+                OrganizationId = organizationId,
+                DonorId = donor.Id,
+                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Contact", cancellationToken),
+                Title = "Consentimento de comunicacao atualizado",
+                Description = donor.DoNotContact ? donor.DoNotContactReason : null,
+                OccurredAtUtc = DateTimeOffset.UtcNow,
+                RelatedEntityType = nameof(Donor),
+                RelatedEntityId = donor.Id,
             });
         }
 

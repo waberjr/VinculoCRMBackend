@@ -10,5 +10,6 @@ public sealed class CreateRelationshipTaskCommandValidator : AbstractValidator<C
         RuleFor(v => v.Type).NotEmpty().MaximumLength(80);
         RuleFor(v => v.Priority).NotEmpty().MaximumLength(80);
         RuleFor(v => v.DueAtUtc).NotNull();
+        RuleFor(v => v.BlockedContactJustification).MaximumLength(500);
     }
 }
