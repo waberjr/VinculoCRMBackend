@@ -1,6 +1,8 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donors.Commands.UpdateDonor;
 
@@ -37,11 +39,16 @@ public record UpdateDonorCommand : IRequest
 public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorCommand>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IBrazilianDocumentValidator _documentValidator;
     private readonly IOrganizationContext _organizationContext;
 
-    public UpdateDonorCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public UpdateDonorCommandHandler(
+        IApplicationDbContext context,
+        IBrazilianDocumentValidator documentValidator,
+        IOrganizationContext organizationContext)
     {
         _context = context;
+        _documentValidator = documentValidator;
         _organizationContext = organizationContext;
     }
 
@@ -57,6 +64,9 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             throw new Common.Exceptions.NotFoundException(nameof(Donor), request.Id.ToString());
         }
 
+        var normalizedDocument = NormalizeDocument(request.Document);
+        await EnsureDocumentIsUniqueAsync(normalizedDocument, donor.Id, cancellationToken);
+
         donor.FullName = request.FullName.Trim();
         donor.PersonTypeOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorPersonType", request.PersonType, cancellationToken);
         donor.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorStatus", request.DoNotContact ? "DoNotContact" : request.Status, cancellationToken);
@@ -69,7 +79,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         donor.PreferredContactChannelOptionId = string.IsNullOrWhiteSpace(request.PreferredContactChannel)
             ? null
             : await OptionLookup.RequiredIdAsync(_context, "ContactChannel", request.PreferredContactChannel, cancellationToken);
-        donor.Document = request.Document?.Trim();
+        donor.Document = normalizedDocument;
         donor.Email = request.Email?.Trim();
         donor.Phone = request.Phone?.Trim();
         donor.WhatsApp = request.WhatsApp?.Trim();
@@ -118,6 +128,36 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private string? NormalizeDocument(string? document)
+    {
+        if (string.IsNullOrWhiteSpace(document))
+        {
+            return null;
+        }
+
+        return _documentValidator.Normalize(document);
+    }
+
+    private async Task EnsureDocumentIsUniqueAsync(string? document, Guid donorId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(document))
+        {
+            return;
+        }
+
+        var alreadyExists = await _context.Donors
+            .AsNoTracking()
+            .AnyAsync(donor => donor.Document == document && donor.Id != donorId, cancellationToken);
+
+        if (alreadyExists)
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(UpdateDonorCommand.Document), "CPF/CNPJ ja cadastrado nesta organizacao."),
+            ]);
+        }
     }
 
     private async Task ApplyContactsAsync(Donor donor, UpdateDonorCommand request, Guid organizationId, CancellationToken cancellationToken)

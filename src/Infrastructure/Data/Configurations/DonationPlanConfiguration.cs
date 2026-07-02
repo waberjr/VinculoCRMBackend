@@ -13,5 +13,7 @@ public class DonationPlanConfiguration : IEntityTypeConfiguration<DonationPlan>
         builder.Property(e => e.CancellationReason).HasMaxLength(500);
         builder.Property(e => e.Notes).HasMaxLength(1000);
         builder.HasIndex(e => new { e.OrganizationId, e.DonorId, e.StatusOptionId });
+        builder.HasOne(e => e.PreferredPaymentMethodOption).WithMany().HasForeignKey(e => e.PreferredPaymentMethodOptionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.StatusOption).WithMany().HasForeignKey(e => e.StatusOptionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

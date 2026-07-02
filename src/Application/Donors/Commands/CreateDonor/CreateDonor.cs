@@ -1,6 +1,8 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donors.Commands.CreateDonor;
 
@@ -40,17 +42,24 @@ public record CreateDonorCommand : IRequest<Guid>
 public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IBrazilianDocumentValidator _documentValidator;
     private readonly IOrganizationContext _organizationContext;
 
-    public CreateDonorCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public CreateDonorCommandHandler(
+        IApplicationDbContext context,
+        IBrazilianDocumentValidator documentValidator,
+        IOrganizationContext organizationContext)
     {
         _context = context;
+        _documentValidator = documentValidator;
         _organizationContext = organizationContext;
     }
 
     public async Task<Guid> Handle(CreateDonorCommand request, CancellationToken cancellationToken)
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
+        var normalizedDocument = NormalizeDocument(request.Document);
+        await EnsureDocumentIsUniqueAsync(normalizedDocument, null, cancellationToken);
 
         var donor = new Donor
         {
@@ -67,7 +76,7 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
             PreferredContactChannelOptionId = string.IsNullOrWhiteSpace(request.PreferredContactChannel)
                 ? null
                 : await OptionLookup.RequiredIdAsync(_context, "ContactChannel", request.PreferredContactChannel, cancellationToken),
-            Document = request.Document?.Trim(),
+            Document = normalizedDocument,
             Email = request.Email?.Trim(),
             Phone = request.Phone?.Trim(),
             WhatsApp = request.WhatsApp?.Trim(),
@@ -118,6 +127,36 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
         await _context.SaveChangesAsync(cancellationToken);
 
         return donor.Id;
+    }
+
+    private string? NormalizeDocument(string? document)
+    {
+        if (string.IsNullOrWhiteSpace(document))
+        {
+            return null;
+        }
+
+        return _documentValidator.Normalize(document);
+    }
+
+    private async Task EnsureDocumentIsUniqueAsync(string? document, Guid? donorId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(document))
+        {
+            return;
+        }
+
+        var alreadyExists = await _context.Donors
+            .AsNoTracking()
+            .AnyAsync(donor => donor.Document == document && (donorId == null || donor.Id != donorId), cancellationToken);
+
+        if (alreadyExists)
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(nameof(CreateDonorCommand.Document), "CPF/CNPJ ja cadastrado nesta organizacao."),
+            ]);
+        }
     }
 
     private async Task ApplyContactsAsync(Donor donor, CreateDonorCommand request, Guid organizationId, CancellationToken cancellationToken)

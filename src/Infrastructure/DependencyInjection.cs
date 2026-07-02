@@ -1,6 +1,7 @@
 ﻿using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Infrastructure.Data.Interceptors;
+using VinculoBackend.Infrastructure.Documents;
 using VinculoBackend.Infrastructure.Identity;
 using VinculoBackend.Infrastructure.Locations;
 using VinculoBackend.Infrastructure.Organizations;
@@ -51,6 +52,7 @@ public static class DependencyInjection
             .AddApiEndpoints();
 
         builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<IBrazilianDocumentValidator, DocsBrBrazilianDocumentValidator>();
         builder.Services.AddTransient<IIdentityService, IdentityService>();
         builder.Services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
     }

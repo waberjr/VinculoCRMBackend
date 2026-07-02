@@ -1,8 +1,10 @@
+using VinculoBackend.Application.Common.Interfaces;
+
 namespace VinculoBackend.Application.Donors.Commands.CreateDonor;
 
 public sealed class CreateDonorCommandValidator : AbstractValidator<CreateDonorCommand>
 {
-    public CreateDonorCommandValidator()
+    public CreateDonorCommandValidator(IBrazilianDocumentValidator documentValidator)
     {
         RuleFor(v => v.FullName).NotEmpty().MaximumLength(200);
         RuleFor(v => v.PersonType).NotEmpty().MaximumLength(80);
@@ -10,7 +12,11 @@ public sealed class CreateDonorCommandValidator : AbstractValidator<CreateDonorC
         RuleFor(v => v.Source).MaximumLength(80);
         RuleFor(v => v.RelationshipProfile).MaximumLength(80);
         RuleFor(v => v.PreferredContactChannel).MaximumLength(80);
-        RuleFor(v => v.Document).MaximumLength(32);
+        RuleFor(v => v.Document)
+            .MaximumLength(32)
+            .Must((command, document) => BeValidDocument(command.PersonType, document, documentValidator))
+            .When(v => !string.IsNullOrWhiteSpace(v.Document))
+            .WithMessage("CPF/CNPJ invalido para o tipo de pessoa informado.");
         RuleFor(v => v.Email).MaximumLength(254).EmailAddress().When(v => !string.IsNullOrWhiteSpace(v.Email));
         RuleFor(v => v.Phone).MaximumLength(32);
         RuleFor(v => v.WhatsApp).MaximumLength(32);
@@ -31,5 +37,17 @@ public sealed class CreateDonorCommandValidator : AbstractValidator<CreateDonorC
         RuleFor(v => v.PostalCode).MaximumLength(16);
         RuleFor(v => v.Notes).MaximumLength(1000);
         RuleFor(v => v.DoNotContactReason).NotEmpty().When(v => v.DoNotContact);
+    }
+
+    private static bool BeValidDocument(string personType, string? document, IBrazilianDocumentValidator documentValidator)
+    {
+        if (string.IsNullOrWhiteSpace(document))
+        {
+            return true;
+        }
+
+        return string.Equals(personType, "Company", StringComparison.OrdinalIgnoreCase)
+            ? documentValidator.IsValidCnpj(document)
+            : documentValidator.IsValidCpf(document);
     }
 }

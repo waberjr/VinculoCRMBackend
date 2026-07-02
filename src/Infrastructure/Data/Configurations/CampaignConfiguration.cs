@@ -14,5 +14,8 @@ public class CampaignConfiguration : IEntityTypeConfiguration<Campaign>
         builder.Property(e => e.AssignedUserId).HasMaxLength(450);
         builder.HasIndex(e => new { e.OrganizationId, e.StatusOptionId });
         builder.HasIndex(e => new { e.OrganizationId, e.Name });
+        builder.HasOne(e => e.TypeOption).WithMany().HasForeignKey(e => e.TypeOptionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.StatusOption).WithMany().HasForeignKey(e => e.StatusOptionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.ChannelOption).WithMany().HasForeignKey(e => e.ChannelOptionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

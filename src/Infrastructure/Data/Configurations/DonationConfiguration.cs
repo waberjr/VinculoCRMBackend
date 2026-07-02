@@ -20,5 +20,8 @@ public class DonationConfiguration : IEntityTypeConfiguration<Donation>
         builder.HasIndex(e => new { e.OrganizationId, e.CampaignId, e.PaidAtUtc });
         builder.HasIndex(e => new { e.OrganizationId, e.DonationPlanId });
         builder.HasIndex(e => new { e.OrganizationId, e.ExternalPaymentId }).IsUnique().HasFilter("\"ExternalPaymentId\" IS NOT NULL");
+        builder.HasOne(e => e.TypeOption).WithMany().HasForeignKey(e => e.TypeOptionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.StatusOption).WithMany().HasForeignKey(e => e.StatusOptionId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(e => e.PaymentMethodOption).WithMany().HasForeignKey(e => e.PaymentMethodOptionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

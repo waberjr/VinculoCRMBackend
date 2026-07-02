@@ -1,15 +1,21 @@
+using VinculoBackend.Application.Common.Interfaces;
+
 namespace VinculoBackend.Application.Donors.Commands.UpdateDonor;
 
 public sealed class UpdateDonorCommandValidator : AbstractValidator<UpdateDonorCommand>
 {
-    public UpdateDonorCommandValidator()
+    public UpdateDonorCommandValidator(IBrazilianDocumentValidator documentValidator)
     {
         RuleFor(v => v.Id).NotEmpty();
         RuleFor(v => v.FullName).NotEmpty().MaximumLength(200);
         RuleFor(v => v.PersonType).NotEmpty().MaximumLength(80);
         RuleFor(v => v.Status).NotEmpty().MaximumLength(80);
         RuleFor(v => v.Email).MaximumLength(254).EmailAddress().When(v => !string.IsNullOrWhiteSpace(v.Email));
-        RuleFor(v => v.Document).MaximumLength(32);
+        RuleFor(v => v.Document)
+            .MaximumLength(32)
+            .Must((command, document) => BeValidDocument(command.PersonType, document, documentValidator))
+            .When(v => !string.IsNullOrWhiteSpace(v.Document))
+            .WithMessage("CPF/CNPJ invalido para o tipo de pessoa informado.");
         RuleFor(v => v.Phone).MaximumLength(32);
         RuleFor(v => v.WhatsApp).MaximumLength(32);
         RuleForEach(v => v.Phones).ChildRules(phone =>
@@ -26,5 +32,17 @@ public sealed class UpdateDonorCommandValidator : AbstractValidator<UpdateDonorC
         RuleFor(v => v.State).MaximumLength(2);
         RuleFor(v => v.Notes).MaximumLength(1000);
         RuleFor(v => v.DoNotContactReason).NotEmpty().When(v => v.DoNotContact);
+    }
+
+    private static bool BeValidDocument(string personType, string? document, IBrazilianDocumentValidator documentValidator)
+    {
+        if (string.IsNullOrWhiteSpace(document))
+        {
+            return true;
+        }
+
+        return string.Equals(personType, "Company", StringComparison.OrdinalIgnoreCase)
+            ? documentValidator.IsValidCnpj(document)
+            : documentValidator.IsValidCpf(document);
     }
 }

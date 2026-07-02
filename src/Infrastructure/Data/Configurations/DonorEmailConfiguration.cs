@@ -15,5 +15,9 @@ public class DonorEmailConfiguration : IEntityTypeConfiguration<DonorEmail>
             .WithMany(e => e.Emails)
             .HasForeignKey(e => e.DonorId)
             .OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(e => e.TypeOption)
+            .WithMany()
+            .HasForeignKey(e => e.TypeOptionId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

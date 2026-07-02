@@ -13,5 +13,6 @@ public class DonorTimelineEntryConfiguration : IEntityTypeConfiguration<DonorTim
         builder.Property(e => e.CreatedByUserId).HasMaxLength(450);
         builder.Property(e => e.RelatedEntityType).HasMaxLength(80);
         builder.HasIndex(e => new { e.OrganizationId, e.DonorId, e.OccurredAtUtc }).IsDescending(false, false, true);
+        builder.HasOne(e => e.TypeOption).WithMany().HasForeignKey(e => e.TypeOptionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

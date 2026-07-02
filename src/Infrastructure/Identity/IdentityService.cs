@@ -233,6 +233,7 @@ public class IdentityService : IIdentityService
 
         var isSystemAdministrator = await _userManager.IsInRoleAsync(currentUser, Roles.SystemAdministrator);
         var canAccessOrganization = isSystemAdministrator ||
+            currentUser.OrganizationId == organizationId ||
             await _context.OrganizationMembers
                 .AsNoTracking()
                 .AnyAsync(member => member.UserId == currentUser.Id && member.OrganizationId == organizationId && member.IsActive, cancellationToken);
@@ -242,14 +243,15 @@ public class IdentityService : IIdentityService
             return [];
         }
 
+        var memberUserIdsQuery = _context.OrganizationMembers
+            .AsNoTracking()
+            .Where(member => member.OrganizationId == organizationId && member.IsActive)
+            .Select(member => member.UserId);
+
         return await _userManager.Users
             .AsNoTracking()
-            .Join(
-                _context.OrganizationMembers.AsNoTracking().Where(member => member.OrganizationId == organizationId && member.IsActive),
-                user => user.Id,
-                member => member.UserId,
-                (user, member) => user)
             .Where(user => user.IsActive)
+            .Where(user => user.OrganizationId == organizationId || memberUserIdsQuery.Contains(user.Id))
             .OrderBy(user => user.DisplayName)
             .ThenBy(user => user.Email)
             .Select(user => new AttendantDto(
