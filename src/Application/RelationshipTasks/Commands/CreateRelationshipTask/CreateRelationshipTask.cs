@@ -1,7 +1,9 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Common.Exceptions;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTask;
@@ -88,9 +90,9 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             Description = request.Description?.Trim(),
             AssignedUserId = request.AssignedUserId,
             CreatedByUserId = _user.Id,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskType", request.Type, cancellationToken),
-            PriorityOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskPriority", request.Priority, cancellationToken),
-            StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Open", cancellationToken),
+            Type = SystemOptionMapper.Parse<TaskType>(request.Type),
+            Priority = SystemOptionMapper.Parse<TaskPriority>(request.Priority),
+            Status = RelationshipTaskStatus.Open,
             DueAtUtc = request.DueAtUtc,
         };
 
@@ -99,7 +101,7 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
         {
             OrganizationId = organizationId,
             DonorId = task.DonorId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Task", cancellationToken),
+            Type = TimelineEntryType.Task,
             Title = "Tarefa criada",
             Description = task.Title,
             OccurredAtUtc = DateTimeOffset.UtcNow,

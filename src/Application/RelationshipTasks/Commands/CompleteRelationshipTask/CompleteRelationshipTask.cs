@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelationshipTask;
@@ -30,15 +31,13 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var task = await _context.RelationshipTasks
-            .Include(entity => entity.StatusOption)
-            .FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
+        var task = await _context.RelationshipTasks.FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
         if (task is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        if (task.StatusOption.Code is not ("open" or "in-progress"))
+        if (task.Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))
         {
             throw new Common.Exceptions.ValidationException(
             [
@@ -46,15 +45,15 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             ]);
         }
 
-        task.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Completed", cancellationToken);
-        task.ContactOutcomeOptionId = string.IsNullOrWhiteSpace(request.Outcome)
+        task.Status = RelationshipTaskStatus.Completed;
+        task.ContactOutcome = string.IsNullOrWhiteSpace(request.Outcome)
             ? null
-            : await OptionLookup.RequiredIdAsync(_context, "ContactOutcome", request.Outcome, cancellationToken);
+            : SystemOptionMapper.Parse<ContactOutcome>(request.Outcome);
         task.CompletedAtUtc = DateTimeOffset.UtcNow;
         task.CompletionNote = request.CompletionNote?.Trim();
-        var outcomeCode = string.IsNullOrWhiteSpace(request.Outcome) ? null : ConfigurableOptionCode.FromName(request.Outcome);
+        var outcome = string.IsNullOrWhiteSpace(request.Outcome) ? (ContactOutcome?)null : SystemOptionMapper.Parse<ContactOutcome>(request.Outcome);
 
-        if (outcomeCode == "do-not-contact")
+        if (outcome == ContactOutcome.DoNotContact)
         {
             var donor = await _context.Donors.FirstOrDefaultAsync(entity => entity.Id == task.DonorId, cancellationToken);
             if (donor is not null)
@@ -62,13 +61,13 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 donor.DoNotContact = true;
                 donor.AllowsCommunication = false;
                 donor.DoNotContactReason = request.DoNotContactReason?.Trim();
-                donor.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorStatus", "DoNotContact", cancellationToken);
+                donor.Status = DonorStatus.DoNotContact;
 
                 _context.DonorTimelineEntries.Add(new DonorTimelineEntry
                 {
                     OrganizationId = task.OrganizationId,
                     DonorId = task.DonorId,
-                    TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Contact", cancellationToken),
+                    Type = TimelineEntryType.Contact,
                     Title = "Contato bloqueado",
                     Description = donor.DoNotContactReason,
                     OccurredAtUtc = DateTimeOffset.UtcNow,
@@ -79,7 +78,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             }
         }
 
-        if (outcomeCode == "requested-callback" && request.FollowUpAtUtc is not null)
+        if (outcome == ContactOutcome.RequestedCallback && request.FollowUpAtUtc is not null)
         {
             _context.RelationshipTasks.Add(new RelationshipTask
             {
@@ -88,9 +87,9 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 CampaignId = task.CampaignId,
                 AssignedUserId = task.AssignedUserId,
                 CreatedByUserId = task.CreatedByUserId,
-                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskType", "FollowUp", cancellationToken),
-                PriorityOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskPriority", "High", cancellationToken),
-                StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Open", cancellationToken),
+                Type = TaskType.FollowUp,
+                Priority = TaskPriority.High,
+                Status = RelationshipTaskStatus.Open,
                 DueAtUtc = request.FollowUpAtUtc,
                 Title = "Retorno solicitado",
                 Description = "Follow-up criado automaticamente ao concluir tarefa.",
@@ -101,7 +100,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
         {
             OrganizationId = task.OrganizationId,
             DonorId = task.DonorId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Contact", cancellationToken),
+            Type = TimelineEntryType.Contact,
             Title = "Tarefa concluida",
             Description = request.CompletionNote?.Trim(),
             OccurredAtUtc = task.CompletedAtUtc.Value,

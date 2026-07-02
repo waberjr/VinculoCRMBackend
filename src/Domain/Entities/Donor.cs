@@ -1,10 +1,11 @@
+using VinculoBackend.Domain.Enums;
+
 namespace VinculoBackend.Domain.Entities;
 
 public class Donor : OrganizationEntity
 {
     public string FullName { get; set; } = string.Empty;
-    public Guid PersonTypeOptionId { get; set; }
-    public ConfigurableOption PersonTypeOption { get; set; } = null!;
+    public DonorPersonType PersonType { get; set; }
     public string? Document { get; set; }
     public string? Email { get; set; }
     public string? Phone { get; set; }
@@ -15,8 +16,7 @@ public class Donor : OrganizationEntity
     public string? AddressLine1 { get; set; }
     public string? AddressLine2 { get; set; }
     public string? PostalCode { get; set; }
-    public Guid StatusOptionId { get; set; }
-    public ConfigurableOption StatusOption { get; set; } = null!;
+    public DonorStatus Status { get; set; }
     public Guid? SourceOptionId { get; set; }
     public ConfigurableOption? SourceOption { get; set; }
     public Guid? RelationshipProfileOptionId { get; set; }

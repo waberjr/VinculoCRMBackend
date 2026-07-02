@@ -1,13 +1,14 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.DonationPlans.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.DonationPlans.Queries.GetDonationPlans;
 
 public record GetDonationPlansQuery : IRequest<PaginatedResult<DonationPlanListItemDto>>
 {
     public Guid? DonorId { get; init; }
-    public Guid? StatusOptionId { get; init; }
+    public string? Status { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }
@@ -34,9 +35,10 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
             query = query.Where(plan => plan.DonorId == request.DonorId);
         }
 
-        if (request.StatusOptionId is not null)
+        if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            query = query.Where(plan => plan.StatusOptionId == request.StatusOptionId);
+            var status = SystemOptionMapper.Parse<DonationPlanStatus>(request.Status);
+            query = query.Where(plan => plan.Status == status);
         }
 
         var projected = query
@@ -49,8 +51,8 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
                 DonorName = plan.Donor.FullName,
                 ExpectedAmount = plan.ExpectedAmount,
                 BillingDay = plan.BillingDay,
-                PreferredPaymentMethod = plan.PreferredPaymentMethodOption.Name,
-                Status = plan.StatusOption.Code,
+                PreferredPaymentMethod = SystemOptionMapper.Name(plan.PreferredPaymentMethod),
+                Status = SystemOptionMapper.Code(plan.Status),
                 LastConfirmedAt = _context.Donations
                     .Where(donation => donation.DonationPlanId == plan.Id && donation.PaidAtUtc != null)
                     .Max(donation => (DateTimeOffset?)donation.PaidAtUtc),

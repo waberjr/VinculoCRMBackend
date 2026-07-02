@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Commands.ActivateCampaign;
 
@@ -27,7 +28,7 @@ public sealed class ActivateCampaignCommandHandler : IRequestHandler<ActivateCam
             throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.Id.ToString());
         }
 
-        campaign.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "CampaignStatus", "Active", cancellationToken);
+        campaign.Status = CampaignStatus.Active;
 
         await _context.SaveChangesAsync(cancellationToken);
     }

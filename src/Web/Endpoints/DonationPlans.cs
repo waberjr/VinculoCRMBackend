@@ -18,14 +18,14 @@ public sealed class DonationPlans : IEndpointGroup
     public static async Task<Ok<PaginatedResult<DonationPlanListItemDto>>> GetDonationPlans(
         ISender sender,
         Guid? donorId,
-        Guid? statusOptionId,
+        string? status,
         int pageNumber = 1,
         int pageSize = 20)
     {
         var result = await sender.Send(new GetDonationPlansQuery
         {
             DonorId = donorId,
-            StatusOptionId = statusOptionId,
+            Status = status,
             PageNumber = pageNumber,
             PageSize = pageSize,
         });

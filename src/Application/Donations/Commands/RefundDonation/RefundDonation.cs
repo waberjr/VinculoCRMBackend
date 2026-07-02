@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.RefundDonation;
@@ -23,15 +24,13 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var donation = await _context.Donations
-            .Include(entity => entity.StatusOption)
-            .FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
+        var donation = await _context.Donations.FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
         if (donation is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        if (donation.StatusOption.Code != "confirmed")
+        if (donation.Status != DonationStatus.Confirmed)
         {
             throw new Common.Exceptions.ValidationException(
             [
@@ -39,17 +38,13 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
             ]);
         }
 
-        donation.Refund(
-            await OptionLookup.RequiredIdAsync(_context, "DonationStatus", "Refunded", cancellationToken),
-            request.Reason,
-            donation.StatusOption.Code,
-            DateTimeOffset.UtcNow);
+        donation.Refund(request.Reason, DateTimeOffset.UtcNow);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Donation", cancellationToken),
+            Type = TimelineEntryType.Donation,
             Title = "Contribuicao estornada",
             Description = donation.RefundReason,
             OccurredAtUtc = DateTimeOffset.UtcNow,

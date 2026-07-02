@@ -12,10 +12,10 @@ public class CampaignConfiguration : IEntityTypeConfiguration<Campaign>
         builder.Property(e => e.Description).HasMaxLength(1000);
         builder.Property(e => e.GoalAmount).HasPrecision(12, 2);
         builder.Property(e => e.AssignedUserId).HasMaxLength(450);
-        builder.HasIndex(e => new { e.OrganizationId, e.StatusOptionId });
+        builder.Property(e => e.Type).HasConversion<string>().HasMaxLength(40).IsRequired();
+        builder.Property(e => e.Status).HasConversion<string>().HasMaxLength(40).IsRequired();
+        builder.Property(e => e.Channel).HasConversion<string>().HasMaxLength(40);
+        builder.HasIndex(e => new { e.OrganizationId, e.Status });
         builder.HasIndex(e => new { e.OrganizationId, e.Name });
-        builder.HasOne(e => e.TypeOption).WithMany().HasForeignKey(e => e.TypeOptionId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(e => e.StatusOption).WithMany().HasForeignKey(e => e.StatusOptionId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(e => e.ChannelOption).WithMany().HasForeignKey(e => e.ChannelOptionId).OnDelete(DeleteBehavior.Restrict);
     }
 }

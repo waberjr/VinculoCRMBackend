@@ -22,14 +22,14 @@ public sealed class Campaigns : IEndpointGroup
     public static async Task<Ok<PaginatedResult<CampaignListItemDto>>> GetCampaigns(
         ISender sender,
         string? search,
-        Guid? statusOptionId,
+        string? status,
         int pageNumber = 1,
         int pageSize = 20)
     {
         var result = await sender.Send(new GetCampaignsQuery
         {
             Search = search,
-            StatusOptionId = statusOptionId,
+            Status = status,
             PageNumber = pageNumber,
             PageSize = pageSize,
         });

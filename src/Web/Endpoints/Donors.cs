@@ -27,8 +27,8 @@ public sealed class Donors : IEndpointGroup
     public static async Task<Ok<PaginatedResult<DonorListItemDto>>> GetDonors(
         ISender sender,
         string? search,
-        Guid? statusOptionId,
-        Guid? personTypeOptionId,
+        string? status,
+        string? personType,
         Guid? tagId,
         Guid? relationshipProfileOptionId,
         Guid? preferredContactChannelOptionId,
@@ -47,8 +47,8 @@ public sealed class Donors : IEndpointGroup
         var result = await sender.Send(new GetDonorsQuery
         {
             Search = search,
-            StatusOptionId = statusOptionId,
-            PersonTypeOptionId = personTypeOptionId,
+            Status = status,
+            PersonType = personType,
             TagId = tagId,
             RelationshipProfileOptionId = relationshipProfileOptionId,
             PreferredContactChannelOptionId = preferredContactChannelOptionId,

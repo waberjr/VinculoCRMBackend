@@ -1,7 +1,9 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donors.Commands.UpdateDonor;
@@ -70,17 +72,17 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         var previousDoNotContact = donor.DoNotContact;
 
         donor.FullName = request.FullName.Trim();
-        donor.PersonTypeOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorPersonType", request.PersonType, cancellationToken);
-        donor.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonorStatus", request.DoNotContact ? "DoNotContact" : request.Status, cancellationToken);
+        donor.PersonType = SystemOptionMapper.Parse<DonorPersonType>(request.PersonType);
+        donor.Status = request.DoNotContact ? DonorStatus.DoNotContact : SystemOptionMapper.Parse<DonorStatus>(request.Status);
         donor.SourceOptionId = string.IsNullOrWhiteSpace(request.Source)
             ? null
-            : await OptionLookup.RequiredIdAsync(_context, "DonorSource", request.Source, cancellationToken);
+            : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.DonorSource, request.Source, cancellationToken);
         donor.RelationshipProfileOptionId = string.IsNullOrWhiteSpace(request.RelationshipProfile)
             ? null
-            : await OptionLookup.RequiredIdAsync(_context, "RelationshipProfile", request.RelationshipProfile, cancellationToken);
+            : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.RelationshipProfile, request.RelationshipProfile, cancellationToken);
         donor.PreferredContactChannelOptionId = string.IsNullOrWhiteSpace(request.PreferredContactChannel)
             ? null
-            : await OptionLookup.RequiredIdAsync(_context, "ContactChannel", request.PreferredContactChannel, cancellationToken);
+            : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.ContactChannel, request.PreferredContactChannel, cancellationToken);
         donor.Document = normalizedDocument;
         donor.Email = request.Email?.Trim();
         donor.Phone = request.Phone?.Trim();
@@ -133,7 +135,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         {
             OrganizationId = organizationId,
             DonorId = donor.Id,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Note", cancellationToken),
+            Type = TimelineEntryType.Note,
             Title = "Doador atualizado",
             Description = donor.FullName,
             OccurredAtUtc = DateTimeOffset.UtcNow,
@@ -147,7 +149,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             {
                 OrganizationId = organizationId,
                 DonorId = donor.Id,
-                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Contact", cancellationToken),
+                Type = TimelineEntryType.Contact,
                 Title = "Consentimento de comunicacao atualizado",
                 Description = donor.DoNotContact ? donor.DoNotContactReason : null,
                 OccurredAtUtc = DateTimeOffset.UtcNow,
@@ -195,12 +197,12 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             ? request.Phones
             : string.IsNullOrWhiteSpace(request.Phone)
                 ? []
-                : [new DonorPhoneRequest(string.IsNullOrWhiteSpace(request.WhatsApp) ? "Mobile" : "WhatsApp", request.Phone, true)];
+                : [new DonorPhoneRequest(string.IsNullOrWhiteSpace(request.WhatsApp) ? PhoneType.Mobile.ToString() : PhoneType.WhatsApp.ToString(), request.Phone, true)];
         var emails = request.Emails.Count > 0
             ? request.Emails
             : string.IsNullOrWhiteSpace(request.Email)
                 ? []
-                : [new DonorEmailRequest("Personal", request.Email, true)];
+                : [new DonorEmailRequest(EmailType.Personal.ToString(), request.Email, true)];
 
         var currentPhones = await _context.DonorPhones
             .Where(phone => phone.DonorId == donor.Id)
@@ -215,12 +217,12 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         var phoneIndex = 0;
         foreach (var phone in phones.Where(phone => !string.IsNullOrWhiteSpace(phone.Number)))
         {
-            var typeCode = string.IsNullOrWhiteSpace(phone.TypeCode) ? "Mobile" : phone.TypeCode;
+            var type = string.IsNullOrWhiteSpace(phone.TypeCode) ? PhoneType.Mobile : SystemOptionMapper.Parse<PhoneType>(phone.TypeCode);
             donor.Phones.Add(new DonorPhone
             {
                 OrganizationId = organizationId,
                 DonorId = donor.Id,
-                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "PhoneType", typeCode, cancellationToken),
+                Type = type,
                 Number = phone.Number.Trim(),
                 IsPrimary = phone.IsPrimary || phoneIndex == 0,
             });
@@ -230,12 +232,12 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         var emailIndex = 0;
         foreach (var email in emails.Where(email => !string.IsNullOrWhiteSpace(email.Address)))
         {
-            var typeCode = string.IsNullOrWhiteSpace(email.TypeCode) ? "Personal" : email.TypeCode;
+            var type = string.IsNullOrWhiteSpace(email.TypeCode) ? EmailType.Personal : SystemOptionMapper.Parse<EmailType>(email.TypeCode);
             donor.Emails.Add(new DonorEmail
             {
                 OrganizationId = organizationId,
                 DonorId = donor.Id,
-                TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "EmailType", typeCode, cancellationToken),
+                Type = type,
                 Address = email.Address.Trim(),
                 IsPrimary = email.IsPrimary || emailIndex == 0,
             });
@@ -243,7 +245,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         }
 
         donor.Phone = donor.Phones.OrderByDescending(phone => phone.IsPrimary).Select(phone => phone.Number).FirstOrDefault();
-        donor.WhatsApp = phones.FirstOrDefault(phone => ConfigurableOptionCode.FromName(phone.TypeCode) == "whats-app")?.Number?.Trim() ?? donor.Phone;
+        donor.WhatsApp = phones.FirstOrDefault(phone => !string.IsNullOrWhiteSpace(phone.TypeCode) && SystemOptionMapper.Parse<PhoneType>(phone.TypeCode) == PhoneType.WhatsApp)?.Number?.Trim() ?? donor.Phone;
         donor.Email = donor.Emails.OrderByDescending(email => email.IsPrimary).Select(email => email.Address).FirstOrDefault();
     }
 }

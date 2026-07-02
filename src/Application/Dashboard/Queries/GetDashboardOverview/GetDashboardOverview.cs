@@ -2,6 +2,7 @@ using System.Globalization;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Dashboard.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
 
@@ -53,22 +54,22 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .ToListAsync(cancellationToken);
 
         var totalDonors = await _context.Donors.AsNoTracking().CountAsync(cancellationToken);
-        var activeDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.StatusOption.Code == "active", cancellationToken);
+        var activeDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.Status == DonorStatus.Active, cancellationToken);
         var pendingOrOverdue = await _context.Donations.AsNoTracking().CountAsync(donation =>
-            donation.StatusOption.Code == "pending" || donation.StatusOption.Code == "overdue", cancellationToken);
+            donation.Status == DonationStatus.Pending || donation.Status == DonationStatus.Overdue, cancellationToken);
         var dueToday = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
             task.DueAtUtc != null &&
             task.DueAtUtc.Value.Date == today.Date &&
-            task.StatusOption.Code != "completed" &&
-            task.StatusOption.Code != "cancelled", cancellationToken);
+            task.Status != RelationshipTaskStatus.Completed &&
+            task.Status != RelationshipTaskStatus.Cancelled, cancellationToken);
         var overdueTasks = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
             task.DueAtUtc != null &&
             task.DueAtUtc.Value.Date < today.Date &&
-            task.StatusOption.Code != "completed" &&
-            task.StatusOption.Code != "cancelled", cancellationToken);
-        var atRiskDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.StatusOption.Code == "at-risk", cancellationToken);
+            task.Status != RelationshipTaskStatus.Completed &&
+            task.Status != RelationshipTaskStatus.Cancelled, cancellationToken);
+        var atRiskDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.Status == DonorStatus.AtRisk, cancellationToken);
         var leadsWithoutDonation = await _context.Donors.AsNoTracking().CountAsync(donor =>
-            donor.StatusOption.Code == "lead" && !_context.Donations.Any(donation => donation.DonorId == donor.Id), cancellationToken);
+            donor.Status == DonorStatus.Lead && !_context.Donations.Any(donation => donation.DonorId == donor.Id), cancellationToken);
         var missingDocuments = await _context.Donors.AsNoTracking().CountAsync(donor => donor.Document == null || donor.Document == string.Empty, cancellationToken);
 
         var confirmedAmount = confirmedDonations.Sum(donation => donation.Amount);
@@ -76,7 +77,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
 
         var contactedDonors = await _context.DonorTimelineEntries
             .AsNoTracking()
-            .Where(entry => entry.TypeOption.Code == "contact")
+            .Where(entry => entry.Type == TimelineEntryType.Contact)
             .Select(entry => entry.DonorId)
             .Distinct()
             .CountAsync(cancellationToken);
@@ -87,14 +88,14 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .CountAsync(cancellationToken);
         var recurringDonors = await _context.DonationPlans
             .AsNoTracking()
-            .Where(plan => plan.StatusOption.Code == "active")
+            .Where(plan => plan.Status == DonationPlanStatus.Active)
             .Select(plan => plan.DonorId)
             .Distinct()
             .CountAsync(cancellationToken);
         var consentOk = totalDonors == 0 ? 0 : (int)Math.Round(
             await _context.Donors.AsNoTracking().CountAsync(donor => donor.AllowsCommunication && !donor.DoNotContact, cancellationToken) * 100m / totalDonors);
         var openTasks = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
-            task.StatusOption.Code == "open" || task.StatusOption.Code == "in-progress", cancellationToken);
+            task.Status == RelationshipTaskStatus.Open || task.Status == RelationshipTaskStatus.InProgress, cancellationToken);
 
         return new DashboardOverviewDto
         {
@@ -155,7 +156,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .Select(group => new
             {
                 UserName = group.Key,
-                CompletedTasks = group.Count(task => task.StatusOption.Code == "completed"),
+                CompletedTasks = group.Count(task => task.Status == RelationshipTaskStatus.Completed),
             })
             .ToListAsync(cancellationToken);
 

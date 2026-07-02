@@ -1,3 +1,5 @@
+using VinculoBackend.Domain.Enums;
+
 namespace VinculoBackend.Domain.Entities;
 
 public class DonationPlan : OrganizationEntity
@@ -8,12 +10,10 @@ public class DonationPlan : OrganizationEntity
     public Campaign? Campaign { get; set; }
     public string? AssignedUserId { get; set; }
     public decimal ExpectedAmount { get; private set; }
-    public Guid PreferredPaymentMethodOptionId { get; set; }
-    public ConfigurableOption PreferredPaymentMethodOption { get; set; } = null!;
+    public PaymentMethod PreferredPaymentMethod { get; set; }
     public int BillingDay { get; private set; }
     public DateTimeOffset StartDateUtc { get; set; }
-    public Guid StatusOptionId { get; set; }
-    public ConfigurableOption StatusOption { get; set; } = null!;
+    public DonationPlanStatus Status { get; set; }
     public DateTimeOffset? PausedAtUtc { get; set; }
     public DateTimeOffset? CancelledAtUtc { get; set; }
     public string? CancellationReason { get; set; }

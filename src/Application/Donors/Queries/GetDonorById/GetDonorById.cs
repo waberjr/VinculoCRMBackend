@@ -45,26 +45,26 @@ public sealed class GetDonorByIdQueryHandler : IRequestHandler<GetDonorByIdQuery
                 Created = donor.Created,
                 AcquisitionCampaignId = donor.AcquisitionCampaignId,
                 AcquisitionCampaignName = donor.AcquisitionCampaign == null ? null : donor.AcquisitionCampaign.Name,
-                Status = new OptionDto { Id = donor.StatusOption.Id, Category = donor.StatusOption.Category, Code = donor.StatusOption.Code, Name = donor.StatusOption.Name, Color = donor.StatusOption.Color, SortOrder = donor.StatusOption.SortOrder, IsSystem = donor.StatusOption.IsSystem, IsActive = donor.StatusOption.IsActive },
-                PersonType = new OptionDto { Id = donor.PersonTypeOption.Id, Category = donor.PersonTypeOption.Category, Code = donor.PersonTypeOption.Code, Name = donor.PersonTypeOption.Name, Color = donor.PersonTypeOption.Color, SortOrder = donor.PersonTypeOption.SortOrder, IsSystem = donor.PersonTypeOption.IsSystem, IsActive = donor.PersonTypeOption.IsActive },
+                Status = SystemOptionMapper.ToOptionDto(donor.Status),
+                PersonType = SystemOptionMapper.ToOptionDto(donor.PersonType),
                 Source = donor.SourceOption == null ? null : new OptionDto { Id = donor.SourceOption.Id, Category = donor.SourceOption.Category, Code = donor.SourceOption.Code, Name = donor.SourceOption.Name, Color = donor.SourceOption.Color, SortOrder = donor.SourceOption.SortOrder, IsSystem = donor.SourceOption.IsSystem, IsActive = donor.SourceOption.IsActive },
                 RelationshipProfile = donor.RelationshipProfileOption == null ? null : new OptionDto { Id = donor.RelationshipProfileOption.Id, Category = donor.RelationshipProfileOption.Category, Code = donor.RelationshipProfileOption.Code, Name = donor.RelationshipProfileOption.Name, Color = donor.RelationshipProfileOption.Color, SortOrder = donor.RelationshipProfileOption.SortOrder, IsSystem = donor.RelationshipProfileOption.IsSystem, IsActive = donor.RelationshipProfileOption.IsActive },
                 PreferredContactChannel = donor.PreferredContactChannelOption == null ? null : new OptionDto { Id = donor.PreferredContactChannelOption.Id, Category = donor.PreferredContactChannelOption.Category, Code = donor.PreferredContactChannelOption.Code, Name = donor.PreferredContactChannelOption.Name, Color = donor.PreferredContactChannelOption.Color, SortOrder = donor.PreferredContactChannelOption.SortOrder, IsSystem = donor.PreferredContactChannelOption.IsSystem, IsActive = donor.PreferredContactChannelOption.IsActive },
-                Phones = donor.Phones.OrderByDescending(phone => phone.IsPrimary).ThenBy(phone => phone.TypeOption.SortOrder).Select(phone => new DonorPhoneDto
+                Phones = donor.Phones.OrderByDescending(phone => phone.IsPrimary).ThenBy(phone => phone.Type).Select(phone => new DonorPhoneDto
                 {
                     Id = phone.Id,
-                    TypeCode = phone.TypeOption.Code,
+                    TypeCode = SystemOptionMapper.Code(phone.Type),
                     Number = phone.Number,
                     IsPrimary = phone.IsPrimary,
-                    Type = new OptionDto { Id = phone.TypeOption.Id, Category = phone.TypeOption.Category, Code = phone.TypeOption.Code, Name = phone.TypeOption.Name, Color = phone.TypeOption.Color, SortOrder = phone.TypeOption.SortOrder, IsSystem = phone.TypeOption.IsSystem, IsActive = phone.TypeOption.IsActive },
+                    Type = SystemOptionMapper.ToOptionDto(phone.Type),
                 }).ToList(),
-                Emails = donor.Emails.OrderByDescending(email => email.IsPrimary).ThenBy(email => email.TypeOption.SortOrder).Select(email => new DonorEmailDto
+                Emails = donor.Emails.OrderByDescending(email => email.IsPrimary).ThenBy(email => email.Type).Select(email => new DonorEmailDto
                 {
                     Id = email.Id,
-                    TypeCode = email.TypeOption.Code,
+                    TypeCode = SystemOptionMapper.Code(email.Type),
                     Address = email.Address,
                     IsPrimary = email.IsPrimary,
-                    Type = new OptionDto { Id = email.TypeOption.Id, Category = email.TypeOption.Category, Code = email.TypeOption.Code, Name = email.TypeOption.Name, Color = email.TypeOption.Color, SortOrder = email.TypeOption.SortOrder, IsSystem = email.TypeOption.IsSystem, IsActive = email.TypeOption.IsActive },
+                    Type = SystemOptionMapper.ToOptionDto(email.Type),
                 }).ToList(),
                 Tags = donor.TagAssignments.OrderBy(tag => tag.DonorTag.Name).Select(tag => new DonorTagDto { Id = tag.DonorTagId, Name = tag.DonorTag.Name }).ToList(),
                 TotalDonated = _context.Donations.Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null).Sum(donation => (decimal?)donation.Amount) ?? 0,

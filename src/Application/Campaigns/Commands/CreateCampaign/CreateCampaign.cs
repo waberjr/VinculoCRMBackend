@@ -1,6 +1,8 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 
@@ -37,11 +39,11 @@ public sealed class CreateCampaignCommandHandler : IRequestHandler<CreateCampaig
             OrganizationId = organizationId,
             Name = request.Name.Trim(),
             Description = request.Description?.Trim(),
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "CampaignType", request.Type, cancellationToken),
-            StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "CampaignStatus", "Draft", cancellationToken),
-            ChannelOptionId = string.IsNullOrWhiteSpace(request.Channel)
+            Type = SystemOptionMapper.Parse<CampaignType>(request.Type),
+            Status = CampaignStatus.Draft,
+            Channel = string.IsNullOrWhiteSpace(request.Channel)
                 ? null
-                : await OptionLookup.RequiredIdAsync(_context, "CampaignChannel", request.Channel, cancellationToken),
+                : SystemOptionMapper.Parse<CampaignChannel>(request.Channel),
             GoalAmount = request.GoalAmount,
             AssignedUserId = _user.Id,
         };

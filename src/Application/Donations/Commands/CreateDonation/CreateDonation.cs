@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.CreateDonation;
@@ -72,9 +73,9 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             DonorId = request.DonorId,
             CampaignId = request.CampaignId,
             DonationPlanId = request.DonationPlanId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationType", request.Type, cancellationToken),
-            StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationStatus", request.Status, cancellationToken),
-            PaymentMethodOptionId = await OptionLookup.RequiredIdAsync(_context, "PaymentMethod", request.PaymentMethod, cancellationToken),
+            Type = SystemOptionMapper.Parse<DonationType>(request.Type),
+            Status = SystemOptionMapper.Parse<DonationStatus>(request.Status),
+            PaymentMethod = SystemOptionMapper.Parse<PaymentMethod>(request.PaymentMethod),
             ExpectedAtUtc = request.ExpectedAtUtc,
             PaidAtUtc = request.PaidAtUtc,
             Reference = request.Reference?.Trim(),
@@ -90,8 +91,8 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
         {
             OrganizationId = organizationId,
             DonorId = donation.DonorId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Donation", cancellationToken),
-            Title = ConfigurableOptionCode.FromName(request.Status) == "confirmed"
+            Type = TimelineEntryType.Donation,
+            Title = SystemOptionMapper.Parse<DonationStatus>(request.Status) == DonationStatus.Confirmed
                 ? "Contribuicao registrada como confirmada"
                 : "Contribuicao registrada",
             Description = $"Valor: {donation.Amount:C}.",

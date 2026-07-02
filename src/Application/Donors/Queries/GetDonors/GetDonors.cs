@@ -1,14 +1,15 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Donors.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Donors.Queries.GetDonors;
 
 public record GetDonorsQuery : IRequest<PaginatedResult<DonorListItemDto>>
 {
     public string? Search { get; init; }
-    public Guid? StatusOptionId { get; init; }
-    public Guid? PersonTypeOptionId { get; init; }
+    public string? Status { get; init; }
+    public string? PersonType { get; init; }
     public Guid? TagId { get; init; }
     public Guid? RelationshipProfileOptionId { get; init; }
     public Guid? PreferredContactChannelOptionId { get; init; }
@@ -54,14 +55,16 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
                 donor.Emails.Any(email => email.Address.ToLower().Contains(search)));
         }
 
-        if (request.StatusOptionId is not null)
+        if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            query = query.Where(donor => donor.StatusOptionId == request.StatusOptionId);
+            var status = SystemOptionMapper.Parse<DonorStatus>(request.Status);
+            query = query.Where(donor => donor.Status == status);
         }
 
-        if (request.PersonTypeOptionId is not null)
+        if (!string.IsNullOrWhiteSpace(request.PersonType))
         {
-            query = query.Where(donor => donor.PersonTypeOptionId == request.PersonTypeOptionId);
+            var personType = SystemOptionMapper.Parse<DonorPersonType>(request.PersonType);
+            query = query.Where(donor => donor.PersonType == personType);
         }
 
         if (request.RelationshipProfileOptionId is not null)
@@ -121,17 +124,7 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
                 Created = donor.Created,
                 AcquisitionCampaignId = donor.AcquisitionCampaignId,
                 AcquisitionCampaignName = donor.AcquisitionCampaign == null ? null : donor.AcquisitionCampaign.Name,
-                Status = new OptionDto
-                {
-                    Id = donor.StatusOption.Id,
-                    Category = donor.StatusOption.Category,
-                    Code = donor.StatusOption.Code,
-                    Name = donor.StatusOption.Name,
-                    Color = donor.StatusOption.Color,
-                    SortOrder = donor.StatusOption.SortOrder,
-                    IsSystem = donor.StatusOption.IsSystem,
-                    IsActive = donor.StatusOption.IsActive,
-                },
+                Status = SystemOptionMapper.ToOptionDto(donor.Status),
                 RelationshipProfile = donor.RelationshipProfileOption == null ? null : new OptionDto
                 {
                     Id = donor.RelationshipProfileOption.Id,
@@ -145,46 +138,26 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
                 },
                 Phones = donor.Phones
                     .OrderByDescending(phone => phone.IsPrimary)
-                    .ThenBy(phone => phone.TypeOption.SortOrder)
+                    .ThenBy(phone => phone.Type)
                     .Select(phone => new DonorPhoneDto
                     {
                         Id = phone.Id,
-                        TypeCode = phone.TypeOption.Code,
+                        TypeCode = SystemOptionMapper.Code(phone.Type),
                         Number = phone.Number,
                         IsPrimary = phone.IsPrimary,
-                        Type = new OptionDto
-                        {
-                            Id = phone.TypeOption.Id,
-                            Category = phone.TypeOption.Category,
-                            Code = phone.TypeOption.Code,
-                            Name = phone.TypeOption.Name,
-                            Color = phone.TypeOption.Color,
-                            SortOrder = phone.TypeOption.SortOrder,
-                            IsSystem = phone.TypeOption.IsSystem,
-                            IsActive = phone.TypeOption.IsActive,
-                        },
+                        Type = SystemOptionMapper.ToOptionDto(phone.Type),
                     })
                     .ToList(),
                 Emails = donor.Emails
                     .OrderByDescending(email => email.IsPrimary)
-                    .ThenBy(email => email.TypeOption.SortOrder)
+                    .ThenBy(email => email.Type)
                     .Select(email => new DonorEmailDto
                     {
                         Id = email.Id,
-                        TypeCode = email.TypeOption.Code,
+                        TypeCode = SystemOptionMapper.Code(email.Type),
                         Address = email.Address,
                         IsPrimary = email.IsPrimary,
-                        Type = new OptionDto
-                        {
-                            Id = email.TypeOption.Id,
-                            Category = email.TypeOption.Category,
-                            Code = email.TypeOption.Code,
-                            Name = email.TypeOption.Name,
-                            Color = email.TypeOption.Color,
-                            SortOrder = email.TypeOption.SortOrder,
-                            IsSystem = email.TypeOption.IsSystem,
-                            IsActive = email.TypeOption.IsActive,
-                        },
+                        Type = SystemOptionMapper.ToOptionDto(email.Type),
                     })
                     .ToList(),
                 Tags = donor.TagAssignments
@@ -227,16 +200,16 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
     {
         return segment switch
         {
-            "Inactive" => query.Where(donor => donor.StatusOption.Code == "inactive"),
-            "AtRisk" => query.Where(donor => donor.StatusOption.Code == "at-risk"),
+            "Inactive" => query.Where(donor => donor.Status == DonorStatus.Inactive),
+            "AtRisk" => query.Where(donor => donor.Status == DonorStatus.AtRisk),
             "LeadsWithoutDonation" => query.Where(donor =>
-                donor.StatusOption.Code == "lead" &&
+                donor.Status == DonorStatus.Lead &&
                 !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
             "NewDonors" => query.Where(donor => _context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
             "NoRecentContact" => query.Where(donor =>
                 !_context.RelationshipTasks.Any(task =>
                     task.DonorId == donor.Id &&
-                    (task.StatusOption.Code == "open" || task.StatusOption.Code == "in-progress"))),
+                    (task.Status == RelationshipTaskStatus.Open || task.Status == RelationshipTaskStatus.InProgress))),
             _ => query,
         };
     }

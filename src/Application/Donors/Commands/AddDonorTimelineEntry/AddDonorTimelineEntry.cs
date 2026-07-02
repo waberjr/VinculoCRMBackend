@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Donors.Commands.AddDonorTimelineEntry;
 
@@ -33,7 +34,7 @@ public sealed class AddDonorTimelineEntryCommandHandler : IRequestHandler<AddDon
         {
             OrganizationId = organizationId,
             DonorId = request.DonorId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", request.Type, cancellationToken),
+            Type = SystemOptionMapper.Parse<TimelineEntryType>(request.Type),
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),
             OccurredAtUtc = DateTimeOffset.UtcNow,

@@ -57,20 +57,8 @@ public sealed class UpdateConfigurableOptionCommandHandler : IRequestHandler<Upd
             ]);
         }
 
-        if (entity.IsSystem && entity.Category != category)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(request.Category), "Nao e possivel alterar a categoria de uma opcao do sistema.")
-            ]);
-        }
-
         entity.Category = category;
-        if (!entity.IsSystem)
-        {
-            entity.Code = await CreateUniqueCodeAsync(organizationId, category, name, request.Id, cancellationToken);
-        }
-
+        entity.Code = await CreateUniqueCodeAsync(organizationId, category, name, request.Id, cancellationToken);
         entity.Name = name;
         entity.Description = request.Description?.Trim();
         entity.Color = request.Color?.Trim();

@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CancelRelationshipTask;
@@ -23,15 +24,13 @@ public sealed class CancelRelationshipTaskCommandHandler : IRequestHandler<Cance
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var task = await _context.RelationshipTasks
-            .Include(entity => entity.StatusOption)
-            .FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
+        var task = await _context.RelationshipTasks.FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
         if (task is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        if (task.StatusOption.Code is not ("open" or "in-progress"))
+        if (task.Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))
         {
             throw new Common.Exceptions.ValidationException(
             [
@@ -39,7 +38,7 @@ public sealed class CancelRelationshipTaskCommandHandler : IRequestHandler<Cance
             ]);
         }
 
-        task.StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "TaskStatus", "Cancelled", cancellationToken);
+        task.Status = RelationshipTaskStatus.Cancelled;
 
         await _context.SaveChangesAsync(cancellationToken);
     }

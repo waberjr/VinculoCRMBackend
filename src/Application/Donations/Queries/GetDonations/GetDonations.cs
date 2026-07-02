@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Donations.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Donations.Queries.GetDonations;
 
@@ -9,8 +10,8 @@ public record GetDonationsQuery : IRequest<PaginatedResult<DonationListItemDto>>
     public string? Search { get; init; }
     public Guid? DonorId { get; init; }
     public Guid? CampaignId { get; init; }
-    public Guid? StatusOptionId { get; init; }
-    public Guid? PaymentMethodOptionId { get; init; }
+    public string? Status { get; init; }
+    public string? PaymentMethod { get; init; }
     public DateTimeOffset? FromUtc { get; init; }
     public DateTimeOffset? ToUtc { get; init; }
     public int PageNumber { get; init; } = 1;
@@ -44,8 +45,17 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
 
         if (request.DonorId is not null) query = query.Where(donation => donation.DonorId == request.DonorId);
         if (request.CampaignId is not null) query = query.Where(donation => donation.CampaignId == request.CampaignId);
-        if (request.StatusOptionId is not null) query = query.Where(donation => donation.StatusOptionId == request.StatusOptionId);
-        if (request.PaymentMethodOptionId is not null) query = query.Where(donation => donation.PaymentMethodOptionId == request.PaymentMethodOptionId);
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var status = SystemOptionMapper.Parse<DonationStatus>(request.Status);
+            query = query.Where(donation => donation.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.PaymentMethod))
+        {
+            var paymentMethod = SystemOptionMapper.Parse<PaymentMethod>(request.PaymentMethod);
+            query = query.Where(donation => donation.PaymentMethod == paymentMethod);
+        }
         if (request.FromUtc is not null) query = query.Where(donation => donation.ExpectedAtUtc >= request.FromUtc || donation.PaidAtUtc >= request.FromUtc);
         if (request.ToUtc is not null) query = query.Where(donation => donation.ExpectedAtUtc <= request.ToUtc || donation.PaidAtUtc <= request.ToUtc);
 
@@ -62,9 +72,9 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
                 ExpectedAtUtc = donation.ExpectedAtUtc,
                 PaidAtUtc = donation.PaidAtUtc,
                 Reference = donation.Reference,
-                Type = new OptionDto { Id = donation.TypeOption.Id, Category = donation.TypeOption.Category, Code = donation.TypeOption.Code, Name = donation.TypeOption.Name, Color = donation.TypeOption.Color, SortOrder = donation.TypeOption.SortOrder, IsSystem = donation.TypeOption.IsSystem, IsActive = donation.TypeOption.IsActive },
-                Status = new OptionDto { Id = donation.StatusOption.Id, Category = donation.StatusOption.Category, Code = donation.StatusOption.Code, Name = donation.StatusOption.Name, Color = donation.StatusOption.Color, SortOrder = donation.StatusOption.SortOrder, IsSystem = donation.StatusOption.IsSystem, IsActive = donation.StatusOption.IsActive },
-                PaymentMethod = new OptionDto { Id = donation.PaymentMethodOption.Id, Category = donation.PaymentMethodOption.Category, Code = donation.PaymentMethodOption.Code, Name = donation.PaymentMethodOption.Name, Color = donation.PaymentMethodOption.Color, SortOrder = donation.PaymentMethodOption.SortOrder, IsSystem = donation.PaymentMethodOption.IsSystem, IsActive = donation.PaymentMethodOption.IsActive },
+                Type = SystemOptionMapper.ToOptionDto(donation.Type),
+                Status = SystemOptionMapper.ToOptionDto(donation.Status),
+                PaymentMethod = SystemOptionMapper.ToOptionDto(donation.PaymentMethod),
             });
 
         return await PaginatedResult<DonationListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);

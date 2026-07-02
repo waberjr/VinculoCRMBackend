@@ -2,6 +2,7 @@ using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.CancelDonation;
@@ -23,15 +24,13 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var donation = await _context.Donations
-            .Include(entity => entity.StatusOption)
-            .FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
+        var donation = await _context.Donations.FirstOrDefaultAsync(entity => entity.Id == request.Id, cancellationToken);
         if (donation is null)
         {
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        if (donation.StatusOption.Code is not ("pending" or "overdue"))
+        if (donation.Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
             throw new Common.Exceptions.ValidationException(
             [
@@ -39,17 +38,13 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
             ]);
         }
 
-        donation.Cancel(
-            await OptionLookup.RequiredIdAsync(_context, "DonationStatus", "Cancelled", cancellationToken),
-            request.Reason,
-            donation.StatusOption.Code,
-            DateTimeOffset.UtcNow);
+        donation.Cancel(request.Reason, DateTimeOffset.UtcNow);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
-            TypeOptionId = await OptionLookup.RequiredIdAsync(_context, "TimelineType", "Donation", cancellationToken),
+            Type = TimelineEntryType.Donation,
             Title = "Contribuicao cancelada",
             Description = donation.CancellationReason,
             OccurredAtUtc = DateTimeOffset.UtcNow,

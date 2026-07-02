@@ -1,13 +1,14 @@
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 
 public record GetCampaignsQuery : IRequest<PaginatedResult<CampaignListItemDto>>
 {
     public string? Search { get; init; }
-    public Guid? StatusOptionId { get; init; }
+    public string? Status { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 20;
 }
@@ -37,9 +38,10 @@ public sealed class GetCampaignsQueryHandler : IRequestHandler<GetCampaignsQuery
                 (campaign.Description != null && campaign.Description.ToLower().Contains(search)));
         }
 
-        if (request.StatusOptionId is not null)
+        if (!string.IsNullOrWhiteSpace(request.Status))
         {
-            query = query.Where(campaign => campaign.StatusOptionId == request.StatusOptionId);
+            var status = SystemOptionMapper.Parse<CampaignStatus>(request.Status);
+            query = query.Where(campaign => campaign.Status == status);
         }
 
         var projected = query
@@ -49,8 +51,8 @@ public sealed class GetCampaignsQueryHandler : IRequestHandler<GetCampaignsQuery
             {
                 Id = campaign.Id,
                 Name = campaign.Name,
-                Type = campaign.TypeOption.Code,
-                Status = campaign.StatusOption.Code,
+                Type = SystemOptionMapper.Code(campaign.Type),
+                Status = SystemOptionMapper.Code(campaign.Status),
                 GoalAmount = campaign.GoalAmount ?? 0,
                 ConfirmedAmount = _context.Donations
                     .Where(donation => donation.CampaignId == campaign.Id && donation.PaidAtUtc != null)

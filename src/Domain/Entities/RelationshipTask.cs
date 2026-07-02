@@ -1,3 +1,5 @@
+using VinculoBackend.Domain.Enums;
+
 namespace VinculoBackend.Domain.Entities;
 
 public class RelationshipTask : OrganizationEntity
@@ -10,16 +12,12 @@ public class RelationshipTask : OrganizationEntity
     public Donation? Donation { get; set; }
     public string? AssignedUserId { get; set; }
     public string? CreatedByUserId { get; set; }
-    public Guid TypeOptionId { get; set; }
-    public ConfigurableOption TypeOption { get; set; } = null!;
-    public Guid PriorityOptionId { get; set; }
-    public ConfigurableOption PriorityOption { get; set; } = null!;
-    public Guid StatusOptionId { get; set; }
-    public ConfigurableOption StatusOption { get; set; } = null!;
+    public TaskType Type { get; set; }
+    public TaskPriority Priority { get; set; }
+    public RelationshipTaskStatus Status { get; set; }
     public DateTimeOffset? DueAtUtc { get; set; }
     public DateTimeOffset? CompletedAtUtc { get; set; }
-    public Guid? ContactOutcomeOptionId { get; set; }
-    public ConfigurableOption? ContactOutcomeOption { get; set; }
+    public ContactOutcome? ContactOutcome { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? CompletionNote { get; set; }

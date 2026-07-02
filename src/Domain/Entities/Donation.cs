@@ -1,3 +1,6 @@
+using VinculoBackend.Domain.Constants;
+using VinculoBackend.Domain.Enums;
+
 namespace VinculoBackend.Domain.Entities;
 
 public class Donation : OrganizationEntity
@@ -9,12 +12,9 @@ public class Donation : OrganizationEntity
     public Guid? DonationPlanId { get; set; }
     public DonationPlan? DonationPlan { get; set; }
     public decimal Amount { get; private set; }
-    public Guid TypeOptionId { get; set; }
-    public ConfigurableOption TypeOption { get; set; } = null!;
-    public Guid StatusOptionId { get; set; }
-    public ConfigurableOption StatusOption { get; set; } = null!;
-    public Guid PaymentMethodOptionId { get; set; }
-    public ConfigurableOption PaymentMethodOption { get; set; } = null!;
+    public DonationType Type { get; set; }
+    public DonationStatus Status { get; set; }
+    public PaymentMethod PaymentMethod { get; set; }
     public DateTimeOffset? ExpectedAtUtc { get; set; }
     public DateTimeOffset? PaidAtUtc { get; set; }
     public DateTimeOffset? CancelledAtUtc { get; set; }
@@ -36,38 +36,38 @@ public class Donation : OrganizationEntity
         Amount = amount;
     }
 
-    public void Confirm(Guid confirmedStatusOptionId, DateTimeOffset paidAtUtc, string? reference, string currentStatusCode)
+    public void Confirm(DateTimeOffset paidAtUtc, string? reference)
     {
-        if (currentStatusCode is not ("pending" or "overdue"))
+        if (Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
             throw new InvalidOperationException("Only pending or overdue donations can be confirmed.");
         }
 
-        StatusOptionId = confirmedStatusOptionId;
+        Status = DonationStatus.Confirmed;
         PaidAtUtc = paidAtUtc;
         Reference = reference?.Trim();
     }
 
-    public void Cancel(Guid cancelledStatusOptionId, string reason, string currentStatusCode, DateTimeOffset cancelledAtUtc)
+    public void Cancel(string reason, DateTimeOffset cancelledAtUtc)
     {
-        if (currentStatusCode is not ("pending" or "overdue"))
+        if (Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
             throw new InvalidOperationException("Only pending or overdue donations can be cancelled.");
         }
 
-        StatusOptionId = cancelledStatusOptionId;
+        Status = DonationStatus.Cancelled;
         CancelledAtUtc = cancelledAtUtc;
         CancellationReason = reason.Trim();
     }
 
-    public void Refund(Guid refundedStatusOptionId, string reason, string currentStatusCode, DateTimeOffset refundedAtUtc)
+    public void Refund(string reason, DateTimeOffset refundedAtUtc)
     {
-        if (currentStatusCode != "confirmed")
+        if (Status != DonationStatus.Confirmed)
         {
             throw new InvalidOperationException("Only confirmed donations can be refunded.");
         }
 
-        StatusOptionId = refundedStatusOptionId;
+        Status = DonationStatus.Refunded;
         RefundedAtUtc = refundedAtUtc;
         RefundReason = reason.Trim();
     }

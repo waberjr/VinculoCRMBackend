@@ -1,7 +1,10 @@
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.DonationPlans.Commands.CreateDonationPlan;
 
@@ -39,15 +42,33 @@ public sealed class CreateDonationPlanCommandHandler : IRequestHandler<CreateDon
             throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
         }
 
+        var hasActivePlanForCampaign = await _context.DonationPlans.AsNoTracking().AnyAsync(plan =>
+            plan.DonorId == request.DonorId &&
+            plan.CampaignId == request.CampaignId &&
+            plan.Status == DonationPlanStatus.Active,
+            cancellationToken);
+
+        if (hasActivePlanForCampaign)
+        {
+            throw new Common.Exceptions.ValidationException(
+            [
+                new ValidationFailure(
+                    nameof(request.CampaignId),
+                    request.CampaignId is null
+                        ? "O doador ja possui um plano geral ativo."
+                        : "O doador ja possui um plano ativo para esta campanha.")
+            ]);
+        }
+
         var plan = new DonationPlan
         {
             OrganizationId = organizationId,
             DonorId = request.DonorId,
             CampaignId = request.CampaignId,
             AssignedUserId = _user.Id,
-            PreferredPaymentMethodOptionId = await OptionLookup.RequiredIdAsync(_context, "PaymentMethod", request.PreferredPaymentMethod, cancellationToken),
+            PreferredPaymentMethod = SystemOptionMapper.Parse<PaymentMethod>(request.PreferredPaymentMethod),
             StartDateUtc = request.StartDateUtc,
-            StatusOptionId = await OptionLookup.RequiredIdAsync(_context, "DonationPlanStatus", "Active", cancellationToken),
+            Status = DonationPlanStatus.Active,
             Notes = request.Notes?.Trim(),
         };
 

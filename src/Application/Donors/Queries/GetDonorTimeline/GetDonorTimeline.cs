@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Donors.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
 
@@ -38,11 +39,11 @@ public sealed class GetDonorTimelineQueryHandler : IRequestHandler<GetDonorTimel
                 Title = entry.Title,
                 Description = entry.Description ?? string.Empty,
                 OccurredAt = entry.OccurredAtUtc,
-                Tone = entry.TypeOption.Code == "donation"
+                Tone = entry.Type == TimelineEntryType.Donation
                     ? "green"
-                    : entry.TypeOption.Code == "task"
+                    : entry.Type == TimelineEntryType.Task
                         ? "blue"
-                        : entry.TypeOption.Code == "contact"
+                        : entry.Type == TimelineEntryType.Contact
                             ? "yellow"
                             : "neutral",
             })

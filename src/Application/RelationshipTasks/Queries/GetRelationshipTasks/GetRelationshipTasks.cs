@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.RelationshipTasks.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.RelationshipTasks.Queries.GetRelationshipTasks;
 
@@ -9,8 +10,8 @@ public record GetRelationshipTasksQuery : IRequest<PaginatedResult<RelationshipT
     public string? Search { get; init; }
     public Guid? DonorId { get; init; }
     public Guid? CampaignId { get; init; }
-    public Guid? StatusOptionId { get; init; }
-    public Guid? PriorityOptionId { get; init; }
+    public string? Status { get; init; }
+    public string? Priority { get; init; }
     public string? AssignedUserId { get; init; }
     public DateTimeOffset? DueFromUtc { get; init; }
     public DateTimeOffset? DueToUtc { get; init; }
@@ -43,8 +44,17 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
 
         if (request.DonorId is not null) query = query.Where(task => task.DonorId == request.DonorId);
         if (request.CampaignId is not null) query = query.Where(task => task.CampaignId == request.CampaignId);
-        if (request.StatusOptionId is not null) query = query.Where(task => task.StatusOptionId == request.StatusOptionId);
-        if (request.PriorityOptionId is not null) query = query.Where(task => task.PriorityOptionId == request.PriorityOptionId);
+        if (!string.IsNullOrWhiteSpace(request.Status))
+        {
+            var status = SystemOptionMapper.Parse<RelationshipTaskStatus>(request.Status);
+            query = query.Where(task => task.Status == status);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Priority))
+        {
+            var priority = SystemOptionMapper.Parse<TaskPriority>(request.Priority);
+            query = query.Where(task => task.Priority == priority);
+        }
         if (!string.IsNullOrWhiteSpace(request.AssignedUserId)) query = query.Where(task => task.AssignedUserId == request.AssignedUserId);
         if (request.DueFromUtc is not null) query = query.Where(task => task.DueAtUtc >= request.DueFromUtc);
         if (request.DueToUtc is not null) query = query.Where(task => task.DueAtUtc <= request.DueToUtc);
@@ -64,10 +74,10 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
                 AssignedUserId = task.AssignedUserId,
                 DueAtUtc = task.DueAtUtc,
                 CompletedAtUtc = task.CompletedAtUtc,
-                Type = new OptionDto { Id = task.TypeOption.Id, Category = task.TypeOption.Category, Code = task.TypeOption.Code, Name = task.TypeOption.Name, Color = task.TypeOption.Color, SortOrder = task.TypeOption.SortOrder, IsSystem = task.TypeOption.IsSystem, IsActive = task.TypeOption.IsActive },
-                Priority = new OptionDto { Id = task.PriorityOption.Id, Category = task.PriorityOption.Category, Code = task.PriorityOption.Code, Name = task.PriorityOption.Name, Color = task.PriorityOption.Color, SortOrder = task.PriorityOption.SortOrder, IsSystem = task.PriorityOption.IsSystem, IsActive = task.PriorityOption.IsActive },
-                Status = new OptionDto { Id = task.StatusOption.Id, Category = task.StatusOption.Category, Code = task.StatusOption.Code, Name = task.StatusOption.Name, Color = task.StatusOption.Color, SortOrder = task.StatusOption.SortOrder, IsSystem = task.StatusOption.IsSystem, IsActive = task.StatusOption.IsActive },
-                ContactOutcome = task.ContactOutcomeOption == null ? null : new OptionDto { Id = task.ContactOutcomeOption.Id, Category = task.ContactOutcomeOption.Category, Code = task.ContactOutcomeOption.Code, Name = task.ContactOutcomeOption.Name, Color = task.ContactOutcomeOption.Color, SortOrder = task.ContactOutcomeOption.SortOrder, IsSystem = task.ContactOutcomeOption.IsSystem, IsActive = task.ContactOutcomeOption.IsActive },
+                Type = SystemOptionMapper.ToOptionDto(task.Type),
+                Priority = SystemOptionMapper.ToOptionDto(task.Priority),
+                Status = SystemOptionMapper.ToOptionDto(task.Status),
+                ContactOutcome = task.ContactOutcome == null ? null : SystemOptionMapper.ToOptionDto(task.ContactOutcome.Value),
             });
 
         return await PaginatedResult<RelationshipTaskListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);
