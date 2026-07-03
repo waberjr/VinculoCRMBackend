@@ -16,7 +16,7 @@ public sealed class IbgeLocationLookupService : ILocationLookupService
     public async Task<IReadOnlyCollection<StateDto>> GetStatesAsync(CancellationToken cancellationToken)
     {
         var states = await _httpClient.GetFromJsonAsync<IReadOnlyCollection<IbgeState>>(
-            "localidades/estádos?orderBy=nome",
+            "localidades/estados?orderBy=nome",
             cancellationToken) ?? [];
 
         return states
@@ -28,7 +28,7 @@ public sealed class IbgeLocationLookupService : ILocationLookupService
     public async Task<IReadOnlyCollection<CityDto>> GetCitiesAsync(string stateCode, CancellationToken cancellationToken)
     {
         var cities = await _httpClient.GetFromJsonAsync<IReadOnlyCollection<IbgeCity>>(
-            $"localidades/estádos/{Uri.EscapeDataString(stateCode)}/municipios?orderBy=nome",
+            $"localidades/estados/{Uri.EscapeDataString(stateCode)}/municipios?orderBy=nome",
             cancellationToken) ?? [];
 
         return cities

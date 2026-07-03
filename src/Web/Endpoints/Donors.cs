@@ -3,6 +3,7 @@ using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Donors.Commands.CreateDonor;
 using VinculoBackend.Application.Donors.Commands.UpdateDonor;
 using VinculoBackend.Application.Donors.Models;
+using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
 using VinculoBackend.Application.Donors.Queries.GetDonors;
 using VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
@@ -17,6 +18,7 @@ public sealed class Donors : IEndpointGroup
         groupBuilder.RequireAuthorization();
 
         groupBuilder.MapGet(GetDonors);
+        groupBuilder.MapGet(FindDuplicates, "Duplicates");
         groupBuilder.MapGet(GetDonorById, "{id}");
         groupBuilder.MapGet(GetDonorTimeline, "{id}/Timeline");
         groupBuilder.MapPost(AddTimelineEntry, "{id}/Timeline");
@@ -72,6 +74,24 @@ public sealed class Donors : IEndpointGroup
     {
         var result = await sender.Send(new GetDonorByIdQuery(id));
         return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<DonorDuplicateDto>>> FindDuplicates(
+        ISender sender,
+        string? document,
+        string? email,
+        string? phone,
+        Guid? excludeDonorId)
+    {
+        var result = await sender.Send(new FindDonorDuplicatesQuery
+        {
+            Document = document,
+            Email = email,
+            Phone = phone,
+            ExcludeDonorId = excludeDonorId,
+        });
+
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Results<Ok<DonorTimelineResponseDto>, NotFound>> GetDonorTimeline(ISender sender, Guid id)

@@ -1,3 +1,4 @@
+using System;
 using VinculoBackend.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -23,6 +24,17 @@ public class WebApiFactory(string connectionString) : WebApplicationFactory<Prog
                     var mock = new Mock<IUser>();
                     mock.SetupGet(x => x.Roles).Returns(TestApp.GetRoles());
                     mock.SetupGet(x => x.Id).Returns(TestApp.GetUserId());
+                    return mock.Object;
+                });
+
+            services
+                .RemoveAll<IOrganizationContext>()
+                .AddTransient(provider =>
+                {
+                    var organizationId = TestApp.GetOrganizationId();
+                    var mock = new Mock<IOrganizationContext>();
+                    mock.SetupGet(x => x.OrganizationId).Returns(organizationId ?? Guid.Empty);
+                    mock.SetupGet(x => x.HasOrganization).Returns(organizationId is not null);
                     return mock.Object;
                 });
         });

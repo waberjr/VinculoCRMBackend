@@ -47,10 +47,14 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
                 Title = "Acesso proibido",
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.4"
             }),
-            _ => (-1, null)
+            _ => (StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Status = StatusCodes.Status500InternalServerError,
+                Title = "Erro inesperado",
+                Detail = "Ocorreu um erro inesperado ao processar a solicitação.",
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.6.1"
+            })
         };
-
-        if (problemDetails is null) return false;
 
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);

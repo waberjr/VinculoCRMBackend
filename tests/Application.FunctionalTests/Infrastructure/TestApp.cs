@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Threading.Tasks;
 using VinculoBackend.Domain.Constants;
 using VinculoBackend.Infrastructure.Data;
@@ -15,6 +16,7 @@ public static class TestApp
 {
     private static string? _userId;
     private static List<string>? _roles;
+    private static Guid? _organizationId;
 
     public static async Task<TResponse> SendAsync<TResponse>(IRequest<TResponse> request)
     {
@@ -37,6 +39,18 @@ public static class TestApp
     public static string? GetUserId() => _userId;
 
     public static List<string>? GetRoles() => _roles;
+
+    public static Guid? GetOrganizationId() => _organizationId;
+
+    public static void SetOrganizationId(Guid organizationId)
+    {
+        _organizationId = organizationId;
+    }
+
+    public static HttpClient CreateClient()
+    {
+        return FunctionalTestSetup.Factory.CreateClient();
+    }
 
     public static async Task<string> RunAsDefaultUserAsync()
     {
@@ -91,6 +105,7 @@ public static class TestApp
 
         _userId = null;
         _roles = null;
+        _organizationId = null;
     }
 
     public static async Task<TEntity?> FindAsync<TEntity>(params object[] keyValues)

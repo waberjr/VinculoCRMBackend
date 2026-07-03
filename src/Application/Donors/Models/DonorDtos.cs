@@ -62,3 +62,13 @@ public sealed class DonorDetailDto : DonorListItemDto
     public OptionDto? Source { get; init; }
     public OptionDto? PreferredContactChannel { get; init; }
 }
+
+public sealed class DonorDuplicateDto
+{
+    public Guid Id { get; init; }
+    public string FullName { get; init; } = string.Empty;
+    public string? Document { get; init; }
+    public string? Email { get; init; }
+    public string? Phone { get; init; }
+    public IReadOnlyCollection<string> MatchedFields { get; init; } = [];
+}
