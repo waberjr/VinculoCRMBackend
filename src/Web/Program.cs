@@ -28,8 +28,8 @@ if (!app.Environment.IsDevelopment())
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    await app.InitialiseDatabaseAsync();
 }
-await app.InitialiseDatabaseAsync();
 
 app.UseFileServer();
 
