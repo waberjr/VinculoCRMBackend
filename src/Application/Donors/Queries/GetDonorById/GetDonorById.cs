@@ -43,6 +43,7 @@ public sealed class GetDonorByIdQueryHandler : IRequestHandler<GetDonorByIdQuery
                 AssignedUserId = donor.AssignedUserId,
                 AllowsCommunication = donor.AllowsCommunication,
                 DoNotContact = donor.DoNotContact,
+                DoNotContactReason = donor.DoNotContactReason,
                 Created = donor.Created,
                 AcquisitionCampaignId = donor.AcquisitionCampaignId,
                 AcquisitionCampaignName = donor.AcquisitionCampaign == null ? null : donor.AcquisitionCampaign.Name,

@@ -37,6 +37,7 @@ public class DonorListItemDto
     public string? State { get; init; }
     public bool AllowsCommunication { get; init; }
     public bool DoNotContact { get; init; }
+    public string? DoNotContactReason { get; init; }
     public OptionDto Status { get; init; } = new();
     public OptionDto? RelationshipProfile { get; init; }
     public Guid? AcquisitionCampaignId { get; init; }

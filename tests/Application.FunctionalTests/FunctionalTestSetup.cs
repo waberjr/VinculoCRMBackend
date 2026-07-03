@@ -10,6 +10,8 @@ namespace VinculoBackend.Application.FunctionalTests;
 [SetUpFixture]
 public class FunctionalTestSetup
 {
+    private const string SkipFunctionalTestsVariable = "VINCULO_SKIP_FUNCTIONAL_TESTS";
+
     internal static IServiceScopeFactory ScopeFactory { get; private set; } = null!;
     internal static DatabaseResetter? DbResetter { get; private set; }
     internal static WebApiFactory Factory { get; private set; } = null!;
@@ -20,6 +22,11 @@ public class FunctionalTestSetup
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
+        if (ShouldSkipFunctionalTests())
+        {
+            Assert.Ignore($"Functional tests skipped because {SkipFunctionalTestsVariable}=true.");
+        }
+
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
         var cancellationToken = cts.Token;
 
@@ -58,5 +65,12 @@ public class FunctionalTestSetup
         if (DbResetter is not null) await DbResetter.DisposeAsync();
         if (_app is not null) await _app.DisposeAsync();
         if (_factory is not null) await _factory.DisposeAsync();
+    }
+
+    private static bool ShouldSkipFunctionalTests()
+    {
+        var value = Environment.GetEnvironmentVariable(SkipFunctionalTestsVariable);
+        return string.Equals(value, "true", StringComparison.OrdinalIgnoreCase) ||
+               string.Equals(value, "1", StringComparison.OrdinalIgnoreCase);
     }
 }
