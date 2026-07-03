@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Application.Common.Exceptions;
+namespace VinculoBackend.Application.Common.Exceptions;
 
 public class ForbiddenAccessException : Exception
 {

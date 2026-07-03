@@ -8,7 +8,7 @@ public sealed class ConfirmDonationCommandValidator : AbstractValidator<ConfirmD
         RuleFor(v => v.PaidAtUtc)
             .NotEmpty()
             .Must(value => value > DateTimeOffset.MinValue)
-            .WithMessage("A data de pagamento e obrigatoria.");
+            .WithMessage("A data de pagamento e obrigatória.");
         RuleFor(v => v.Reference).MaximumLength(120);
     }
 }

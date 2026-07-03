@@ -1,9 +1,9 @@
-﻿namespace VinculoBackend.Domain.Exceptions;
+namespace VinculoBackend.Domain.Exceptions;
 
 public class UnsupportedColourException : Exception
 {
     public UnsupportedColourException(string code)
-        : base($"Colour \"{code}\" is unsupported.")
+        : base($"A cor \"{code}\" não é suportada.")
     {
     }
 }

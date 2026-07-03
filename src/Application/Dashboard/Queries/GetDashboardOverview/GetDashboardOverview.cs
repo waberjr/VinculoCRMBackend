@@ -102,9 +102,9 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
         {
             Metrics =
             [
-                new("Arrecadacao confirmada", FormatCurrency(confirmedAmount), PeriodLabel(start, end), monthlyGoal <= 0 ? "Meta nao configurada" : $"{Math.Round(confirmedAmount * 100 / monthlyGoal)}% da meta"),
+                new("Arrecadacao confirmada", FormatCurrency(confirmedAmount), PeriodLabel(start, end), monthlyGoal <= 0 ? "Meta não configurada" : $"{Math.Round(confirmedAmount * 100 / monthlyGoal)}% da meta"),
                 new("Doadores ativos", activeDonors.ToString(CultureInfo.InvariantCulture), "Status Active", $"{totalDonors} cadastrados"),
-                new("Pendencias", pendingOrOverdue.ToString(CultureInfo.InvariantCulture), "Cobrancas pendentes ou vencidas", $"{dueToday} tarefas hoje"),
+                new("Pendencias", pendingOrOverdue.ToString(CultureInfo.InvariantCulture), "Cobranças pendentes ou vencidas", $"{dueToday} tarefas hoje"),
                 new("Ticket medio", FormatCurrency(averageDonation), "Doacoes confirmadas", $"{confirmedDonations.Count} confirmadas"),
             ],
             DonationsByDay = confirmedDonations
@@ -125,16 +125,16 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             PriorityActions =
             [
                 new("priority-overdue-tasks", "Tarefas vencidas", $"{overdueTasks} contatos precisam de retorno.", "/tarefas", new Dictionary<string, string> { ["due"] = "Overdue" }, overdueTasks > 0 ? "red" : "blue"),
-                new("priority-overdue-donations", "Cobrancas vencidas", $"{pendingOrOverdue} contribuicoes exigem acompanhamento.", "/contribuicoes", new Dictionary<string, string> { ["status"] = "Overdue" }, pendingOrOverdue > 0 ? "yellow" : "blue"),
+                new("priority-overdue-donations", "Cobranças vencidas", $"{pendingOrOverdue} contribuições exigem acompanhamento.", "/contribuições", new Dictionary<string, string> { ["status"] = "Overdue" }, pendingOrOverdue > 0 ? "yellow" : "blue"),
                 new("priority-risk-donors", "Doadores em risco", $"{atRiskDonors} doadores precisam de acao de retencao.", "/doadores", new Dictionary<string, string> { ["segment"] = "AtRisk" }, atRiskDonors > 0 ? "yellow" : "blue"),
-                new("priority-leads", "Leads sem conversao", $"{leadsWithoutDonation} cadastros ainda sem primeira contribuicao.", "/doadores", new Dictionary<string, string> { ["segment"] = "LeadsWithoutDonation" }, "blue"),
-                new("priority-documents", "Cadastros incompletos", $"{missingDocuments} doadores estao sem documento cadastrado.", "/doadores", new Dictionary<string, string>(), missingDocuments > 0 ? "yellow" : "blue"),
+                new("priority-leads", "Leads sem conversao", $"{leadsWithoutDonation} cadastros ainda sem primeira contribuição.", "/doadores", new Dictionary<string, string> { ["segment"] = "LeadsWithoutDonation" }, "blue"),
+                new("priority-documents", "Cadastros incompletos", $"{missingDocuments} doadores estáo sem documento cadastrado.", "/doadores", new Dictionary<string, string>(), missingDocuments > 0 ? "yellow" : "blue"),
             ],
             Funnel =
             [
                 new("Cadastros na base", totalDonors, "100%"),
                 new("Com contato registrado", contactedDonors, Percent(contactedDonors, totalDonors)),
-                new("Com contribuicao", donorsWithDonation, Percent(donorsWithDonation, totalDonors)),
+                new("Com contribuição", donorsWithDonation, Percent(donorsWithDonation, totalDonors)),
                 new("Recorrentes", recurringDonors, Percent(recurringDonors, totalDonors)),
             ],
             TeamPerformance = await TeamPerformance(cancellationToken),

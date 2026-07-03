@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Application.Common.Exceptions;
+using VinculoBackend.Application.Common.Exceptions;
 using FluentValidation.Results;
 using NUnit.Framework;
 using Shouldly;

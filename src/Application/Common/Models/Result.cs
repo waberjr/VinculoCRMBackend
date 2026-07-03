@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Application.Common.Models;
+namespace VinculoBackend.Application.Common.Models;
 
 public class Result
 {

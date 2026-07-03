@@ -62,7 +62,7 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             {
                 throw new Common.Exceptions.ValidationException(
                 [
-                    new ValidationFailure(nameof(CreateDonationCommand.DonationPlanId), "O plano recorrente informado nao pertence ao doador."),
+                    new ValidationFailure(nameof(CreateDonationCommand.DonationPlanId), "O plano recorrente informado não pertence ao doador."),
                 ]);
             }
         }
@@ -93,8 +93,8 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
             Title = SystemOptionMapper.Parse<DonationStatus>(request.Status) == DonationStatus.Confirmed
-                ? "Contribuicao registrada como confirmada"
-                : "Contribuicao registrada",
+                ? "Contribuição registrada como confirmada"
+                : "Contribuição registrada",
             Description = $"Valor: {donation.Amount:C}.",
             OccurredAtUtc = DateTimeOffset.UtcNow,
             CreatedByUserId = _user.Id,

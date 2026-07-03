@@ -17,10 +17,10 @@ public sealed class CreateDonationCommandValidator : AbstractValidator<CreateDon
         RuleFor(v => v.PaidAtUtc)
             .NotNull()
             .When(v => ConfigurableOptionCode.FromName(v.Status) == "confirmed")
-            .WithMessage("A data de pagamento e obrigatoria para contribuicoes confirmadas.");
+            .WithMessage("A data de pagamento e obrigatória para contribuições confirmadas.");
         RuleFor(v => v.ExpectedAtUtc)
             .NotNull()
             .When(v => ConfigurableOptionCode.FromName(v.Status) == "pending")
-            .WithMessage("A data esperada e obrigatoria para contribuicoes pendentes.");
+            .WithMessage("A data esperada e obrigatória para contribuições pendentes.");
     }
 }

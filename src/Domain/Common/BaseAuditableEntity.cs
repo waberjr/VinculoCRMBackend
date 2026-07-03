@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Domain.Common;
+namespace VinculoBackend.Domain.Common;
 
 public abstract class BaseAuditableEntity : BaseEntity
 {

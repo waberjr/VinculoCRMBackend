@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using VinculoBackend.Application.Common.Interfaces;
 using Microsoft.Extensions.Logging;
 

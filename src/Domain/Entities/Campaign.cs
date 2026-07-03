@@ -18,7 +18,7 @@ public class Campaign : OrganizationEntity
     {
         if (startDateUtc is not null && endDateUtc is not null && startDateUtc >= endDateUtc)
         {
-            throw new ArgumentException("Campaign end date must be greater than start date.", nameof(endDateUtc));
+            throw new ArgumentException("A data de término da campanha deve ser maior que a data de início.", nameof(endDateUtc));
         }
 
         StartDateUtc = startDateUtc;

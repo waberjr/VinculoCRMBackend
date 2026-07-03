@@ -1,4 +1,4 @@
-﻿global using Ardalis.GuardClauses;
+global using Ardalis.GuardClauses;
 global using VinculoBackend.Application.FunctionalTests.Infrastructure;
 global using VinculoBackend.Shared;
 global using Moq;

@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Application.Common.Interfaces;
+namespace VinculoBackend.Application.Common.Interfaces;
 
 public interface IUser
 {

@@ -150,7 +150,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
                 OrganizationId = organizationId,
                 DonorId = donor.Id,
                 Type = TimelineEntryType.Contact,
-                Title = "Consentimento de comunicacao atualizado",
+                Title = "Consentimento de comunicação atualizado",
                 Description = donor.DoNotContact ? donor.DoNotContactReason : null,
                 OccurredAtUtc = DateTimeOffset.UtcNow,
                 RelatedEntityType = nameof(Donor),
@@ -186,7 +186,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(UpdateDonorCommand.Document), "CPF/CNPJ ja cadastrado nesta organizacao."),
+                new ValidationFailure(nameof(UpdateDonorCommand.Document), "CPF/CNPJ já cadastrado nestá organização."),
             ]);
         }
     }

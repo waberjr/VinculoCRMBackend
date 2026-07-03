@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Domain.Enums;
+namespace VinculoBackend.Domain.Enums;
 
 public enum PriorityLevel
 {

@@ -35,7 +35,7 @@ public sealed class CancelDonationPlanCommandHandler : IRequestHandler<CancelDon
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(CancelDonationPlanCommand.Id), "O plano ja esta cancelado."),
+                new ValidationFailure(nameof(CancelDonationPlanCommand.Id), "O plano já está cancelado."),
             ]);
         }
 

@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Shared;
+namespace VinculoBackend.Shared;
 
 public static class Services
 {

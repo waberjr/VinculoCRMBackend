@@ -65,7 +65,7 @@ public sealed class GetCampaignsQueryHandler : IRequestHandler<GetCampaignsQuery
                 DonationsCount = _context.Donations.Count(donation => donation.CampaignId == campaign.Id),
                 StartDate = campaign.StartDateUtc,
                 EndDate = campaign.EndDateUtc,
-                AssignedUserName = string.IsNullOrWhiteSpace(campaign.AssignedUserId) ? "Sem responsavel" : campaign.AssignedUserId,
+                AssignedUserName = string.IsNullOrWhiteSpace(campaign.AssignedUserId) ? "Sem responsável" : campaign.AssignedUserId,
             });
 
         return await PaginatedResult<CampaignListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);

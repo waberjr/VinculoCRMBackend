@@ -25,8 +25,8 @@ public sealed class Users : IEndpointGroup
 
     public sealed record RefreshRequest(string RefreshToken);
 
-    [EndpointSummary("Log in")]
-    [EndpointDescription("Authenticates a user and returns a bearer token response.")]
+    [EndpointSummary("Entrar")]
+    [EndpointDescription("Autentica um usuário e retorna os tokens de acesso.")]
     public static async Task<Results<EmptyHttpResult, ProblemHttpResult>> Login(
         ISender sender,
         [FromBody] LoginRequest request,
@@ -37,11 +37,11 @@ public sealed class Users : IEndpointGroup
             ? TypedResults.Empty
             : TypedResults.Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
-                title: "Invalid credentials.");
+                title: "Credenciais inválidas.");
     }
 
-    [EndpointSummary("Refresh token")]
-    [EndpointDescription("Returns a new bearer token response using a valid refresh token.")]
+    [EndpointSummary("Renovar token")]
+    [EndpointDescription("Retorna novos tokens de acesso usando um token de renovação válido.")]
     public static async Task<Results<SignInHttpResult, UnauthorizedHttpResult>> Refresh(
         ISender sender,
         [FromBody] RefreshRequest request,
@@ -53,24 +53,24 @@ public sealed class Users : IEndpointGroup
             : TypedResults.SignIn(principal, authenticationScheme: IdentityConstants.BearerScheme);
     }
 
-    [EndpointSummary("Current user")]
-    [EndpointDescription("Returns the authenticated user and organization context.")]
+    [EndpointSummary("Usuário atual")]
+    [EndpointDescription("Retorna o usuário autenticado e o contexto da organização.")]
     public static async Task<Results<Ok<CurrentUserDto>, UnauthorizedHttpResult, NotFound>> Me(ISender sender)
     {
         var user = await sender.Send(new GetCurrentUserQuery());
         return user is null ? TypedResults.NotFound() : TypedResults.Ok(user);
     }
 
-    [EndpointSummary("Attendants")]
-    [EndpointDescription("Returns active users from the current organization for assignment fields.")]
+    [EndpointSummary("Atendentes")]
+    [EndpointDescription("Retorna usuários ativos da organização atual para campos de atribuição.")]
     public static async Task<Ok<IReadOnlyCollection<AttendantDto>>> Attendants(ISender sender)
     {
         var users = await sender.Send(new GetAttendantsQuery());
         return TypedResults.Ok(users);
     }
 
-    [EndpointSummary("Log out")]
-    [EndpointDescription("Logs out the current user.")]
+    [EndpointSummary("Sair")]
+    [EndpointDescription("Encerra a sessão do usuário atual.")]
     public static async Task<Ok> Logout(SignInManager<ApplicationUser> signInManager)
     {
         await signInManager.SignOutAsync();

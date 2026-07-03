@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.Common.Models;
 

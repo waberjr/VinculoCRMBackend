@@ -126,7 +126,7 @@ public sealed class OrganizationDefaultsService : IOrganizationDefaultsService
     private static IReadOnlyCollection<DefaultTag> DefaultTags() =>
     [
         new("Recorrente", "Doador com relacionamento recorrente."),
-        new("Alto valor", "Doador com historico relevante de contribuicoes."),
+        new("Alto valor", "Doador com histórico relevante de contribuições."),
     ];
 
     private static DefaultOption Option(ConfigurableOptionCategory category, string code, string name, int sortOrder, string? color = null) =>

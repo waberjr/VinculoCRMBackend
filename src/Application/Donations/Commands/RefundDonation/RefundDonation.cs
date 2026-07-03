@@ -34,7 +34,7 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(RefundDonationCommand.Id), "Apenas contribuicoes confirmadas podem ser estornadas."),
+                new ValidationFailure(nameof(RefundDonationCommand.Id), "Apenas contribuições confirmadas podem ser estornadas."),
             ]);
         }
 
@@ -45,7 +45,7 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = "Contribuicao estornada",
+            Title = "Contribuição estornada",
             Description = donation.RefundReason,
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),

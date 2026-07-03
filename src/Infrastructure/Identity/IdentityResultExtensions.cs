@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace VinculoBackend.Infrastructure.Identity;

@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Interfaces;
 using MediatR.Pipeline;
 using Microsoft.Extensions.Logging;
 

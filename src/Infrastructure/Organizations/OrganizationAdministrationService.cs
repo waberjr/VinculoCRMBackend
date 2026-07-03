@@ -56,7 +56,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
         var currentUser = await RequiredSystemAdministratorAsync(userId);
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            ThrowValidation(nameof(request.Name), "Organization name is required.");
+            ThrowValidation(nameof(request.Name), "O nome da organização é obrigatório.");
         }
 
         var organization = new Organization
@@ -95,7 +95,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
         await RequiredSystemAdministratorAsync(userId);
         if (string.IsNullOrWhiteSpace(request.Name))
         {
-            ThrowValidation(nameof(request.Name), "Organization name is required.");
+            ThrowValidation(nameof(request.Name), "O nome da organização é obrigatório.");
         }
 
         var organization = await _context.Organizations.FirstOrDefaultAsync(item => item.Id == organizationId, cancellationToken)
@@ -138,7 +138,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                 {
                     Member = member,
                     User = user,
-                    DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuario" : user.DisplayName,
+                    DisplayName = string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuário" : user.DisplayName,
                 })
             .OrderBy(item => item.DisplayName)
             .Select(item => new OrganizationMemberResponse(
@@ -175,7 +175,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
 
         if (!IsValidOrganizationRole(request.Role))
         {
-            ThrowValidation(nameof(request.Role), "A valid role is required.");
+            ThrowValidation(nameof(request.Role), "Informe um papel válido.");
         }
 
         var member = await _context.OrganizationMembers
@@ -218,7 +218,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
         var email = request.Email.Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(email) || !IsValidOrganizationRole(request.Role))
         {
-            ThrowValidation(nameof(request.Email), "A valid email and role are required.");
+            ThrowValidation(nameof(request.Email), "Informe um e-mail e um papel válidos.");
         }
 
         var organizationExists = await _context.Organizations
@@ -227,7 +227,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
 
         if (!organizationExists)
         {
-            ThrowValidation(nameof(request.OrganizationId), "A valid active organization is required.");
+            ThrowValidation(nameof(request.OrganizationId), "Informe uma organização ativa válida.");
         }
 
         var invitedUser = await _userManager.FindByEmailAsync(email);
@@ -239,7 +239,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
 
             if (alreadyMember)
             {
-                ThrowValidation(nameof(request.Email), "User already belongs to this organization.");
+                ThrowValidation(nameof(request.Email), "O usuário já pertence a está organização.");
             }
         }
 
@@ -288,13 +288,13 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
 
         if (invitation.IsRevoked || invitation.AcceptedAtUtc is not null || invitation.ExpiresAtUtc <= DateTimeOffset.UtcNow)
         {
-            ThrowValidation(nameof(token), "Invitation is not active.");
+            ThrowValidation(nameof(token), "O convite não está ativo.");
         }
 
         var currentUser = string.IsNullOrWhiteSpace(userId) ? null : await _userManager.FindByIdAsync(userId);
         if (currentUser is not null && !string.Equals(currentUser.Email, invitation.Email, StringComparison.OrdinalIgnoreCase))
         {
-            ThrowValidation(nameof(invitation.Email), "Invitation email does not match the authenticated user.");
+            ThrowValidation(nameof(invitation.Email), "O e-mail do convite não corresponde ao usuário autenticado.");
         }
 
         currentUser ??= await _userManager.FindByEmailAsync(invitation.Email);
@@ -303,7 +303,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
             var password = request.Password;
             if (string.IsNullOrWhiteSpace(password))
             {
-                ThrowValidation(nameof(request.Password), "Password is required to create the invited user.");
+                ThrowValidation(nameof(request.Password), "A senha é obrigatória para criar o usuário convidado.");
             }
 
             currentUser = new ApplicationUser

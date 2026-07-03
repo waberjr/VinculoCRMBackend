@@ -23,7 +23,7 @@ public static partial class ConfigurableOptionCode
         }
 
         var slug = RepeatedDashesRegex().Replace(builder.ToString(), "-").Trim('-');
-        return string.IsNullOrWhiteSpace(slug) ? "opcao" : slug;
+        return string.IsNullOrWhiteSpace(slug) ? "opção" : slug;
     }
 
     public static string CreateUnique(string source, IEnumerable<string> existingCodes)

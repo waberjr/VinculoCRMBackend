@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Infrastructure.Identity;

@@ -30,7 +30,7 @@ public class Donation : OrganizationEntity
     {
         if (amount <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(amount), "Donation amount must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(amount), "O valor da contribuição deve ser maior que zero.");
         }
 
         Amount = amount;
@@ -40,7 +40,7 @@ public class Donation : OrganizationEntity
     {
         if (Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
-            throw new InvalidOperationException("Only pending or overdue donations can be confirmed.");
+            throw new InvalidOperationException("Apenas contribuições pendentes ou vencidas podem ser confirmadas.");
         }
 
         Status = DonationStatus.Confirmed;
@@ -52,7 +52,7 @@ public class Donation : OrganizationEntity
     {
         if (Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
-            throw new InvalidOperationException("Only pending or overdue donations can be cancelled.");
+            throw new InvalidOperationException("Apenas contribuições pendentes ou vencidas podem ser canceladas.");
         }
 
         Status = DonationStatus.Cancelled;
@@ -64,7 +64,7 @@ public class Donation : OrganizationEntity
     {
         if (Status != DonationStatus.Confirmed)
         {
-            throw new InvalidOperationException("Only confirmed donations can be refunded.");
+            throw new InvalidOperationException("Apenas contribuições confirmadas podem ser estornadas.");
         }
 
         Status = DonationStatus.Refunded;

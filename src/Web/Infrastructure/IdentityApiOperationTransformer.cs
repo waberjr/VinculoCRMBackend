@@ -14,16 +14,16 @@ internal sealed class IdentityApiOperationTransformer : IOpenApiOperationTransfo
 {
     private static readonly Dictionary<string, (string Summary, string Description)> _metadata = new()
     {
-        ["api/Users/register"]                  = ("Register", "Creates a new user account."),
-        ["api/Users/login"]                     = ("Log in", "Authenticates a user. Use ?useCookies=true for cookie-based authentication."),
-        ["api/Users/refresh"]                   = ("Refresh token", "Returns a new access token using a valid refresh token."),
-        ["api/Users/confirmEmail"]              = ("Confirm email", "Confirms a user's email address using the token sent by email."),
-        ["api/Users/resendConfirmationEmail"]   = ("Resend confirmation email", "Sends a new email confirmation link to the specified address."),
-        ["api/Users/forgotPassword"]            = ("Forgot password", "Sends a password reset link to the specified email address."),
-        ["api/Users/resetPassword"]             = ("Reset password", "Resets a user's password using the token sent by email."),
-        ["api/Users/manage/2fa"]                = ("Manage two-factor authentication", "Enables, disables, or retrieves two-factor authentication settings."),
-        ["api/Users/manage/info GET"]           = ("Get account info", "Returns the current user's email and two-factor authentication status."),
-        ["api/Users/manage/info POST"]          = ("Update account info", "Updates the current user's email or password."),
+        ["api/Users/register"]                  = ("Cadastrar", "Cria uma nova conta de usuário."),
+        ["api/Users/login"]                     = ("Entrar", "Autentica um usuário. Use ?useCookies=true para autenticação baseada em cookies."),
+        ["api/Users/refresh"]                   = ("Renovar token", "Retorna um novo token de acesso usando um token de renovação válido."),
+        ["api/Users/confirmEmail"]              = ("Confirmar e-mail", "Confirma o e-mail do usuário usando o token enviado por e-mail."),
+        ["api/Users/resendConfirmationEmail"]   = ("Reenviar confirmação de e-mail", "Envia um novo link de confirmação para o endereço informado."),
+        ["api/Users/forgotPassword"]            = ("Esqueci a senha", "Envia um link de redefinição de senha para o e-mail informado."),
+        ["api/Users/resetPassword"]             = ("Redefinir senha", "Redefine a senha do usuário usando o token enviado por e-mail."),
+        ["api/Users/manage/2fa"]                = ("Gerenciar autenticação em dois fatores", "Ativa, desativa ou consulta as configurações de autenticação em dois fatores."),
+        ["api/Users/manage/info GET"]           = ("Consultar dados da conta", "Retorna o e-mail do usuário atual e o status da autenticação em dois fatores."),
+        ["api/Users/manage/info POST"]          = ("Atualizar dados da conta", "Atualiza o e-mail ou a senha do usuário atual."),
     };
 
     public Task TransformAsync(OpenApiOperation operation, OpenApiOperationTransformerContext context, CancellationToken cancellationToken)

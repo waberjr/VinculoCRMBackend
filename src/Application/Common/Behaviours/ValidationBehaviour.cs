@@ -1,4 +1,4 @@
-﻿using ValidationException = VinculoBackend.Application.Common.Exceptions.ValidationException;
+using ValidationException = VinculoBackend.Application.Common.Exceptions.ValidationException;
 
 namespace VinculoBackend.Application.Common.Behaviours;
 

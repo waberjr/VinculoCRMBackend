@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Security;

@@ -44,7 +44,7 @@ public sealed class CreateConfigurableOptionCommandHandler : IRequestHandler<Cre
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(request.Name), "Ja existe uma opcao com este nome para a categoria.")
+                new ValidationFailure(nameof(request.Name), "Ja existe uma opção com este nome para a categoria.")
             ]);
         }
 

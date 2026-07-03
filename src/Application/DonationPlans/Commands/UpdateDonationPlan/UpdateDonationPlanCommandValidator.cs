@@ -12,7 +12,7 @@ public sealed class UpdateDonationPlanCommandValidator : AbstractValidator<Updat
         RuleFor(v => v.StartDateUtc)
             .NotEmpty()
             .Must(value => value > DateTimeOffset.MinValue)
-            .WithMessage("A data de inicio e obrigatoria.");
+            .WithMessage("A data de início e obrigatória.");
         RuleFor(v => v.Notes).MaximumLength(1000);
     }
 }

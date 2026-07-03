@@ -49,7 +49,7 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(UpdateRelationshipTaskCommand.Id), "Tarefas concluidas ou canceladas nao podem ser atualizadas."),
+                new ValidationFailure(nameof(UpdateRelationshipTaskCommand.Id), "Tarefas concluidas ou canceladas não podem ser atualizadas."),
             ]);
         }
 
@@ -84,7 +84,7 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             {
                 throw new Common.Exceptions.ValidationException(
                 [
-                    new ValidationFailure(nameof(UpdateRelationshipTaskCommand.DonationId), "A contribuicao informada nao pertence ao doador."),
+                    new ValidationFailure(nameof(UpdateRelationshipTaskCommand.DonationId), "A contribuição informada não pertence ao doador."),
                 ]);
             }
         }

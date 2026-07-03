@@ -32,7 +32,7 @@ public sealed class DeleteConfigurableOptionCommandHandler : IRequestHandler<Del
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(DeleteConfigurableOptionCommand.Id), "Nao e possivel excluir uma opcao relacionada a registros do sistema."),
+                new ValidationFailure(nameof(DeleteConfigurableOptionCommand.Id), "Não é possível excluir uma opção relacionada a registros do sistema."),
             ]);
         }
 

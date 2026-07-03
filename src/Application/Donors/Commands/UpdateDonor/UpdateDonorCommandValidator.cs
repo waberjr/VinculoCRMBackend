@@ -15,7 +15,7 @@ public sealed class UpdateDonorCommandValidator : AbstractValidator<UpdateDonorC
             .MaximumLength(32)
             .Must((command, document) => BeValidDocument(command.PersonType, document, documentValidator))
             .When(v => !string.IsNullOrWhiteSpace(v.Document))
-            .WithMessage("CPF/CNPJ invalido para o tipo de pessoa informado.");
+            .WithMessage("CPF/CNPJ inválido para o tipo de pessoa informado.");
         RuleFor(v => v.Phone).MaximumLength(32);
         RuleFor(v => v.WhatsApp).MaximumLength(32);
         RuleForEach(v => v.Phones).ChildRules(phone =>

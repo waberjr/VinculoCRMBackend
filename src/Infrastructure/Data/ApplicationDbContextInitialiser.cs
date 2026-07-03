@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Domain.Constants;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Infrastructure.Identity;

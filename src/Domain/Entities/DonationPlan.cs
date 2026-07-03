@@ -23,7 +23,7 @@ public class DonationPlan : OrganizationEntity
     {
         if (expectedAmount <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(expectedAmount), "Donation plan amount must be greater than zero.");
+            throw new ArgumentOutOfRangeException(nameof(expectedAmount), "O valor do plano recorrente deve ser maior que zero.");
         }
 
         ExpectedAmount = expectedAmount;
@@ -33,7 +33,7 @@ public class DonationPlan : OrganizationEntity
     {
         if (billingDay is < 1 or > 31)
         {
-            throw new ArgumentOutOfRangeException(nameof(billingDay), "Billing day must be between 1 and 31.");
+            throw new ArgumentOutOfRangeException(nameof(billingDay), "O dia de cobrança deve estar entre 1 e 31.");
         }
 
         BillingDay = billingDay;

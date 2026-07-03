@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 namespace VinculoBackend.Web.Infrastructure;
 
@@ -22,6 +22,6 @@ public static class MethodInfoExtensions
     public static void AnonymousMethod(this IGuardClause guardClause, Delegate input)
     {
         if (input.Method.IsAnonymous())
-            throw new ArgumentException("The endpoint name must be specified when using anonymous handlers.");
+            throw new ArgumentException("O nome do endpoint deve ser informado ao usar handlers anônimos.");
     }
 }

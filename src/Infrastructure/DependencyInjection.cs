@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Infrastructure.Data.Interceptors;
 using VinculoBackend.Infrastructure.Documents;

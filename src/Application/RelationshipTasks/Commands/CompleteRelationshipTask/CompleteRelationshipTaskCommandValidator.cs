@@ -13,10 +13,10 @@ public sealed class CompleteRelationshipTaskCommandValidator : AbstractValidator
         RuleFor(v => v.FollowUpAtUtc)
             .NotNull()
             .When(v => !string.IsNullOrWhiteSpace(v.Outcome) && SystemOptionMapper.Parse<ContactOutcome>(v.Outcome) == ContactOutcome.RequestedCallback)
-            .WithMessage("A data de retorno e obrigatoria.");
+            .WithMessage("A data de retorno e obrigatória.");
         RuleFor(v => v.DoNotContactReason)
             .NotEmpty()
             .When(v => !string.IsNullOrWhiteSpace(v.Outcome) && SystemOptionMapper.Parse<ContactOutcome>(v.Outcome) == ContactOutcome.DoNotContact)
-            .WithMessage("A justificativa do bloqueio e obrigatoria.");
+            .WithMessage("A justificativa do bloqueio e obrigatória.");
     }
 }

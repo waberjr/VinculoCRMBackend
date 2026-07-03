@@ -30,16 +30,16 @@ public sealed class Organizations : IEndpointGroup
         groupBuilder.MapPost(AcceptInvitation, "invitations/{token}/accept");
     }
 
-    [EndpointSummary("Organizations")]
-    [EndpointDescription("Returns organizations available to the current user.")]
+    [EndpointSummary("Organizações")]
+    [EndpointDescription("Retorna as organizações disponíveis para o usuário atual.")]
     public static async Task<Ok<IReadOnlyCollection<OrganizationResponse>>> List(ISender sender)
     {
         var result = await sender.Send(new ListOrganizationsQuery());
         return TypedResults.Ok(result);
     }
 
-    [EndpointSummary("Create organization")]
-    [EndpointDescription("Creates an organization. Restricted to platform administrators.")]
+    [EndpointSummary("Criar organização")]
+    [EndpointDescription("Cria uma organização. Restrito a administradores da plataforma.")]
     public static async Task<Created<OrganizationResponse>> Create(
         ISender sender,
         [FromBody] CreateOrganizationRequest request,
@@ -49,8 +49,8 @@ public sealed class Organizations : IEndpointGroup
         return TypedResults.Created($"/api/Organizations/{response.Id}", response);
     }
 
-    [EndpointSummary("Update organization")]
-    [EndpointDescription("Updates organization data. Restricted to platform administrators.")]
+    [EndpointSummary("Atualizar organização")]
+    [EndpointDescription("Atualiza os dados da organização. Restrito a administradores da plataforma.")]
     public static async Task<NoContent> Update(
         ISender sender,
         Guid id,
@@ -61,24 +61,24 @@ public sealed class Organizations : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    [EndpointSummary("Delete organization")]
-    [EndpointDescription("Soft deletes an organization. Restricted to platform administrators.")]
+    [EndpointSummary("Remover organização")]
+    [EndpointDescription("Remove logicamente uma organização. Restrito a administradores da plataforma.")]
     public static async Task<NoContent> Delete(ISender sender, Guid id, CancellationToken cancellationToken)
     {
         await sender.Send(new DeleteOrganizationCommand(id), cancellationToken);
         return TypedResults.NoContent();
     }
 
-    [EndpointSummary("Organization team")]
-    [EndpointDescription("Returns members and pending invitations for the active organization.")]
+    [EndpointSummary("Equipe da organização")]
+    [EndpointDescription("Retorna membros e convites pendentes da organização ativa.")]
     public static async Task<Ok<OrganizationTeamResponse>> Members(ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetOrganizationTeamQuery(), cancellationToken);
         return TypedResults.Ok(result);
     }
 
-    [EndpointSummary("Update member")]
-    [EndpointDescription("Updates a member role or active status in the active organization.")]
+    [EndpointSummary("Atualizar membro")]
+    [EndpointDescription("Atualiza o papel ou status ativo de um membro na organização ativa.")]
     public static async Task<NoContent> UpdateMember(
         ISender sender,
         Guid memberId,
@@ -89,16 +89,16 @@ public sealed class Organizations : IEndpointGroup
         return TypedResults.NoContent();
     }
 
-    [EndpointSummary("Delete member")]
-    [EndpointDescription("Soft deletes a member from the active organization.")]
+    [EndpointSummary("Remover membro")]
+    [EndpointDescription("Remove logicamente um membro da organização ativa.")]
     public static async Task<NoContent> DeleteMember(ISender sender, Guid memberId, CancellationToken cancellationToken)
     {
         await sender.Send(new DeleteOrganizationMemberCommand(memberId), cancellationToken);
         return TypedResults.NoContent();
     }
 
-    [EndpointSummary("Invite user")]
-    [EndpointDescription("Creates an invitation to join the active organization.")]
+    [EndpointSummary("Convidar usuário")]
+    [EndpointDescription("Cria um convite para participar da organização ativa.")]
     public static async Task<Created<InviteUserResponse>> Invite(
         ISender sender,
         [FromBody] InviteUserRequest request,
@@ -108,16 +108,16 @@ public sealed class Organizations : IEndpointGroup
         return TypedResults.Created($"/api/Organizations/invitations/{response.Token}", response);
     }
 
-    [EndpointSummary("Revoke invitation")]
-    [EndpointDescription("Revokes a pending invitation for the active organization.")]
+    [EndpointSummary("Revogar convite")]
+    [EndpointDescription("Revoga um convite pendente da organização ativa.")]
     public static async Task<NoContent> RevokeInvitation(ISender sender, Guid invitationId, CancellationToken cancellationToken)
     {
         await sender.Send(new RevokeOrganizationInvitationCommand(invitationId), cancellationToken);
         return TypedResults.NoContent();
     }
 
-    [EndpointSummary("Accept organization invitation")]
-    [EndpointDescription("Accepts an invitation for the authenticated user's email.")]
+    [EndpointSummary("Aceitar convite da organização")]
+    [EndpointDescription("Aceita um convite para o e-mail do usuário autenticado.")]
     public static async Task<Ok<OrganizationResponse>> AcceptInvitation(
         ISender sender,
         string token,

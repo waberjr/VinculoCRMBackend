@@ -45,7 +45,7 @@ public sealed class UpdateDonationPlanCommandHandler : IRequestHandler<UpdateDon
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(UpdateDonationPlanCommand.Id), "Planos cancelados nao podem ser editados."),
+                new ValidationFailure(nameof(UpdateDonationPlanCommand.Id), "Planos cancelados não podem ser editados."),
             ]);
         }
 
@@ -66,7 +66,7 @@ public sealed class UpdateDonationPlanCommandHandler : IRequestHandler<UpdateDon
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(UpdateDonationPlanCommand.DonorId), "Nao e possivel trocar o doador de um plano com contribuicoes vinculadas."),
+                new ValidationFailure(nameof(UpdateDonationPlanCommand.DonorId), "Não é possível trocar o doador de um plano com contribuições vinculadas."),
             ]);
         }
 
@@ -81,7 +81,7 @@ public sealed class UpdateDonationPlanCommandHandler : IRequestHandler<UpdateDon
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(UpdateDonationPlanCommand.CampaignId), "O doador ja possui um plano ativo para este contexto."),
+                new ValidationFailure(nameof(UpdateDonationPlanCommand.CampaignId), "O doador já possui um plano ativo para este contexto."),
             ]);
         }
 

@@ -1,4 +1,4 @@
-﻿namespace VinculoBackend.Domain.Constants;
+namespace VinculoBackend.Domain.Constants;
 
 public abstract class Roles
 {

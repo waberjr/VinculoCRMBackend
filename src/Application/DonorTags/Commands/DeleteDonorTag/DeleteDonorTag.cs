@@ -36,7 +36,7 @@ public sealed class DeleteDonorTagCommandHandler : IRequestHandler<DeleteDonorTa
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(DeleteDonorTagCommand.Id), "Nao e possivel excluir uma tag relacionada a doadores."),
+                new ValidationFailure(nameof(DeleteDonorTagCommand.Id), "Não é possível excluir uma tag relacionada a doadores."),
             ]);
         }
 

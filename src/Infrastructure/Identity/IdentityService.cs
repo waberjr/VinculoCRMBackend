@@ -215,7 +215,7 @@ public class IdentityService : IIdentityService
 
         return new CurrentUserDto(
             user.Id,
-            string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuario" : user.DisplayName,
+            string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuário" : user.DisplayName,
             user.Email ?? string.Empty,
             organization.Role,
             isSystemAdministrator,
@@ -256,7 +256,7 @@ public class IdentityService : IIdentityService
             .ThenBy(user => user.Email)
             .Select(user => new AttendantDto(
                 user.Id,
-                string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuario" : user.DisplayName,
+                string.IsNullOrWhiteSpace(user.DisplayName) ? user.Email ?? user.UserName ?? "Usuário" : user.DisplayName,
                 user.Email ?? string.Empty))
             .ToListAsync(cancellationToken);
     }

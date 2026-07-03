@@ -1,11 +1,11 @@
-﻿using FluentValidation.Results;
+using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Common.Exceptions;
 
 public class ValidationException : Exception
 {
     public ValidationException()
-        : base("One or more validation failures have occurred.")
+        : base("Ocorreram uma ou mais falhas de validação.")
     {
         Errors = new Dictionary<string, string[]>();
     }

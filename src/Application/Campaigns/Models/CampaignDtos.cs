@@ -12,5 +12,5 @@ public sealed class CampaignListItemDto
     public int DonationsCount { get; init; }
     public DateTimeOffset? StartDate { get; init; }
     public DateTimeOffset? EndDate { get; init; }
-    public string AssignedUserName { get; init; } = "Sem responsavel";
+    public string AssignedUserName { get; init; } = "Sem responsável";
 }

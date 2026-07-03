@@ -36,7 +36,7 @@ public sealed class SystemOptions : IEndpointGroup
         };
 
         return result is null
-            ? TypedResults.BadRequest("Categoria de opcao fixa invalida.")
+            ? TypedResults.BadRequest("Categoria de opção fixa inválida.")
             : TypedResults.Ok(result);
     }
 }

@@ -1,4 +1,4 @@
-﻿using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Common;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;

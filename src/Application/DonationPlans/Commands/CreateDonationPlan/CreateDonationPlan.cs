@@ -55,8 +55,8 @@ public sealed class CreateDonationPlanCommandHandler : IRequestHandler<CreateDon
                 new ValidationFailure(
                     nameof(request.CampaignId),
                     request.CampaignId is null
-                        ? "O doador ja possui um plano geral ativo."
-                        : "O doador ja possui um plano ativo para esta campanha.")
+                        ? "O doador já possui um plano geral ativo."
+                        : "O doador já possui um plano ativo para está campanha.")
             ]);
         }
 

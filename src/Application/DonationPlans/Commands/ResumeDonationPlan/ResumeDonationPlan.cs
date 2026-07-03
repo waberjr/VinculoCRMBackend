@@ -50,7 +50,7 @@ public sealed class ResumeDonationPlanCommandHandler : IRequestHandler<ResumeDon
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(ResumeDonationPlanCommand.Id), "O doador ja possui um plano ativo para este contexto."),
+                new ValidationFailure(nameof(ResumeDonationPlanCommand.Id), "O doador já possui um plano ativo para este contexto."),
             ]);
         }
 

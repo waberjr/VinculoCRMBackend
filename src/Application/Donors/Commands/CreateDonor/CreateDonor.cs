@@ -167,7 +167,7 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(CreateDonorCommand.Document), "CPF/CNPJ ja cadastrado nesta organizacao."),
+                new ValidationFailure(nameof(CreateDonorCommand.Document), "CPF/CNPJ já cadastrado nestá organização."),
             ]);
         }
     }

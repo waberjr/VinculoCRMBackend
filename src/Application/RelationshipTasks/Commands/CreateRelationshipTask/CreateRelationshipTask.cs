@@ -75,7 +75,7 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             {
                 throw new Common.Exceptions.ValidationException(
                 [
-                    new ValidationFailure(nameof(CreateRelationshipTaskCommand.DonationId), "A contribuicao informada nao pertence ao doador."),
+                    new ValidationFailure(nameof(CreateRelationshipTaskCommand.DonationId), "A contribuição informada não pertence ao doador."),
                 ]);
             }
         }

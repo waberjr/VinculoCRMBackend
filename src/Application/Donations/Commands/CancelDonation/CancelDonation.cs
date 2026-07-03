@@ -34,7 +34,7 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(CancelDonationCommand.Id), "Apenas contribuicoes pendentes ou vencidas podem ser canceladas."),
+                new ValidationFailure(nameof(CancelDonationCommand.Id), "Apenas contribuições pendentes ou vencidas podem ser canceladas."),
             ]);
         }
 
@@ -45,7 +45,7 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = "Contribuicao cancelada",
+            Title = "Contribuição cancelada",
             Description = donation.CancellationReason,
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),

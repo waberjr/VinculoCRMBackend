@@ -34,7 +34,7 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
         {
             throw new Common.Exceptions.ValidationException(
             [
-                new ValidationFailure(nameof(ConfirmDonationCommand.Id), "Apenas contribuicoes pendentes ou vencidas podem ser confirmadas."),
+                new ValidationFailure(nameof(ConfirmDonationCommand.Id), "Apenas contribuições pendentes ou vencidas podem ser confirmadas."),
             ]);
         }
 
@@ -45,7 +45,7 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = "Contribuicao confirmada",
+            Title = "Contribuição confirmada",
             Description = $"Pagamento confirmado no valor de {donation.Amount:C}.",
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),
