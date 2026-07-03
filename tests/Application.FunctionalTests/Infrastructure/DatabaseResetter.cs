@@ -1,6 +1,8 @@
-using Npgsql;
+using System;
+using MySqlConnector;
 using Respawn;
 using System.Data.Common;
+using System.Threading.Tasks;
 
 namespace VinculoBackend.Application.FunctionalTests.Infrastructure;
 
@@ -17,10 +19,13 @@ internal sealed class DatabaseResetter : IAsyncDisposable
 
     public static async Task<DatabaseResetter> CreateAsync(string connectionString)
     {
-        var connection = new NpgsqlConnection(connectionString);
+        var connection = new MySqlConnection(connectionString);
 
         await connection.OpenAsync();
-        var respawner = await Respawner.CreateAsync(connection);
+        var respawner = await Respawner.CreateAsync(connection, new RespawnerOptions
+        {
+            DbAdapter = DbAdapter.MySql
+        });
         await connection.CloseAsync();
         return new DatabaseResetter(connection, respawner);
     }

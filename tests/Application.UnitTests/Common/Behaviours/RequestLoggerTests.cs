@@ -1,3 +1,6 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using VinculoBackend.Application.Common.Behaviours;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Users.Commands.LoginUser;
@@ -28,7 +31,7 @@ public class RequestLoggerTests
 
         var requestLogger = new LoggingBehaviour<LoginUserCommand>(_logger.Object, _user.Object, _identityService.Object);
 
-        await requestLogger.Process(new LoginUserCommand("user@example.com", "password"), new CancellationToken());
+        await requestLogger.Process(new LoginUserCommand("user@example.com", "password"), CancellationToken.None);
 
         _identityService.Verify(i => i.GetUserNameAsync(It.IsAny<string>()), Times.Once);
     }
@@ -38,7 +41,7 @@ public class RequestLoggerTests
     {
         var requestLogger = new LoggingBehaviour<LoginUserCommand>(_logger.Object, _user.Object, _identityService.Object);
 
-        await requestLogger.Process(new LoginUserCommand("user@example.com", "password"), new CancellationToken());
+        await requestLogger.Process(new LoginUserCommand("user@example.com", "password"), CancellationToken.None);
 
         _identityService.Verify(i => i.GetUserNameAsync(It.IsAny<string>()), Times.Never);
     }

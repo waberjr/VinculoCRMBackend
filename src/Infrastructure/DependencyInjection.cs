@@ -9,51 +9,48 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static void AddInfrastructureServices(this IHostApplicationBuilder builder)
+    public static void AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
-        var connectionString = builder.Configuration.GetConnectionString(Services.Database);
-        Guard.Against.Null(connectionString, message: $"Connection string '{Services.Database}' not found.");
+        var connectionString = configuration.GetConnectionString(Services.Database);
+        Guard.Against.Null(connectionString, message: $"String de conexão '{Services.Database}' não encontrada.");
 
-        builder.Services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
-        builder.Services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
+        services.AddScoped<ISaveChangesInterceptor, AuditableEntityInterceptor>();
+        services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
 
-        builder.Services.AddDbContext<ApplicationDbContext>((sp, options) =>
+        services.AddDbContext<ApplicationDbContext>((sp, options) =>
         {
             options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());
-            options.UseNpgsql(connectionString);
+            options.UseMySQL(connectionString);
             options.ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
         });
 
-        builder.EnrichNpgsqlDbContext<ApplicationDbContext>();
+        services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
-        builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-
-        builder.Services.AddScoped<ApplicationDbContextInitialiser>();
-        builder.Services.AddHttpClient<ILocationLookupService, IbgeLocationLookupService>(client =>
+        services.AddScoped<ApplicationDbContextInitialiser>();
+        services.AddHttpClient<ILocationLookupService, IbgeLocationLookupService>(client =>
         {
             client.BaseAddress = new Uri("https://servicodados.ibge.gov.br/api/v1/");
         });
 
-        builder.Services.AddAuthentication()
+        services.AddAuthentication()
             .AddBearerToken(IdentityConstants.BearerScheme);
 
-        builder.Services.AddAuthorizationBuilder();
+        services.AddAuthorizationBuilder();
 
-        builder.Services
+        services
             .AddIdentityCore<ApplicationUser>()
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddApiEndpoints();
 
-        builder.Services.AddSingleton(TimeProvider.System);
-        builder.Services.AddSingleton<IBrazilianDocumentValidator, DocsBrBrazilianDocumentValidator>();
-        builder.Services.AddTransient<IIdentityService, IdentityService>();
-        builder.Services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
+        services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<IBrazilianDocumentValidator, DocsBrBrazilianDocumentValidator>();
+        services.AddTransient<IIdentityService, IdentityService>();
+        services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
     }
 }

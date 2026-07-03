@@ -2,21 +2,20 @@ using System.Reflection;
 using VinculoBackend.Application.Common.Behaviours;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Organizations.Services;
-using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 public static class DependencyInjection
 {
-    public static void AddApplicationServices(this IHostApplicationBuilder builder)
+    public static void AddApplicationServices(this IServiceCollection services)
     {
-        builder.Services.AddAutoMapper(cfg =>
+        services.AddAutoMapper(cfg =>
             cfg.AddMaps(Assembly.GetExecutingAssembly()));
 
-        builder.Services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
-        builder.Services.AddScoped<IOrganizationDefaultsService, OrganizationDefaultsService>();
+        services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
+        services.AddScoped<IOrganizationDefaultsService, OrganizationDefaultsService>();
 
-        builder.Services.AddMediatR(cfg => {
+        services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());
             cfg.AddOpenRequestPreProcessor(typeof(LoggingBehaviour<>));
             cfg.AddOpenBehavior(typeof(UnhandledExceptionBehaviour<,>));

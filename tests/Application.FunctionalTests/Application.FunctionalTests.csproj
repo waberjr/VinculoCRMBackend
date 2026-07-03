@@ -20,6 +20,7 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Moq" />
+      <PackageReference Include="MySqlConnector" />
       <PackageReference Include="Respawn" />
       <PackageReference Include="Shouldly" />
       <PackageReference Include="Aspire.Hosting.Testing" />

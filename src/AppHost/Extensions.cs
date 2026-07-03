@@ -1,3 +1,7 @@
+﻿using System;
+using Aspire.Hosting;
+using Aspire.Hosting.ApplicationModel;
+
 internal static class AspireExtensions
 {
     public static IResourceBuilder<T> WithAspNetCoreEnvironment<T>(this IResourceBuilder<T> builder) 

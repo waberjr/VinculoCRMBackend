@@ -26,6 +26,28 @@ jobs:
       - name: Build with dotnet
         run: dotnet build --configuration Release
 
+      - name: Install Entity Framework CLI
+        run: |
+          dotnet tool install --global dotnet-ef --version 10.*
+          if ($LASTEXITCODE -ne 0) {
+            dotnet tool update --global dotnet-ef --version 10.*
+          }
+
+      - name: Restore Entity Framework migration bundle runtime
+        run: dotnet restore src/Infrastructure/Infrastructure.csproj --runtime win-x64
+
+      - name: Generate Entity Framework migration bundle
+        run: |
+          dotnet ef migrations bundle `
+            --configuration Release `
+            --project src/Infrastructure/Infrastructure.csproj `
+            --startup-project src/Infrastructure/Infrastructure.csproj `
+            --context ApplicationDbContext `
+            --runtime win-x64 `
+            --self-contained `
+            --output "${{ runner.temp }}/efbundle.exe" `
+            --force
+
       - name: dotnet publish
         run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
@@ -34,6 +56,12 @@ jobs:
         with:
           name: .net-app
           path: ${{env.DOTNET_ROOT}}/myapp
+
+      - name: Upload Entity Framework migration bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: ef-migrations-bundle
+          path: ${{ runner.temp }}/efbundle.exe
 
   deploy:
     runs-on: windows-latest
@@ -47,6 +75,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+
+      - name: Download Entity Framework migration bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: ef-migrations-bundle
+          path: migration-bundle
+
+      - name: Apply database migrations
+        run: .\migration-bundle\efbundle.exe --connection "${{ secrets.VINCULO_BACKEND_DB_CONNECTION_STRING }}"
+        env:
+          ASPNETCORE_ENVIRONMENT: Production
       
       - name: Login to Azure
         uses: azure/login@v2

@@ -44,30 +44,77 @@ public sealed class GetCampaignsQueryHandler : IRequestHandler<GetCampaignsQuery
             query = query.Where(campaign => campaign.Status == status);
         }
 
-        var projected = query
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var campaigns = await query
             .OrderByDescending(campaign => campaign.StartDateUtc ?? campaign.Created)
             .ThenBy(campaign => campaign.Name)
-            .Select(campaign => new CampaignListItemDto
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(campaign => new
             {
-                Id = campaign.Id,
-                Name = campaign.Name,
-                Type = SystemOptionMapper.Code(campaign.Type),
-                Status = SystemOptionMapper.Code(campaign.Status),
-                GoalAmount = campaign.GoalAmount ?? 0,
-                ConfirmedAmount = _context.Donations
-                    .Where(donation => donation.CampaignId == campaign.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
-                    .Sum(donation => (decimal?)donation.Amount) ?? 0,
-                DonorsCount = _context.Donations
-                    .Where(donation => donation.CampaignId == campaign.Id)
-                    .Select(donation => donation.DonorId)
-                    .Distinct()
-                    .Count(),
-                DonationsCount = _context.Donations.Count(donation => donation.CampaignId == campaign.Id),
-                StartDate = campaign.StartDateUtc,
-                EndDate = campaign.EndDateUtc,
-                AssignedUserName = string.IsNullOrWhiteSpace(campaign.AssignedUserId) ? "Sem responsável" : campaign.AssignedUserId,
-            });
+                campaign.Id,
+                campaign.Name,
+                campaign.Type,
+                campaign.Status,
+                campaign.GoalAmount,
+                campaign.StartDateUtc,
+                campaign.EndDateUtc,
+                campaign.AssignedUserId,
+            })
+            .ToListAsync(cancellationToken);
 
-        return await PaginatedResult<CampaignListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);
+        var campaignIds = campaigns.Select(campaign => campaign.Id).ToArray();
+
+        var donationMetrics = campaignIds.Length == 0
+            ? []
+            : await _context.Donations
+                .AsNoTracking()
+                .Where(donation => donation.CampaignId.HasValue && campaignIds.Contains(donation.CampaignId.Value))
+                .GroupBy(donation => donation.CampaignId!.Value)
+                .Select(group => new
+                {
+                    CampaignId = group.Key,
+                    ConfirmedAmount = group
+                        .Where(donation => donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
+                        .Sum(donation => (decimal?)donation.Amount) ?? 0,
+                    DonorsCount = group.Select(donation => donation.DonorId).Distinct().Count(),
+                    DonationsCount = group.Count(),
+                })
+                .ToListAsync(cancellationToken);
+
+        var metricsByCampaignId = donationMetrics.ToDictionary(metric => metric.CampaignId);
+
+        var items = campaigns
+            .Select(campaign =>
+            {
+                metricsByCampaignId.TryGetValue(campaign.Id, out var metrics);
+
+                return new CampaignListItemDto
+                {
+                    Id = campaign.Id,
+                    Name = campaign.Name,
+                    Type = SystemOptionMapper.Code(campaign.Type),
+                    Status = SystemOptionMapper.Code(campaign.Status),
+                    GoalAmount = campaign.GoalAmount ?? 0,
+                    ConfirmedAmount = metrics?.ConfirmedAmount ?? 0,
+                    DonorsCount = metrics?.DonorsCount ?? 0,
+                    DonationsCount = metrics?.DonationsCount ?? 0,
+                    StartDate = campaign.StartDateUtc,
+                    EndDate = campaign.EndDateUtc,
+                    AssignedUserName = string.IsNullOrWhiteSpace(campaign.AssignedUserId) ? "Sem responsável" : campaign.AssignedUserId,
+                };
+            })
+            .ToList();
+
+        return new PaginatedResult<CampaignListItemDto>
+        {
+            Items = items,
+            PageNumber = pageNumber,
+            TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
+            TotalCount = totalCount,
+        };
     }
 }

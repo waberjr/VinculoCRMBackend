@@ -1,3 +1,5 @@
+using System.Threading.Tasks;
+
 namespace VinculoBackend.Application.FunctionalTests.Infrastructure;
 
 public abstract class TestBase

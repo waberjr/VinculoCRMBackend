@@ -1,3 +1,8 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Aspire.Hosting;
+using Aspire.Hosting.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace VinculoBackend.Application.FunctionalTests;
@@ -23,7 +28,7 @@ public class FunctionalTestSetup
                 configureBuilder: (options, _) =>
                 {
                     options.DisableDashboard = true;
-                });
+                }, cancellationToken: cancellationToken);
 
         builder.Configuration["ASPIRE_ALLOW_UNSECURED_TRANSPORT"] = "true";
 
@@ -38,7 +43,7 @@ public class FunctionalTestSetup
         await _app.ResourceNotifications.WaitForResourceHealthyAsync(
             Services.Database, cancellationToken);
 
-        var connectionString = (await _app.GetConnectionStringAsync(Services.Database))!;
+        var connectionString = (await _app.GetConnectionStringAsync(Services.Database, cancellationToken: cancellationToken))!;
 
         _factory = new WebApiFactory(connectionString);
         ScopeFactory = _factory.Services.GetRequiredService<IServiceScopeFactory>();

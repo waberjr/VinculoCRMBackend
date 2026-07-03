@@ -2,6 +2,7 @@ using Azure.Identity;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Web.Services;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
 
@@ -11,7 +12,7 @@ public static class DependencyInjection
 {
     public const string FrontendCorsPolicy = "FrontendCorsPolicy";
 
-    public static void AddWebServices(this IHostApplicationBuilder builder)
+    public static void AddWebServices(this WebApplicationBuilder builder)
     {
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -54,7 +55,7 @@ public static class DependencyInjection
         });
     }
 
-    public static void AddKeyVaultIfConfigured(this IHostApplicationBuilder builder)
+    public static void AddKeyVaultIfConfigured(this WebApplicationBuilder builder)
     {
         var keyVaultUri = builder.Configuration["AZURE_KEY_VAULT_ENDPOINT"];
         if (!string.IsNullOrWhiteSpace(keyVaultUri))

@@ -5,7 +5,7 @@
 namespace VinculoBackend.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class Update1 : Migration
+    public partial class TestMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

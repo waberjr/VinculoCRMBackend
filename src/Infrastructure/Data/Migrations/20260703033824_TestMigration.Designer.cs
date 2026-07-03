@@ -4,7 +4,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using VinculoBackend.Infrastructure.Data;
 
 #nullable disable
@@ -12,35 +11,33 @@ using VinculoBackend.Infrastructure.Data;
 namespace VinculoBackend.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260628220230_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260703033824_TestMigration")]
+    partial class TestMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.5")
-                .HasAnnotation("Relational:MaxIdentifierLength", 63);
-
-            NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+                .HasAnnotation("ProductVersion", "10.0.7")
+                .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("NormalizedName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
 
@@ -55,19 +52,17 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("int");
 
                     b.Property<string>("ClaimType")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ClaimValue")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("RoleId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
@@ -80,19 +75,17 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+                        .HasColumnType("int");
 
                     b.Property<string>("ClaimType")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("ClaimValue")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("Id");
 
@@ -104,17 +97,17 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("ProviderDisplayName")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("UserId")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("LoginProvider", "ProviderKey");
 
@@ -126,10 +119,10 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
                 {
                     b.Property<string>("UserId")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("RoleId")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.HasKey("UserId", "RoleId");
 
@@ -141,16 +134,16 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
                     b.Property<string>("UserId")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<string>("Value")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
@@ -161,66 +154,74 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AssignedUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
 
-                    b.Property<Guid?>("ChannelOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Channel")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<DateTimeOffset?>("EndDateUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<decimal?>("GoalAmount")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(180)
-                        .HasColumnType("character varying(180)");
+                        .HasColumnType("varchar(180)");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset?>("StartDateUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
-                    b.Property<Guid>("StatusOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
-                    b.Property<Guid>("TypeOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ChannelOptionId");
-
-                    b.HasIndex("StatusOptionId");
-
-                    b.HasIndex("TypeOptionId");
-
                     b.HasIndex("OrganizationId", "Name");
 
-                    b.HasIndex("OrganizationId", "StatusOptionId");
+                    b.HasIndex("OrganizationId", "Status");
 
                     b.ToTable("Campaigns");
                 });
@@ -229,59 +230,69 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<string>("Color")
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsSystem")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationId", "Category", "Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("OrganizationId", "Category", "IsActive");
 
@@ -292,80 +303,95 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal>("Amount")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("decimal(12,2)");
 
                     b.Property<Guid?>("CampaignId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTimeOffset?>("CancelledAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("CreatedByUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<Guid?>("DonationPlanId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("DonorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset?>("ExpectedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("ExternalPaymentId")
                         .HasMaxLength(160)
-                        .HasColumnType("character varying(160)");
+                        .HasColumnType("varchar(160)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset?>("PaidAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
-                    b.Property<Guid>("PaymentMethodOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("Reference")
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<string>("RefundReason")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTimeOffset?>("RefundedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
-                    b.Property<Guid>("StatusOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
-                    b.Property<Guid>("TypeOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.HasKey("Id");
 
@@ -374,12 +400,6 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                     b.HasIndex("DonationPlanId");
 
                     b.HasIndex("DonorId");
-
-                    b.HasIndex("PaymentMethodOptionId");
-
-                    b.HasIndex("StatusOptionId");
-
-                    b.HasIndex("TypeOptionId");
 
                     b.HasIndex("OrganizationId", "DonationPlanId");
 
@@ -391,7 +411,7 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
 
                     b.HasIndex("OrganizationId", "DonorId", "PaidAtUtc");
 
-                    b.HasIndex("OrganizationId", "StatusOptionId", "ExpectedAtUtc");
+                    b.HasIndex("OrganizationId", "Status", "ExpectedAtUtc");
 
                     b.ToTable("Donations");
                 });
@@ -400,62 +420,75 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AssignedUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<int>("BillingDay")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<Guid?>("CampaignId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("CancellationReason")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<DateTimeOffset?>("CancelledAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<Guid>("DonorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<decimal>("ExpectedAmount")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset?>("PausedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
-                    b.Property<Guid>("PreferredPaymentMethodOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("PreferredPaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<DateTimeOffset>("StartDateUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
-                    b.Property<Guid>("StatusOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.HasKey("Id");
 
@@ -463,11 +496,7 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
 
                     b.HasIndex("DonorId");
 
-                    b.HasIndex("PreferredPaymentMethodOptionId");
-
-                    b.HasIndex("StatusOptionId");
-
-                    b.HasIndex("OrganizationId", "DonorId", "StatusOptionId");
+                    b.HasIndex("OrganizationId", "DonorId", "Status");
 
                     b.ToTable("DonationPlans");
                 });
@@ -476,108 +505,119 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid?>("AcquisitionCampaignId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AddressLine1")
                         .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                        .HasColumnType("varchar(250)");
 
                     b.Property<string>("AddressLine2")
                         .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                        .HasColumnType("varchar(250)");
 
                     b.Property<bool>("AllowsCommunication")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("AssignedUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<DateOnly?>("BirthDate")
                         .HasColumnType("date");
 
                     b.Property<string>("City")
                         .HasMaxLength(120)
-                        .HasColumnType("character varying(120)");
+                        .HasColumnType("varchar(120)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("DoNotContact")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("DoNotContactReason")
                         .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
+                        .HasColumnType("varchar(500)");
 
                     b.Property<string>("Document")
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(254)
-                        .HasColumnType("character varying(254)");
+                        .HasColumnType("varchar(254)");
 
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                        .HasColumnType("varchar(250)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(2000)
-                        .HasColumnType("character varying(2000)");
+                        .HasColumnType("varchar(2000)");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
-                    b.Property<Guid>("PersonTypeOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("PersonType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<string>("PostalCode")
                         .HasMaxLength(20)
-                        .HasColumnType("character varying(20)");
+                        .HasColumnType("varchar(20)");
 
                     b.Property<Guid?>("PreferredContactChannelOptionId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid?>("RelationshipProfileOptionId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid?>("SourceOptionId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("State")
                         .HasMaxLength(40)
-                        .HasColumnType("character varying(40)");
+                        .HasColumnType("varchar(40)");
 
-                    b.Property<Guid>("StatusOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("WhatsApp")
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AcquisitionCampaignId");
-
-                    b.HasIndex("PersonTypeOptionId");
 
                     b.HasIndex("PreferredContactChannelOptionId");
 
@@ -585,11 +625,10 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
 
                     b.HasIndex("SourceOptionId");
 
-                    b.HasIndex("StatusOptionId");
-
                     b.HasIndex("OrganizationId", "AssignedUserId");
 
                     b.HasIndex("OrganizationId", "Document")
+                        .IsUnique()
                         .HasFilter("\"Document\" IS NOT NULL");
 
                     b.HasIndex("OrganizationId", "Email")
@@ -600,48 +639,172 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                     b.HasIndex("OrganizationId", "Phone")
                         .HasFilter("\"Phone\" IS NOT NULL");
 
-                    b.HasIndex("OrganizationId", "StatusOptionId");
+                    b.HasIndex("OrganizationId", "Status");
 
                     b.ToTable("Donors");
+                });
+
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.DonorEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("varchar(254)");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("DonorId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTimeOffset>("LastModified")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DonorId");
+
+                    b.HasIndex("OrganizationId", "Address");
+
+                    b.HasIndex("OrganizationId", "DonorId");
+
+                    b.ToTable("DonorEmails");
+                });
+
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.DonorPhone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("DonorId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTimeOffset>("LastModified")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DonorId");
+
+                    b.HasIndex("OrganizationId", "DonorId");
+
+                    b.HasIndex("OrganizationId", "Number");
+
+                    b.ToTable("DonorPhones");
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.DonorTag", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Description")
                         .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
+                        .HasColumnType("varchar(300)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("OrganizationId", "Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("DonorTags");
                 });
@@ -650,28 +813,37 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<Guid>("DonorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("DonorTagId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.HasKey("Id");
 
@@ -680,7 +852,8 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                     b.HasIndex("DonorTagId");
 
                     b.HasIndex("OrganizationId", "DonorId", "DonorTagId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.ToTable("DonorTagAssignments");
                 });
@@ -689,57 +862,66 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("CreatedByUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<Guid>("DonorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<DateTimeOffset>("OccurredAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid?>("RelatedEntityId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("RelatedEntityType")
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(180)
-                        .HasColumnType("character varying(180)");
+                        .HasColumnType("varchar(180)");
 
-                    b.Property<Guid>("TypeOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DonorId");
-
-                    b.HasIndex("TypeOptionId");
 
                     b.HasIndex("OrganizationId", "DonorId", "OccurredAtUtc")
                         .IsDescending(false, false, true);
@@ -751,278 +933,355 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(3)
-                        .HasColumnType("character varying(3)");
+                        .HasColumnType("varchar(3)");
 
                     b.Property<decimal?>("DefaultMonthlyGoal")
                         .HasPrecision(12, 2)
-                        .HasColumnType("numeric(12,2)");
+                        .HasColumnType("decimal(12,2)");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Document")
                         .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
+                        .HasColumnType("varchar(32)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("LegalName")
                         .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                        .HasColumnType("varchar(250)");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
+                        .HasColumnType("varchar(200)");
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
                         .HasMaxLength(80)
-                        .HasColumnType("character varying(80)");
+                        .HasColumnType("varchar(80)");
 
                     b.HasKey("Id");
 
                     b.ToTable("Organizations");
                 });
 
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.OrganizationInvitation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTimeOffset?>("AcceptedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("AcceptedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<DateTimeOffset>("ExpiresAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("InvitedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTimeOffset>("LastModified")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "Email", "AcceptedAtUtc");
+
+                    b.ToTable("OrganizationInvitations");
+                });
+
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.OrganizationMember", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)");
+
+                    b.Property<DateTimeOffset>("Created")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTimeOffset>("JoinedAtUtc")
+                        .HasColumnType("datetime");
+
+                    b.Property<DateTimeOffset>("LastModified")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("LastModifiedBy")
+                        .HasColumnType("longtext");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("char(36)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "UserId")
+                        .IsUnique()
+                        .HasFilter("\"IsDeleted\" = false");
+
+                    b.HasIndex("UserId", "IsActive");
+
+                    b.ToTable("OrganizationMembers");
+                });
+
             modelBuilder.Entity("VinculoBackend.Domain.Entities.RelationshipTask", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("AssignedUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
 
                     b.Property<Guid?>("CampaignId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset?>("CompletedAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CompletionNote")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("varchar(1000)");
 
-                    b.Property<Guid?>("ContactOutcomeOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("ContactOutcome")
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("CreatedByUserId")
                         .HasMaxLength(450)
-                        .HasColumnType("character varying(450)");
+                        .HasColumnType("varchar(450)");
+
+                    b.Property<DateTimeOffset?>("Deleted")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("DeletedBy")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<Guid?>("DonationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<Guid>("DonorId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<DateTimeOffset?>("DueAtUtc")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<Guid>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
-                    b.Property<Guid>("PriorityOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
-                    b.Property<Guid>("StatusOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(180)
-                        .HasColumnType("character varying(180)");
+                        .HasColumnType("varchar(180)");
 
-                    b.Property<Guid>("TypeOptionId")
-                        .HasColumnType("uuid");
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("CampaignId");
 
-                    b.HasIndex("ContactOutcomeOptionId");
-
                     b.HasIndex("DonationId");
 
                     b.HasIndex("DonorId");
 
-                    b.HasIndex("PriorityOptionId");
+                    b.HasIndex("OrganizationId", "DonorId", "Status");
 
-                    b.HasIndex("StatusOptionId");
-
-                    b.HasIndex("TypeOptionId");
-
-                    b.HasIndex("OrganizationId", "DonorId", "StatusOptionId");
-
-                    b.HasIndex("OrganizationId", "AssignedUserId", "StatusOptionId", "DueAtUtc");
+                    b.HasIndex("OrganizationId", "AssignedUserId", "Status", "DueAtUtc");
 
                     b.ToTable("Tasks", (string)null);
-                });
-
-            modelBuilder.Entity("VinculoBackend.Domain.Entities.TodoItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("Done")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("ListId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Note")
-                        .HasColumnType("text");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ListId");
-
-                    b.ToTable("TodoItems");
-                });
-
-            modelBuilder.Entity("VinculoBackend.Domain.Entities.TodoList", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("text");
-
-                    b.Property<DateTimeOffset>("LastModified")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastModifiedBy")
-                        .HasColumnType("text");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TodoLists");
                 });
 
             modelBuilder.Entity("VinculoBackend.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
-                        .HasColumnType("text");
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("AccessFailedCount")
-                        .HasColumnType("integer");
+                        .HasColumnType("int");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<bool>("EmailConfirmed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<bool>("LockoutEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("datetime");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<string>("NormalizedUserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.Property<Guid?>("OrganizationId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("char(36)");
 
                     b.Property<string>("PasswordHash")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<string>("PhoneNumber")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("PhoneNumberConfirmed")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("SecurityStamp")
-                        .HasColumnType("text");
+                        .HasColumnType("longtext");
 
                     b.Property<bool>("TwoFactorEnabled")
-                        .HasColumnType("boolean");
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
+                        .HasColumnType("varchar(256)");
 
                     b.HasKey("Id");
 
@@ -1089,35 +1348,13 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.Campaign", b =>
                 {
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "ChannelOption")
-                        .WithMany()
-                        .HasForeignKey("ChannelOptionId");
-
                     b.HasOne("VinculoBackend.Domain.Entities.Organization", "Organization")
                         .WithMany()
                         .HasForeignKey("OrganizationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "StatusOption")
-                        .WithMany()
-                        .HasForeignKey("StatusOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "TypeOption")
-                        .WithMany()
-                        .HasForeignKey("TypeOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ChannelOption");
-
                     b.Navigation("Organization");
-
-                    b.Navigation("StatusOption");
-
-                    b.Navigation("TypeOption");
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.ConfigurableOption", b =>
@@ -1153,24 +1390,6 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "PaymentMethodOption")
-                        .WithMany()
-                        .HasForeignKey("PaymentMethodOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "StatusOption")
-                        .WithMany()
-                        .HasForeignKey("StatusOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "TypeOption")
-                        .WithMany()
-                        .HasForeignKey("TypeOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Campaign");
 
                     b.Navigation("DonationPlan");
@@ -1178,12 +1397,6 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                     b.Navigation("Donor");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("PaymentMethodOption");
-
-                    b.Navigation("StatusOption");
-
-                    b.Navigation("TypeOption");
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.DonationPlan", b =>
@@ -1204,27 +1417,11 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "PreferredPaymentMethodOption")
-                        .WithMany()
-                        .HasForeignKey("PreferredPaymentMethodOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "StatusOption")
-                        .WithMany()
-                        .HasForeignKey("StatusOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Campaign");
 
                     b.Navigation("Donor");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("PreferredPaymentMethodOption");
-
-                    b.Navigation("StatusOption");
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.Donor", b =>
@@ -1239,43 +1436,68 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "PersonTypeOption")
-                        .WithMany()
-                        .HasForeignKey("PersonTypeOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "PreferredContactChannelOption")
                         .WithMany()
-                        .HasForeignKey("PreferredContactChannelOptionId");
+                        .HasForeignKey("PreferredContactChannelOptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "RelationshipProfileOption")
                         .WithMany()
-                        .HasForeignKey("RelationshipProfileOptionId");
+                        .HasForeignKey("RelationshipProfileOptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "SourceOption")
                         .WithMany()
-                        .HasForeignKey("SourceOptionId");
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "StatusOption")
-                        .WithMany()
-                        .HasForeignKey("StatusOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SourceOptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("AcquisitionCampaign");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("PersonTypeOption");
 
                     b.Navigation("PreferredContactChannelOption");
 
                     b.Navigation("RelationshipProfileOption");
 
                     b.Navigation("SourceOption");
+                });
 
-                    b.Navigation("StatusOption");
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.DonorEmail", b =>
+                {
+                    b.HasOne("VinculoBackend.Domain.Entities.Donor", "Donor")
+                        .WithMany("Emails")
+                        .HasForeignKey("DonorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VinculoBackend.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Donor");
+
+                    b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.DonorPhone", b =>
+                {
+                    b.HasOne("VinculoBackend.Domain.Entities.Donor", "Donor")
+                        .WithMany("Phones")
+                        .HasForeignKey("DonorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("VinculoBackend.Domain.Entities.Organization", "Organization")
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Donor");
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.DonorTag", b =>
@@ -1300,7 +1522,7 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                     b.HasOne("VinculoBackend.Domain.Entities.DonorTag", "DonorTag")
                         .WithMany()
                         .HasForeignKey("DonorTagId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("VinculoBackend.Domain.Entities.Organization", "Organization")
@@ -1330,17 +1552,27 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "TypeOption")
-                        .WithMany()
-                        .HasForeignKey("TypeOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Donor");
 
                     b.Navigation("Organization");
+                });
 
-                    b.Navigation("TypeOption");
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.OrganizationInvitation", b =>
+                {
+                    b.HasOne("VinculoBackend.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("VinculoBackend.Domain.Entities.OrganizationMember", b =>
+                {
+                    b.HasOne("VinculoBackend.Domain.Entities.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.RelationshipTask", b =>
@@ -1348,10 +1580,6 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                     b.HasOne("VinculoBackend.Domain.Entities.Campaign", "Campaign")
                         .WithMany()
                         .HasForeignKey("CampaignId");
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "ContactOutcomeOption")
-                        .WithMany()
-                        .HasForeignKey("ContactOutcomeOptionId");
 
                     b.HasOne("VinculoBackend.Domain.Entities.Donation", "Donation")
                         .WithMany()
@@ -1369,83 +1597,22 @@ namespace VinculoBackend.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "PriorityOption")
-                        .WithMany()
-                        .HasForeignKey("PriorityOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "StatusOption")
-                        .WithMany()
-                        .HasForeignKey("StatusOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("VinculoBackend.Domain.Entities.ConfigurableOption", "TypeOption")
-                        .WithMany()
-                        .HasForeignKey("TypeOptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.Navigation("Campaign");
-
-                    b.Navigation("ContactOutcomeOption");
 
                     b.Navigation("Donation");
 
                     b.Navigation("Donor");
 
                     b.Navigation("Organization");
-
-                    b.Navigation("PriorityOption");
-
-                    b.Navigation("StatusOption");
-
-                    b.Navigation("TypeOption");
-                });
-
-            modelBuilder.Entity("VinculoBackend.Domain.Entities.TodoItem", b =>
-                {
-                    b.HasOne("VinculoBackend.Domain.Entities.TodoList", "List")
-                        .WithMany("Items")
-                        .HasForeignKey("ListId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("List");
-                });
-
-            modelBuilder.Entity("VinculoBackend.Domain.Entities.TodoList", b =>
-                {
-                    b.OwnsOne("VinculoBackend.Domain.ValueObjects.Colour", "Colour", b1 =>
-                        {
-                            b1.Property<Guid>("TodoListId")
-                                .HasColumnType("uuid");
-
-                            b1.Property<string>("Code")
-                                .IsRequired()
-                                .HasColumnType("text");
-
-                            b1.HasKey("TodoListId");
-
-                            b1.ToTable("TodoLists");
-
-                            b1.WithOwner()
-                                .HasForeignKey("TodoListId");
-                        });
-
-                    b.Navigation("Colour")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("VinculoBackend.Domain.Entities.Donor", b =>
                 {
-                    b.Navigation("TagAssignments");
-                });
+                    b.Navigation("Emails");
 
-            modelBuilder.Entity("VinculoBackend.Domain.Entities.TodoList", b =>
-                {
-                    b.Navigation("Items");
+                    b.Navigation("Phones");
+
+                    b.Navigation("TagAssignments");
                 });
 #pragma warning restore 612, 618
         }

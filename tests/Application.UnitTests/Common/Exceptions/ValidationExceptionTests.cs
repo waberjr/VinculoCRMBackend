@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using VinculoBackend.Application.Common.Exceptions;
 using FluentValidation.Results;
 using NUnit.Framework;
