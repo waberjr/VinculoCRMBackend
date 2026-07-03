@@ -5,6 +5,7 @@ using VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTa
 using VinculoBackend.Application.RelationshipTasks.Models;
 using VinculoBackend.Application.RelationshipTasks.Queries.GetRelationshipTasks;
 using VinculoBackend.Application.RelationshipTasks.Commands.StartRelationshipTask;
+using VinculoBackend.Application.RelationshipTasks.Commands.UpdateRelationshipTask;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace VinculoBackend.Web.Endpoints;
@@ -19,6 +20,7 @@ public sealed class RelationshipTasks : IEndpointGroup
 
         groupBuilder.MapGet(GetTasks);
         groupBuilder.MapPost(CreateTask);
+        groupBuilder.MapPut(UpdateTask, "{id}");
         groupBuilder.MapPost(StartTask, "{id}/Start");
         groupBuilder.MapPost(CompleteTask, "{id}/Complete");
         groupBuilder.MapPost(CancelTask, "{id}/Cancel");
@@ -58,6 +60,12 @@ public sealed class RelationshipTasks : IEndpointGroup
     {
         var id = await sender.Send(command);
         return TypedResults.Created($"/api/Tasks/{id}", id);
+    }
+
+    public static async Task<NoContent> UpdateTask(ISender sender, Guid id, UpdateRelationshipTaskCommand command)
+    {
+        await sender.Send(command with { Id = id });
+        return TypedResults.NoContent();
     }
 
     public static async Task<NoContent> CompleteTask(ISender sender, Guid id, CompleteRelationshipTaskCommand command)

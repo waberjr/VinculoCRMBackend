@@ -165,10 +165,10 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
                     .Select(tag => new DonorTagDto { Id = tag.DonorTagId, Name = tag.DonorTag.Name })
                     .ToList(),
                 TotalDonated = _context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0,
                 LastDonationAtUtc = _context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
             });
 
@@ -204,8 +204,8 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
             "AtRisk" => query.Where(donor => donor.Status == DonorStatus.AtRisk),
             "LeadsWithoutDonation" => query.Where(donor =>
                 donor.Status == DonorStatus.Lead &&
-                !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
-            "NewDonors" => query.Where(donor => _context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
+                !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)),
+            "NewDonors" => query.Where(donor => _context.Donations.Any(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)),
             "NoRecentContact" => query.Where(donor =>
                 !_context.RelationshipTasks.Any(task =>
                     task.DonorId == donor.Id &&
@@ -218,24 +218,24 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
     {
         return donationRange switch
         {
-            "NeverDonated" => query.Where(donor => !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)),
+            "NeverDonated" => query.Where(donor => !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)),
             "UpTo1000" => query.Where(donor =>
                 (_context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0) > 0 &&
                 (_context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0) <= 1000),
             "From1000To5000" => query.Where(donor =>
                 (_context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0) > 1000 &&
                 (_context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0) <= 5000),
             "Above5000" => query.Where(donor =>
                 (_context.Donations
-                    .Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0) > 5000),
             _ => query,
         };

@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.DonationPlans.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.DonationPlans.Queries.GetDonationPlanById;
 
@@ -36,7 +37,7 @@ public sealed class GetDonationPlanByIdQueryHandler : IRequestHandler<GetDonatio
                 Status = SystemOptionMapper.Code(plan.Status),
                 StartDateUtc = plan.StartDateUtc,
                 LastConfirmedAt = _context.Donations
-                    .Where(donation => donation.DonationPlanId == plan.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonationPlanId == plan.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
                 NextExpectedAt = NextExpectedAt(plan.BillingDay),
                 CampaignName = plan.Campaign == null ? null : plan.Campaign.Name,
@@ -54,7 +55,7 @@ public sealed class GetDonationPlanByIdQueryHandler : IRequestHandler<GetDonatio
 
     private static DateTimeOffset ExpectedAt(int year, int month, int billingDay)
     {
-        var day = Math.Min(Math.Clamp(billingDay, 1, 28), DateTime.DaysInMonth(year, month));
+        var day = Math.Min(Math.Clamp(billingDay, 1, 31), DateTime.DaysInMonth(year, month));
         return new DateTimeOffset(year, month, day, 12, 0, 0, TimeSpan.Zero);
     }
 }

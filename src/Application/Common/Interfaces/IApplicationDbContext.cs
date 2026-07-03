@@ -32,9 +32,5 @@ public interface IApplicationDbContext
 
     DbSet<DonorTimelineEntry> DonorTimelineEntries { get; }
 
-    DbSet<TodoList> TodoLists { get; }
-
-    DbSet<TodoItem> TodoItems { get; }
-
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
 }

@@ -39,6 +39,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
         var confirmedDonations = await _context.Donations
             .AsNoTracking()
             .Where(donation =>
+                donation.Status == DonationStatus.Confirmed &&
                 donation.PaidAtUtc != null &&
                 donation.PaidAtUtc >= start &&
                 donation.PaidAtUtc <= end)

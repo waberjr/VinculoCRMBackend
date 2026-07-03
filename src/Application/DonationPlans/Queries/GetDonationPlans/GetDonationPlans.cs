@@ -56,7 +56,7 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
                 Status = SystemOptionMapper.Code(plan.Status),
                 StartDateUtc = plan.StartDateUtc,
                 LastConfirmedAt = _context.Donations
-                    .Where(donation => donation.DonationPlanId == plan.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.DonationPlanId == plan.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
                 NextExpectedAt = NextExpectedAt(plan.BillingDay),
                 CampaignName = plan.Campaign == null ? null : plan.Campaign.Name,

@@ -16,15 +16,15 @@ public class DonationPlanTests
     }
 
     [Test]
-    public void SetBillingDayShouldAcceptDaysFromOneToTwentyEight()
+    public void SetBillingDayShouldAcceptDaysFromOneToThirtyOne()
     {
         var plan = new DonationPlan();
 
         plan.SetBillingDay(1);
         plan.BillingDay.ShouldBe(1);
 
-        plan.SetBillingDay(28);
-        plan.BillingDay.ShouldBe(28);
+        plan.SetBillingDay(31);
+        plan.BillingDay.ShouldBe(31);
     }
 
     [Test]
@@ -33,6 +33,6 @@ public class DonationPlanTests
         var plan = new DonationPlan();
 
         Should.Throw<ArgumentOutOfRangeException>(() => plan.SetBillingDay(0));
-        Should.Throw<ArgumentOutOfRangeException>(() => plan.SetBillingDay(29));
+        Should.Throw<ArgumentOutOfRangeException>(() => plan.SetBillingDay(32));
     }
 }

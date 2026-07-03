@@ -44,10 +44,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<DonorTimelineEntry> DonorTimelineEntries => Set<DonorTimelineEntry>();
 
-    public DbSet<TodoList> TodoLists => Set<TodoList>();
-
-    public DbSet<TodoItem> TodoItems => Set<TodoItem>();
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -55,8 +51,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<Organization>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<OrganizationMember>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<OrganizationInvitation>().HasQueryFilter(e => !e.IsDeleted);
-        builder.Entity<TodoList>().HasQueryFilter(e => !e.IsDeleted);
-        builder.Entity<TodoItem>().HasQueryFilter(e => !e.IsDeleted);
         builder.Entity<ConfigurableOption>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Donor>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonorTag>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));

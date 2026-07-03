@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Donors.Models;
+using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Donors.Queries.GetDonorById;
 
@@ -67,8 +68,8 @@ public sealed class GetDonorByIdQueryHandler : IRequestHandler<GetDonorByIdQuery
                     Type = SystemOptionMapper.ToOptionDto(email.Type),
                 }).ToList(),
                 Tags = donor.TagAssignments.OrderBy(tag => tag.DonorTag.Name).Select(tag => new DonorTagDto { Id = tag.DonorTagId, Name = tag.DonorTag.Name }).ToList(),
-                TotalDonated = _context.Donations.Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null).Sum(donation => (decimal?)donation.Amount) ?? 0,
-                LastDonationAtUtc = _context.Donations.Where(donation => donation.DonorId == donor.Id && donation.PaidAtUtc != null).Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
+                TotalDonated = _context.Donations.Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null).Sum(donation => (decimal?)donation.Amount) ?? 0,
+                LastDonationAtUtc = _context.Donations.Where(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null).Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
             })
             .FirstOrDefaultAsync(cancellationToken);
     }

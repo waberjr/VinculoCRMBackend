@@ -55,7 +55,7 @@ public sealed class GetCampaignsQueryHandler : IRequestHandler<GetCampaignsQuery
                 Status = SystemOptionMapper.Code(campaign.Status),
                 GoalAmount = campaign.GoalAmount ?? 0,
                 ConfirmedAmount = _context.Donations
-                    .Where(donation => donation.CampaignId == campaign.Id && donation.PaidAtUtc != null)
+                    .Where(donation => donation.CampaignId == campaign.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Sum(donation => (decimal?)donation.Amount) ?? 0,
                 DonorsCount = _context.Donations
                     .Where(donation => donation.CampaignId == campaign.Id)
