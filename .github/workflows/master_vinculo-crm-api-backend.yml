@@ -3,6 +3,9 @@
 
 name: Build and deploy ASP.Net Core app to Azure Web App - vinculo-crm-api-backend
 
+env:
+  WEB_PROJECT: src/Web/Web.csproj
+
 on:
   push:
     branches:
@@ -49,13 +52,16 @@ jobs:
             --force
 
       - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+        run: dotnet publish "${{ env.WEB_PROJECT }}" --configuration Release --output "${{ runner.temp }}/publish" --no-build
+
+      - name: Package published app
+        run: Compress-Archive -Path "${{ runner.temp }}/publish/*" -DestinationPath "${{ runner.temp }}/app.zip" -Force
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ runner.temp }}/app.zip
 
       - name: Upload Entity Framework migration bundle
         uses: actions/upload-artifact@v4
@@ -75,6 +81,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: .net-app
+          path: app-package
 
       - name: Download Entity Framework migration bundle
         uses: actions/download-artifact@v4
@@ -100,5 +107,5 @@ jobs:
         with:
           app-name: 'vinculo-crm-api-backend'
           slot-name: 'Production'
-          package: .
+          package: app-package/app.zip
           
