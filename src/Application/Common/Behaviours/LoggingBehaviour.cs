@@ -30,6 +30,6 @@ public class LoggingBehaviour<TRequest> : IRequestPreProcessor<TRequest>
         }
 
         _logger.LogInformation("VinculoBackend Request: {Name} {@UserId} {@UserName} {@Request}",
-            requestName, userId, userName, request);
+            requestName, userId, userName, RequestLogSanitizer.Sanitize(request));
     }
 }

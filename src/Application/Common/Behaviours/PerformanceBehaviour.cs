@@ -46,7 +46,7 @@ public class PerformanceBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequ
             }
 
             _logger.LogWarning("VinculoBackend Long Running Request: {Name} ({ElapsedMilliseconds} milliseconds) {@UserId} {@UserName} {@Request}",
-                requestName, elapsedMilliseconds, userId, userName, request);
+                requestName, elapsedMilliseconds, userId, userName, RequestLogSanitizer.Sanitize(request));
         }
 
         return response;
