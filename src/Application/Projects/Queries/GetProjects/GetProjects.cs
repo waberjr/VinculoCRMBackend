@@ -68,9 +68,38 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
             })
             .ToListAsync(cancellationToken);
 
+        var projectIds = projects.Select(project => project.Id).ToArray();
+        var campaignsByProjectId = projectIds.Length == 0
+            ? []
+            : await _context.ProjectCampaigns
+                .AsNoTracking()
+                .Where(link => projectIds.Contains(link.ProjectId))
+                .OrderBy(link => link.Campaign.Name)
+                .Select(link => new
+                {
+                    link.ProjectId,
+                    link.CampaignId,
+                    CampaignName = link.Campaign.Name,
+                })
+                .ToListAsync(cancellationToken);
+
+        var campaignLookup = campaignsByProjectId
+            .GroupBy(link => link.ProjectId)
+            .ToDictionary(
+                group => group.Key,
+                group => (IReadOnlyCollection<ProjectCampaignDto>)group
+                    .Select(link => new ProjectCampaignDto
+                    {
+                        Id = link.CampaignId,
+                        Name = link.CampaignName,
+                    })
+                    .ToList());
+
         var items = projects
             .Select(project =>
             {
+                campaignLookup.TryGetValue(project.Id, out var campaigns);
+
                 return new ProjectListItemDto
                 {
                     Id = project.Id,
@@ -81,6 +110,7 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
                     RaisedAmount = 0,
                     DonorsCount = 0,
                     ImpactMetric = project.ImpactMetric,
+                    Campaigns = campaigns ?? [],
                     StartDateUtc = project.StartDateUtc,
                     EndDateUtc = project.EndDateUtc,
                     UpdatedAtUtc = project.UpdatedAtUtc,

@@ -9,6 +9,7 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
         RuleFor(v => v.GoalAmount).GreaterThan(0).When(v => v.GoalAmount is not null);
         RuleFor(v => v.ImpactMetric).MaximumLength(500);
         RuleFor(v => v.Status).NotEmpty().MaximumLength(80);
+        RuleForEach(v => v.CampaignIds).NotEmpty();
         RuleFor(v => v.EndDateUtc)
             .GreaterThan(v => v.StartDateUtc)
             .When(v => v.StartDateUtc is not null && v.EndDateUtc is not null)

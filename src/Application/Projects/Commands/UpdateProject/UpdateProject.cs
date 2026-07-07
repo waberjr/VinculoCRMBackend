@@ -15,6 +15,7 @@ public record UpdateProjectCommand : IRequest
     public string Status { get; init; } = "Draft";
     public DateTimeOffset? StartDateUtc { get; init; }
     public DateTimeOffset? EndDateUtc { get; init; }
+    public IReadOnlyCollection<Guid> CampaignIds { get; init; } = [];
 }
 
 public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectCommand>
@@ -45,6 +46,51 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
         project.SetGoalAmount(request.GoalAmount);
         project.SetPeriod(request.StartDateUtc, request.EndDateUtc);
 
+        await SyncCampaigns(project.Id, request.CampaignIds.Distinct().ToArray(), cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SyncCampaigns(Guid projectId, IReadOnlyCollection<Guid> campaignIds, CancellationToken cancellationToken)
+    {
+        if (campaignIds.Count > 0)
+        {
+            var existingCampaigns = await _context.Campaigns
+                .AsNoTracking()
+                .Where(campaign => campaignIds.Contains(campaign.Id))
+                .Select(campaign => campaign.Id)
+                .ToListAsync(cancellationToken);
+
+            if (existingCampaigns.Count != campaignIds.Count)
+            {
+                throw new Common.Exceptions.NotFoundException(nameof(Campaign), "Uma ou mais campanhas informadas nao foram encontradas.");
+            }
+        }
+
+        var currentLinks = await _context.ProjectCampaigns
+            .Where(link => link.ProjectId == projectId)
+            .ToListAsync(cancellationToken);
+        var campaignIdsToKeep = campaignIds.ToHashSet();
+
+        foreach (var link in currentLinks.Where(link => !campaignIdsToKeep.Contains(link.CampaignId)))
+        {
+            link.IsDeleted = true;
+        }
+
+        var currentCampaignIds = currentLinks
+            .Where(link => !link.IsDeleted)
+            .Select(link => link.CampaignId)
+            .ToHashSet();
+
+        var organizationId = RequiredOrganization.From(_organizationContext);
+        foreach (var campaignId in campaignIds.Where(campaignId => !currentCampaignIds.Contains(campaignId)))
+        {
+            _context.ProjectCampaigns.Add(new ProjectCampaign
+            {
+                OrganizationId = organizationId,
+                ProjectId = projectId,
+                CampaignId = campaignId,
+            });
+        }
     }
 }
