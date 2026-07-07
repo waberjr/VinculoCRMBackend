@@ -24,6 +24,8 @@ public interface IApplicationDbContext
 
     DbSet<Campaign> Campaigns { get; }
 
+    DbSet<Project> Projects { get; }
+
     DbSet<Donation> Donations { get; }
 
     DbSet<DonationPlan> DonationPlans { get; }

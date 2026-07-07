@@ -98,11 +98,9 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
 
         await ApplyContactsAsync(donor, request, organizationId, cancellationToken);
 
-        var currentAssignments = await _context.DonorTagAssignments
+        await _context.DonorTagAssignments
             .Where(assignment => assignment.DonorId == donor.Id)
-            .ToListAsync(cancellationToken);
-
-        _context.DonorTagAssignments.RemoveRange(currentAssignments);
+            .ExecuteUpdateAsync(setters => setters.SetProperty(assignment => assignment.IsDeleted, true), cancellationToken);
 
         foreach (var tagName in request.Tags.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         {
@@ -204,15 +202,12 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
                 ? []
                 : [new DonorEmailRequest(EmailType.Personal.ToString(), request.Email, true)];
 
-        var currentPhones = await _context.DonorPhones
+        await _context.DonorPhones
             .Where(phone => phone.DonorId == donor.Id)
-            .ToListAsync(cancellationToken);
-        var currentEmails = await _context.DonorEmails
+            .ExecuteUpdateAsync(setters => setters.SetProperty(phone => phone.IsDeleted, true), cancellationToken);
+        await _context.DonorEmails
             .Where(email => email.DonorId == donor.Id)
-            .ToListAsync(cancellationToken);
-
-        _context.DonorPhones.RemoveRange(currentPhones);
-        _context.DonorEmails.RemoveRange(currentEmails);
+            .ExecuteUpdateAsync(setters => setters.SetProperty(email => email.IsDeleted, true), cancellationToken);
 
         var phoneIndex = 0;
         foreach (var phone in phones.Where(phone => !string.IsNullOrWhiteSpace(phone.Number)))

@@ -65,6 +65,14 @@ public enum CampaignStatus
     Cancelled,
 }
 
+public enum ProjectStatus
+{
+    Draft,
+    Active,
+    Completed,
+    Archived,
+}
+
 public enum CampaignChannel
 {
     Phone,

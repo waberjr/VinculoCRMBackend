@@ -36,6 +36,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<Campaign> Campaigns => Set<Campaign>();
 
+    public DbSet<Project> Projects => Set<Project>();
+
     public DbSet<Donation> Donations => Set<Donation>();
 
     public DbSet<DonationPlan> DonationPlans => Set<DonationPlan>();
@@ -58,6 +60,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<DonorPhone>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonorEmail>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Campaign>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<Project>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Donation>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonationPlan>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<RelationshipTask>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));

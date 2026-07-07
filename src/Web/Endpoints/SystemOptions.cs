@@ -24,6 +24,7 @@ public sealed class SystemOptions : IEndpointGroup
             nameof(DonationPlanStatus) => SystemOptionMapper.ToOptionDtos<DonationPlanStatus>(),
             nameof(CampaignType) => SystemOptionMapper.ToOptionDtos<CampaignType>(),
             nameof(CampaignStatus) => SystemOptionMapper.ToOptionDtos<CampaignStatus>(),
+            nameof(ProjectStatus) => SystemOptionMapper.ToOptionDtos<ProjectStatus>(),
             nameof(CampaignChannel) => SystemOptionMapper.ToOptionDtos<CampaignChannel>(),
             nameof(TaskType) => SystemOptionMapper.ToOptionDtos<TaskType>(),
             nameof(TaskPriority) => SystemOptionMapper.ToOptionDtos<TaskPriority>(),
