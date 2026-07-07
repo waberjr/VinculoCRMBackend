@@ -40,7 +40,10 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
             var search = request.Search.Trim().ToLower();
             query = query.Where(donation =>
                 donation.Donor.FullName.ToLower().Contains(search) ||
-                (donation.Reference != null && donation.Reference.ToLower().Contains(search)));
+                (donation.Reference != null && donation.Reference.ToLower().Contains(search)) ||
+                _context.DonationProjects.Any(projectLink =>
+                    projectLink.DonationId == donation.Id &&
+                    projectLink.Project.Name.ToLower().Contains(search)));
         }
 
         if (request.DonorId is not null) query = query.Where(donation => donation.DonorId == request.DonorId);
@@ -68,6 +71,14 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
                 DonorName = donation.Donor.FullName,
                 CampaignId = donation.CampaignId,
                 CampaignName = donation.Campaign == null ? null : donation.Campaign.Name,
+                ProjectId = _context.DonationProjects
+                    .Where(projectLink => projectLink.DonationId == donation.Id)
+                    .Select(projectLink => (Guid?)projectLink.ProjectId)
+                    .FirstOrDefault(),
+                ProjectName = _context.DonationProjects
+                    .Where(projectLink => projectLink.DonationId == donation.Id)
+                    .Select(projectLink => projectLink.Project.Name)
+                    .FirstOrDefault(),
                 Amount = donation.Amount,
                 ExpectedAtUtc = donation.ExpectedAtUtc,
                 PaidAtUtc = donation.PaidAtUtc,

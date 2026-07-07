@@ -11,6 +11,7 @@ public record CreateDonationCommand : IRequest<Guid>
 {
     public Guid DonorId { get; init; }
     public Guid? CampaignId { get; init; }
+    public Guid? ProjectId { get; init; }
     public Guid? DonationPlanId { get; init; }
     public decimal Amount { get; init; }
     public string Type { get; init; } = "OneTime";
@@ -52,6 +53,12 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.CampaignId.Value.ToString());
         }
 
+        if (request.ProjectId is not null &&
+            !await _context.Projects.AsNoTracking().AnyAsync(project => project.Id == request.ProjectId, cancellationToken))
+        {
+            throw new Common.Exceptions.NotFoundException(nameof(Project), request.ProjectId.Value.ToString());
+        }
+
         if (request.DonationPlanId is not null)
         {
             var planBelongsToDonor = await _context.DonationPlans
@@ -87,6 +94,16 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
         donation.SetAmount(request.Amount);
 
         _context.Donations.Add(donation);
+        if (request.ProjectId is not null)
+        {
+            _context.DonationProjects.Add(new DonationProject
+            {
+                OrganizationId = organizationId,
+                DonationId = donation.Id,
+                ProjectId = request.ProjectId.Value,
+            });
+        }
+
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
             OrganizationId = organizationId,

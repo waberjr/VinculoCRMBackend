@@ -9,6 +9,8 @@ public sealed class DonationListItemDto
     public string DonorName { get; init; } = string.Empty;
     public Guid? CampaignId { get; init; }
     public string? CampaignName { get; init; }
+    public Guid? ProjectId { get; init; }
+    public string? ProjectName { get; init; }
     public decimal Amount { get; init; }
     public OptionDto Type { get; init; } = new();
     public OptionDto Status { get; init; } = new();

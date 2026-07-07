@@ -30,6 +30,8 @@ public interface IApplicationDbContext
 
     DbSet<Donation> Donations { get; }
 
+    DbSet<DonationProject> DonationProjects { get; }
+
     DbSet<DonationPlan> DonationPlans { get; }
 
     DbSet<RelationshipTask> RelationshipTasks { get; }
