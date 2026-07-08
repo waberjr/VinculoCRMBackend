@@ -38,6 +38,8 @@ public interface IApplicationDbContext
 
     DbSet<DocumentAttachment> DocumentAttachments { get; }
 
+    DbSet<DocumentAttachmentAuditEntry> DocumentAttachmentAuditEntries { get; }
+
     DbSet<DonationPlan> DonationPlans { get; }
 
     DbSet<RelationshipTask> RelationshipTasks { get; }

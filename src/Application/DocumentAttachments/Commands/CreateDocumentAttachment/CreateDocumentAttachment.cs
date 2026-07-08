@@ -1,23 +1,37 @@
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.DocumentAttachments.Services;
 using VinculoBackend.Domain.Entities;
-using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.DocumentAttachments.Commands.CreateDocumentAttachment;
 
-public sealed record CreateDocumentAttachmentCommand(string EntityType, Guid EntityId, string Title, string Url, string? Description) : IRequest<Guid>;
+public sealed record CreateDocumentAttachmentCommand(
+    string EntityType,
+    Guid EntityId,
+    string Title,
+    string Url,
+    string? Description,
+    string? OriginalFileName = null,
+    string? ContentType = null,
+    long? SizeBytes = null) : IRequest<Guid>;
 
 public sealed class CreateDocumentAttachmentCommandHandler : IRequestHandler<CreateDocumentAttachmentCommand, Guid>
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IDocumentAttachmentAuditService _auditService;
     private readonly IUser _user;
 
-    public CreateDocumentAttachmentCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CreateDocumentAttachmentCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IDocumentAttachmentAuditService auditService,
+        IUser user)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _auditService = auditService;
         _user = user;
     }
 
@@ -42,35 +56,16 @@ public sealed class CreateDocumentAttachmentCommandHandler : IRequestHandler<Cre
             Title = request.Title.Trim(),
             Url = request.Url.Trim(),
             Description = request.Description?.Trim(),
+            OriginalFileName = string.IsNullOrWhiteSpace(request.OriginalFileName) ? null : request.OriginalFileName.Trim(),
+            ContentType = string.IsNullOrWhiteSpace(request.ContentType) ? null : request.ContentType.Trim(),
+            SizeBytes = request.SizeBytes,
             CreatedByUserId = _user.Id,
         };
 
         _context.DocumentAttachments.Add(document);
-        await AddTimelineEntryAsync(organizationId, request.EntityType, request.EntityId, document.Title, cancellationToken);
+        await _auditService.RecordAsync(document, "Created", "Documento vinculado", cancellationToken);
         await _context.SaveChangesAsync(cancellationToken);
 
         return document.Id;
-    }
-
-    private async Task AddTimelineEntryAsync(Guid organizationId, string entityType, Guid entityId, string title, CancellationToken cancellationToken)
-    {
-        var donorId = await DocumentAttachmentEntityLookup.ResolveDonorIdAsync(_context, entityType, entityId, cancellationToken);
-        if (donorId is null)
-        {
-            return;
-        }
-
-        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
-        {
-            OrganizationId = organizationId,
-            DonorId = donorId.Value,
-            Type = TimelineEntryType.Note,
-            Title = "Documento vinculado",
-            Description = title,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
-            CreatedByUserId = _user.Id,
-            RelatedEntityType = entityType.Trim(),
-            RelatedEntityId = entityId,
-        });
     }
 }

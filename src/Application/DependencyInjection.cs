@@ -1,6 +1,7 @@
 using System.Reflection;
 using VinculoBackend.Application.Common.Behaviours;
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.DocumentAttachments.Services;
 using VinculoBackend.Application.Organizations.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,8 @@ public static class DependencyInjection
 
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddScoped<IOrganizationDefaultsService, OrganizationDefaultsService>();
+        services.AddScoped<IDocumentAttachmentAuthorizationService, DocumentAttachmentAuthorizationService>();
+        services.AddScoped<IDocumentAttachmentAuditService, DocumentAttachmentAuditService>();
 
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());

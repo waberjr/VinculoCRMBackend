@@ -5,6 +5,7 @@ public class Organization : BaseAuditableEntity
     public string Name { get; set; } = string.Empty;
     public string? LegalName { get; set; }
     public string? Document { get; set; }
+    public string? LogoUrl { get; set; }
     public decimal? DefaultMonthlyGoal { get; set; }
     public string ReceiptNumberPrefix { get; set; } = "REC";
     public int ReceiptNumberNextSequence { get; set; } = 1;

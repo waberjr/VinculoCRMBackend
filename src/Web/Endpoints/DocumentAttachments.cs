@@ -5,7 +5,9 @@ using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAtta
 using VinculoBackend.Application.DocumentAttachments.Models;
 using VinculoBackend.Application.DocumentAttachments.Queries.CreateDocumentAttachmentAccessUrl;
 using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachmentAudit;
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
+using VinculoBackend.Application.Common.Models;
 
 namespace VinculoBackend.Web.Endpoints;
 
@@ -17,6 +19,7 @@ public sealed class DocumentAttachments : IEndpointGroup
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(List);
+        groupBuilder.MapGet(Audit, "Audit");
         groupBuilder.MapGet(Download, "{id}/Download");
         groupBuilder.MapGet(AccessUrl, "{id}/AccessUrl");
         groupBuilder.MapPost(Create);
@@ -24,13 +27,16 @@ public sealed class DocumentAttachments : IEndpointGroup
         groupBuilder.MapDelete(Delete, "{id}");
     }
 
-    public static async Task<Ok<IReadOnlyCollection<DocumentAttachmentDto>>> List(
+    public static async Task<Ok<PaginatedResult<DocumentAttachmentDto>>> List(
         ISender sender,
-        string entityType,
-        Guid entityId,
+        string? entityType,
+        Guid? entityId,
+        string? search,
+        int pageNumber,
+        int pageSize,
         CancellationToken cancellationToken)
     {
-        var items = await sender.Send(new GetDocumentAttachmentsQuery(entityType, entityId), cancellationToken);
+        var items = await sender.Send(new GetDocumentAttachmentsQuery(entityType, entityId, search, pageNumber <= 0 ? 1 : pageNumber, pageSize <= 0 ? 20 : pageSize), cancellationToken);
         return TypedResults.Ok(items);
     }
 
@@ -49,6 +55,27 @@ public sealed class DocumentAttachments : IEndpointGroup
             cancellationToken);
 
         return TypedResults.Created($"/api/DocumentAttachments/{id}", id);
+    }
+
+    public static async Task<Ok<PaginatedResult<DocumentAttachmentAuditEntryDto>>> Audit(
+        ISender sender,
+        Guid? documentAttachmentId,
+        string? entityType,
+        Guid? entityId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var items = await sender.Send(
+            new GetDocumentAttachmentAuditQuery(
+                documentAttachmentId,
+                entityType,
+                entityId,
+                pageNumber <= 0 ? 1 : pageNumber,
+                pageSize <= 0 ? 20 : pageSize),
+            cancellationToken);
+
+        return TypedResults.Ok(items);
     }
 
     public static async Task<Created<Guid>> Upload(

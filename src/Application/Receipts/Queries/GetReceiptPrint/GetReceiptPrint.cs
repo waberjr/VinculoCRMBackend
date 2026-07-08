@@ -41,6 +41,10 @@ public sealed class GetReceiptPrintQueryHandler : IRequestHandler<GetReceiptPrin
                     .Where(organization => organization.Id == organizationId)
                     .Select(organization => organization.Document)
                     .FirstOrDefault(),
+                OrganizationLogoUrl = _context.Organizations
+                    .Where(organization => organization.Id == organizationId)
+                    .Select(organization => organization.LogoUrl)
+                    .FirstOrDefault(),
                 DonorName = receipt.Donor.FullName,
                 DonorDocument = receipt.Donor.Document,
                 CampaignName = receipt.Donation.Campaign == null ? null : receipt.Donation.Campaign.Name,

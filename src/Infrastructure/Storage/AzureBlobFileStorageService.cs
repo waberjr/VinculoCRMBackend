@@ -1,6 +1,7 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Sas;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using VinculoBackend.Application.Common.Interfaces;
 
@@ -10,11 +11,13 @@ public sealed class AzureBlobFileStorageService : IFileStorageService
 {
     private const string Provider = "azure-blob";
     private readonly BlobContainerClient _containerClient;
+    private readonly ILogger<AzureBlobFileStorageService> _logger;
 
-    public AzureBlobFileStorageService(IOptions<AzureBlobFileStorageOptions> options)
+    public AzureBlobFileStorageService(IOptions<AzureBlobFileStorageOptions> options, ILogger<AzureBlobFileStorageService> logger)
     {
         var storageOptions = options.Value;
         _containerClient = new BlobContainerClient(storageOptions.ConnectionString, storageOptions.ContainerName);
+        _logger = logger;
     }
 
     public async Task<StoredFileReference> StoreAsync(StoreFileRequest request, CancellationToken cancellationToken)
@@ -48,6 +51,12 @@ public sealed class AzureBlobFileStorageService : IFileStorageService
                 },
             },
             cancellationToken);
+
+        _logger.LogInformation(
+            "Document file stored in blob storage for organization {OrganizationId}, entity {EntityType}/{EntityId}.",
+            request.OrganizationId,
+            SanitizeSegment(request.EntityType),
+            request.EntityId);
 
         return new StoredFileReference(Provider, blobName, $"storage://{Provider}/{blobName}");
     }
@@ -85,7 +94,11 @@ public sealed class AzureBlobFileStorageService : IFileStorageService
             return;
         }
 
-        await _containerClient.GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+        var deleted = await _containerClient.GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+        if (deleted.Value)
+        {
+            _logger.LogInformation("Document file removed from blob storage.");
+        }
     }
 
     public async Task<TemporaryFileAccessUrl?> CreateTemporaryReadUrlAsync(string internalUri, TimeSpan ttl, CancellationToken cancellationToken)

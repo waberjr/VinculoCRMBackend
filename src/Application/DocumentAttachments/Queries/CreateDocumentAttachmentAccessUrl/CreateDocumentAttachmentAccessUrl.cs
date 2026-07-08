@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.DocumentAttachments.Models;
+using VinculoBackend.Application.DocumentAttachments.Services;
 
 namespace VinculoBackend.Application.DocumentAttachments.Queries.CreateDocumentAttachmentAccessUrl;
 
@@ -9,15 +10,18 @@ public sealed record CreateDocumentAttachmentAccessUrlQuery(Guid Id, int Minutes
 public sealed class CreateDocumentAttachmentAccessUrlQueryHandler : IRequestHandler<CreateDocumentAttachmentAccessUrlQuery, DocumentAttachmentAccessUrlDto?>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IDocumentAttachmentAuditService _auditService;
     private readonly IFileStorageService _fileStorage;
     private readonly IOrganizationContext _organizationContext;
 
     public CreateDocumentAttachmentAccessUrlQueryHandler(
         IApplicationDbContext context,
+        IDocumentAttachmentAuditService auditService,
         IFileStorageService fileStorage,
         IOrganizationContext organizationContext)
     {
         _context = context;
+        _auditService = auditService;
         _fileStorage = fileStorage;
         _organizationContext = organizationContext;
     }
@@ -26,7 +30,6 @@ public sealed class CreateDocumentAttachmentAccessUrlQueryHandler : IRequestHand
     {
         _ = RequiredOrganization.From(_organizationContext);
         var document = await _context.DocumentAttachments
-            .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == request.Id, cancellationToken);
 
         if (document is null)
@@ -36,11 +39,23 @@ public sealed class CreateDocumentAttachmentAccessUrlQueryHandler : IRequestHand
 
         if (!document.Url.StartsWith("storage://", StringComparison.OrdinalIgnoreCase))
         {
-            return new DocumentAttachmentAccessUrlDto(document.Url, DateTimeOffset.UtcNow.AddMinutes(request.Minutes));
+            await _auditService.RecordAsync(document, "AccessUrlGenerated", "Link temporario de documento gerado", cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            return new DocumentAttachmentAccessUrlDto(document.Url, DateTimeOffset.UtcNow.AddMinutes(ClampMinutes(request.Minutes)));
         }
 
-        var ttl = TimeSpan.FromMinutes(Math.Clamp(request.Minutes, 1, 60));
+        var ttl = TimeSpan.FromMinutes(ClampMinutes(request.Minutes));
         var accessUrl = await _fileStorage.CreateTemporaryReadUrlAsync(document.Url, ttl, cancellationToken);
-        return accessUrl is null ? null : new DocumentAttachmentAccessUrlDto(accessUrl.Url, accessUrl.ExpiresAtUtc);
+        if (accessUrl is null)
+        {
+            return null;
+        }
+
+        await _auditService.RecordAsync(document, "AccessUrlGenerated", "Link temporario de documento gerado", cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new DocumentAttachmentAccessUrlDto(accessUrl.Url, accessUrl.ExpiresAtUtc);
     }
+
+    private static int ClampMinutes(int minutes) => Math.Clamp(minutes, 1, 60);
 }

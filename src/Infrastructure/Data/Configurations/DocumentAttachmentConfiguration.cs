@@ -12,6 +12,8 @@ public class DocumentAttachmentConfiguration : IEntityTypeConfiguration<Document
         builder.Property(entity => entity.Title).HasMaxLength(180);
         builder.Property(entity => entity.Url).HasMaxLength(1000);
         builder.Property(entity => entity.Description).HasMaxLength(1000);
+        builder.Property(entity => entity.OriginalFileName).HasMaxLength(260);
+        builder.Property(entity => entity.ContentType).HasMaxLength(180);
         builder.Property(entity => entity.CreatedByUserId).HasMaxLength(450);
         builder.HasIndex(entity => new { entity.OrganizationId, entity.EntityType, entity.EntityId });
     }

@@ -24,6 +24,7 @@ public sealed class ReceiptPrintDto
     public string Number { get; init; } = string.Empty;
     public string OrganizationName { get; init; } = string.Empty;
     public string? OrganizationDocument { get; init; }
+    public string? OrganizationLogoUrl { get; init; }
     public string DonorName { get; init; } = string.Empty;
     public string? DonorDocument { get; init; }
     public string? CampaignName { get; init; }

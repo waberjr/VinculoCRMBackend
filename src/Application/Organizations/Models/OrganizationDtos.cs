@@ -1,10 +1,10 @@
 namespace VinculoBackend.Application.Organizations.Models;
 
-public sealed record OrganizationResponse(Guid Id, string Name, string? LegalName, string? Document, decimal? DefaultMonthlyGoal, string Role, string ReceiptNumberPrefix = "REC", int ReceiptNumberNextSequence = 1);
+public sealed record OrganizationResponse(Guid Id, string Name, string? LegalName, string? Document, decimal? DefaultMonthlyGoal, string Role, string ReceiptNumberPrefix = "REC", int ReceiptNumberNextSequence = 1, string? LogoUrl = null);
 
-public sealed record CreateOrganizationRequest(string Name, string? LegalName, string? Document, decimal? DefaultMonthlyGoal, string? ReceiptNumberPrefix = null, int? ReceiptNumberNextSequence = null);
+public sealed record CreateOrganizationRequest(string Name, string? LegalName, string? Document, decimal? DefaultMonthlyGoal, string? ReceiptNumberPrefix = null, int? ReceiptNumberNextSequence = null, string? LogoUrl = null);
 
-public sealed record UpdateOrganizationRequest(string Name, string? LegalName, string? Document, decimal? DefaultMonthlyGoal, bool IsActive = true, string? ReceiptNumberPrefix = null, int? ReceiptNumberNextSequence = null);
+public sealed record UpdateOrganizationRequest(string Name, string? LegalName, string? Document, decimal? DefaultMonthlyGoal, bool IsActive = true, string? ReceiptNumberPrefix = null, int? ReceiptNumberNextSequence = null, string? LogoUrl = null);
 
 public sealed record OrganizationMemberResponse(
     Guid Id,

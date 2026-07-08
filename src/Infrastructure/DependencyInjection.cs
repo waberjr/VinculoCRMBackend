@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Options;
 using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Infrastructure.Data.Interceptors;
 using VinculoBackend.Infrastructure.Documents;
@@ -31,6 +32,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+        services.Configure<DocumentUploadOptions>(configuration.GetSection(DocumentUploadOptions.SectionName));
         services.Configure<AzureBlobFileStorageOptions>(configuration.GetSection(AzureBlobFileStorageOptions.SectionName));
         services.AddScoped<IFileStorageService, AzureBlobFileStorageService>();
 

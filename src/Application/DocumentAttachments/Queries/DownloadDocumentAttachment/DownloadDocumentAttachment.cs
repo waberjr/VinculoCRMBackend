@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.DocumentAttachments.Models;
+using VinculoBackend.Application.DocumentAttachments.Services;
 
 namespace VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
 
@@ -9,12 +10,18 @@ public sealed record DownloadDocumentAttachmentQuery(Guid Id) : IRequest<Documen
 public sealed class DownloadDocumentAttachmentQueryHandler : IRequestHandler<DownloadDocumentAttachmentQuery, DocumentAttachmentDownloadDto?>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IDocumentAttachmentAuditService _auditService;
     private readonly IFileStorageService _fileStorage;
     private readonly IOrganizationContext _organizationContext;
 
-    public DownloadDocumentAttachmentQueryHandler(IApplicationDbContext context, IFileStorageService fileStorage, IOrganizationContext organizationContext)
+    public DownloadDocumentAttachmentQueryHandler(
+        IApplicationDbContext context,
+        IDocumentAttachmentAuditService auditService,
+        IFileStorageService fileStorage,
+        IOrganizationContext organizationContext)
     {
         _context = context;
+        _auditService = auditService;
         _fileStorage = fileStorage;
         _organizationContext = organizationContext;
     }
@@ -23,7 +30,6 @@ public sealed class DownloadDocumentAttachmentQueryHandler : IRequestHandler<Dow
     {
         _ = RequiredOrganization.From(_organizationContext);
         var document = await _context.DocumentAttachments
-            .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == request.Id, cancellationToken);
 
         if (document is null || !document.Url.StartsWith("storage://", StringComparison.OrdinalIgnoreCase))
@@ -32,6 +38,14 @@ public sealed class DownloadDocumentAttachmentQueryHandler : IRequestHandler<Dow
         }
 
         var download = await _fileStorage.OpenReadAsync(document.Url, cancellationToken);
-        return download is null ? null : new DocumentAttachmentDownloadDto(download.FileName, download.ContentType, download.Content);
+        if (download is null)
+        {
+            return null;
+        }
+
+        await _auditService.RecordAsync(document, "Downloaded", "Documento baixado", cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new DocumentAttachmentDownloadDto(download.FileName, download.ContentType, download.Content);
     }
 }

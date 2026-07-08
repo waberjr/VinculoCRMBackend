@@ -46,7 +46,8 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                     organization.DefaultMonthlyGoal,
                     Roles.Administrator,
                     organization.ReceiptNumberPrefix,
-                    organization.ReceiptNumberNextSequence))
+                    organization.ReceiptNumberNextSequence,
+                    organization.LogoUrl))
                 .ToListAsync(cancellationToken);
         }
 
@@ -66,6 +67,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
             Name = request.Name.Trim(),
             LegalName = string.IsNullOrWhiteSpace(request.LegalName) ? null : request.LegalName.Trim(),
             Document = string.IsNullOrWhiteSpace(request.Document) ? null : request.Document.Trim(),
+            LogoUrl = string.IsNullOrWhiteSpace(request.LogoUrl) ? null : request.LogoUrl.Trim(),
             DefaultMonthlyGoal = request.DefaultMonthlyGoal,
             ReceiptNumberPrefix = string.IsNullOrWhiteSpace(request.ReceiptNumberPrefix) ? "REC" : request.ReceiptNumberPrefix.Trim(),
             ReceiptNumberNextSequence = Math.Max(1, request.ReceiptNumberNextSequence ?? 1),
@@ -93,7 +95,8 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
             organization.DefaultMonthlyGoal,
             Roles.Administrator,
             organization.ReceiptNumberPrefix,
-            organization.ReceiptNumberNextSequence);
+            organization.ReceiptNumberNextSequence,
+            organization.LogoUrl);
     }
 
     public async Task UpdateAsync(string userId, Guid organizationId, UpdateOrganizationRequest request, CancellationToken cancellationToken)
@@ -110,6 +113,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
         organization.Name = request.Name.Trim();
         organization.LegalName = string.IsNullOrWhiteSpace(request.LegalName) ? null : request.LegalName.Trim();
         organization.Document = string.IsNullOrWhiteSpace(request.Document) ? null : request.Document.Trim();
+        organization.LogoUrl = string.IsNullOrWhiteSpace(request.LogoUrl) ? null : request.LogoUrl.Trim();
         organization.DefaultMonthlyGoal = request.DefaultMonthlyGoal;
         organization.ReceiptNumberPrefix = string.IsNullOrWhiteSpace(request.ReceiptNumberPrefix) ? "REC" : request.ReceiptNumberPrefix.Trim();
         organization.ReceiptNumberNextSequence = Math.Max(1, request.ReceiptNumberNextSequence ?? organization.ReceiptNumberNextSequence);
@@ -357,7 +361,8 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                 item.DefaultMonthlyGoal,
                 invitation.Role,
                 item.ReceiptNumberPrefix,
-                item.ReceiptNumberNextSequence))
+                item.ReceiptNumberNextSequence,
+                item.LogoUrl))
             .FirstAsync(cancellationToken);
     }
 
@@ -384,7 +389,8 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                 item.Organization.DefaultMonthlyGoal,
                 item.Role,
                 item.Organization.ReceiptNumberPrefix,
-                item.Organization.ReceiptNumberNextSequence));
+                item.Organization.ReceiptNumberNextSequence,
+                item.Organization.LogoUrl));
     }
 
     private async Task<ApplicationUser> RequiredUserAsync(string userId)

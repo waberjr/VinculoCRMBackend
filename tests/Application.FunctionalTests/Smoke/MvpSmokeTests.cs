@@ -7,6 +7,7 @@ using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAtta
 using VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
+using VinculoBackend.Application.Common.Exceptions;
 using System.Threading.Tasks;
 using VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
 using VinculoBackend.Application.Donations.Commands.ConfirmDonation;
@@ -165,7 +166,7 @@ public class MvpSmokeTests : TestBase
 
         var documents = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
 
-        documents.ShouldContain(document =>
+        documents.Items.ShouldContain(document =>
             document.Id == documentId &&
             document.Title == "Comprovante" &&
             document.Url == $"/api/DocumentAttachments/{documentId}/Download");
@@ -197,9 +198,68 @@ public class MvpSmokeTests : TestBase
         await TestApp.SendAsync(new DeleteDocumentAttachmentCommand(documentId));
 
         var documents = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
-        documents.ShouldNotContain(document => document.Id == documentId);
+        documents.Items.ShouldNotContain(document => document.Id == documentId);
         var removedDownload = await TestApp.SendAsync(new DownloadDocumentAttachmentQuery(documentId));
         removedDownload.ShouldBeNull();
+    }
+
+    [Test]
+    public async Task ShouldRestrictDocumentRemovalByRole()
+    {
+        var organizationId = await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Permissao Documento");
+        await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo protegido"));
+
+        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+            "Donor",
+            donorId,
+            "Arquivo protegido",
+            null,
+            "protegido.txt",
+            "text/plain",
+            content,
+            content.Length));
+
+        await TestApp.RunAsUserAsync($"{Guid.NewGuid():N}@local", "Agent1234!", [Roles.Agent]);
+        TestApp.SetOrganizationId(organizationId);
+
+        await Should.ThrowAsync<ForbiddenAccessException>(
+            async () => await TestApp.SendAsync(new DeleteDocumentAttachmentCommand(documentId)));
+
+        await TestApp.RunAsUserAsync($"{Guid.NewGuid():N}@local", "Manager1234!", [Roles.Manager]);
+        TestApp.SetOrganizationId(organizationId);
+
+        await Should.NotThrowAsync(async () => await TestApp.SendAsync(new DeleteDocumentAttachmentCommand(documentId)));
+    }
+
+    [Test]
+    public async Task ShouldNotReadDocumentAttachmentFromAnotherOrganization()
+    {
+        var organizationA = await CreateAndUseOrganizationAsync("Organizacao Documento A");
+        var donorId = await CreateDonorAsync("Doador Documento Organizacao A");
+        await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo isolado"));
+
+        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+            "Donor",
+            donorId,
+            "Arquivo isolado",
+            null,
+            "isolado.txt",
+            "text/plain",
+            content,
+            content.Length));
+
+        await CreateAndUseOrganizationAsync("Organizacao Documento B");
+
+        var documentsFromOtherOrganization = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
+        documentsFromOtherOrganization.Items.ShouldBeEmpty();
+
+        var downloadFromOtherOrganization = await TestApp.SendAsync(new DownloadDocumentAttachmentQuery(documentId));
+        downloadFromOtherOrganization.ShouldBeNull();
+
+        TestApp.SetOrganizationId(organizationA);
+        var documentsFromOriginalOrganization = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
+        documentsFromOriginalOrganization.Items.ShouldContain(document => document.Id == documentId);
     }
 
     private static async Task<Guid> CreateAndUseOrganizationAsync(string name = "Organizacao Smoke")

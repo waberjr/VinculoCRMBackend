@@ -11,6 +11,7 @@ public class OrganizationConfiguration : IEntityTypeConfiguration<Organization>
         builder.Property(e => e.Name).HasMaxLength(200).IsRequired();
         builder.Property(e => e.LegalName).HasMaxLength(250);
         builder.Property(e => e.Document).HasMaxLength(32);
+        builder.Property(e => e.LogoUrl).HasMaxLength(1000);
         builder.Property(e => e.DefaultMonthlyGoal).HasPrecision(12, 2);
         builder.Property(e => e.ReceiptNumberPrefix).HasMaxLength(20).IsRequired();
         builder.Property(e => e.TimeZone).HasMaxLength(80).IsRequired();
