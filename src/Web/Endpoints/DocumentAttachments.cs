@@ -62,6 +62,10 @@ public sealed class DocumentAttachments : IEndpointGroup
         Guid? documentAttachmentId,
         string? entityType,
         Guid? entityId,
+        string? action,
+        string? createdByUserId,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
@@ -71,6 +75,10 @@ public sealed class DocumentAttachments : IEndpointGroup
                 documentAttachmentId,
                 entityType,
                 entityId,
+                action,
+                createdByUserId,
+                startDateUtc,
+                endDateUtc,
                 pageNumber <= 0 ? 1 : pageNumber,
                 pageSize <= 0 ? 20 : pageSize),
             cancellationToken);

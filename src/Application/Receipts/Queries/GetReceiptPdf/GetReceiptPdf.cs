@@ -58,7 +58,8 @@ public sealed class GetReceiptPdfQueryHandler : IRequestHandler<GetReceiptPdfQue
 
         AddText(content, "Declaramos o recebimento da contribuicao descrita acima.", 11, 58, 248);
         AddText(content, $"Codigo de verificacao: {VerificationCode(receipt.Id)}", 10, 58, 222);
-        AddText(content, "Confira este codigo com a organizacao emissora em caso de duvida.", 9, 58, 204);
+        AddText(content, $"Validacao: /api/Receipts/{receipt.Id}/Validate?code={VerificationCode(receipt.Id)}", 8, 58, 204);
+        AddText(content, "Confira este codigo com a organizacao emissora em caso de duvida.", 9, 58, 190);
         AddText(content, "Este documento foi gerado eletronicamente pelo Vinculo CRM Filantropico.", 10, 58, 168);
         AddText(content, $"Identificador do recibo: {receipt.Id}", 9, 58, 148);
 

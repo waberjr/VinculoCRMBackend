@@ -6,6 +6,7 @@ using VinculoBackend.Application.Receipts.Models;
 using VinculoBackend.Application.Receipts.Queries.GetReceiptPdf;
 using VinculoBackend.Application.Receipts.Queries.GetReceiptPrint;
 using VinculoBackend.Application.Receipts.Queries.GetReceipts;
+using VinculoBackend.Application.Receipts.Queries.ValidateReceipt;
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Net;
 using System.Text;
@@ -19,6 +20,7 @@ public sealed class Receipts : IEndpointGroup
         groupBuilder.RequireAuthorization();
 
         groupBuilder.MapGet(GetReceipts);
+        groupBuilder.MapGet(ValidateReceipt, "{id}/Validate").AllowAnonymous();
         groupBuilder.MapGet(PrintReceipt, "{id}/Print");
         groupBuilder.MapGet(PdfReceipt, "{id}/Pdf");
         groupBuilder.MapPost(IssueReceipt, "Issue");
@@ -46,6 +48,16 @@ public sealed class Receipts : IEndpointGroup
     {
         var id = await sender.Send(command);
         return TypedResults.Created($"/api/Receipts/{id}", id);
+    }
+
+    public static async Task<Results<Ok<ReceiptValidationDto>, NotFound>> ValidateReceipt(
+        ISender sender,
+        Guid id,
+        string? code,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ValidateReceiptQuery(id, code), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
     public static async Task<NoContent> CancelReceipt(ISender sender, Guid id, CancelReceiptCommand command)

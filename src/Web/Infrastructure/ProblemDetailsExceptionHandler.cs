@@ -10,6 +10,13 @@ namespace VinculoBackend.Web.Infrastructure;
 /// </summary>
 public class ProblemDetailsExceptionHandler : IExceptionHandler
 {
+    private readonly ILogger<ProblemDetailsExceptionHandler> _logger;
+
+    public ProblemDetailsExceptionHandler(ILogger<ProblemDetailsExceptionHandler> logger)
+    {
+        _logger = logger;
+    }
+
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
     {
         if (exception is ValidationException validationException)
@@ -55,6 +62,15 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.6.1"
             })
         };
+
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogError(exception, "Unhandled exception while processing {Method} {Path}.", httpContext.Request.Method, httpContext.Request.Path);
+        }
+        else
+        {
+            _logger.LogWarning(exception, "Handled exception while processing {Method} {Path}.", httpContext.Request.Method, httpContext.Request.Path);
+        }
 
         httpContext.Response.StatusCode = statusCode;
         await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);

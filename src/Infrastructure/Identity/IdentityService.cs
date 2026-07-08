@@ -60,17 +60,17 @@ public class IdentityService : IIdentityService
         return (result.ToApplicationResult(), user.Id);
     }
 
-    public async Task<bool> PasswordSignInAsync(string email, string password, CancellationToken cancellationToken)
+    public async Task<ClaimsPrincipal?> PasswordSignInAsync(string email, string password, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
         {
-            return false;
+            return null;
         }
 
         var user = await _userManager.FindByEmailAsync(email.Trim().ToLowerInvariant());
         if (user is null || !user.IsActive)
         {
-            return false;
+            return null;
         }
 
         var result = await _signInManager.CheckPasswordSignInAsync(
@@ -78,7 +78,7 @@ public class IdentityService : IIdentityService
             password,
             lockoutOnFailure: true);
 
-        return result.Succeeded;
+        return result.Succeeded ? await _signInManager.CreateUserPrincipalAsync(user) : null;
     }
 
     public async Task<ClaimsPrincipal?> RefreshSignInPrincipalAsync(string refreshToken, CancellationToken cancellationToken)

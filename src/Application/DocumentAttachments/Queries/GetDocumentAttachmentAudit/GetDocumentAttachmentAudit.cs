@@ -8,6 +8,10 @@ public sealed record GetDocumentAttachmentAuditQuery(
     Guid? DocumentAttachmentId = null,
     string? EntityType = null,
     Guid? EntityId = null,
+    string? Action = null,
+    string? CreatedByUserId = null,
+    DateTimeOffset? StartDateUtc = null,
+    DateTimeOffset? EndDateUtc = null,
     int PageNumber = 1,
     int PageSize = 20) : IRequest<PaginatedResult<DocumentAttachmentAuditEntryDto>>;
 
@@ -41,6 +45,26 @@ public sealed class GetDocumentAttachmentAuditQueryHandler : IRequestHandler<Get
         if (request.EntityId is not null)
         {
             query = query.Where(entry => entry.EntityId == request.EntityId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Action))
+        {
+            query = query.Where(entry => entry.Action == request.Action.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.CreatedByUserId))
+        {
+            query = query.Where(entry => entry.CreatedByUserId == request.CreatedByUserId.Trim());
+        }
+
+        if (request.StartDateUtc is not null)
+        {
+            query = query.Where(entry => entry.OccurredAtUtc >= request.StartDateUtc.Value);
+        }
+
+        if (request.EndDateUtc is not null)
+        {
+            query = query.Where(entry => entry.OccurredAtUtc <= request.EndDateUtc.Value);
         }
 
         var projected = query

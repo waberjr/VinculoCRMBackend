@@ -14,7 +14,7 @@ public interface IIdentityService
 
     Task<(Result Result, string UserId)> CreateUserAsync(string userName, string password);
 
-    Task<bool> PasswordSignInAsync(string email, string password, CancellationToken cancellationToken);
+    Task<ClaimsPrincipal?> PasswordSignInAsync(string email, string password, CancellationToken cancellationToken);
 
     Task<ClaimsPrincipal?> RefreshSignInPrincipalAsync(string refreshToken, CancellationToken cancellationToken);
 

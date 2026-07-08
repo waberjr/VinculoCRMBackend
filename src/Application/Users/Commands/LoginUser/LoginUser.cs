@@ -1,10 +1,11 @@
 using VinculoBackend.Application.Common.Interfaces;
+using System.Security.Claims;
 
 namespace VinculoBackend.Application.Users.Commands.LoginUser;
 
-public record LoginUserCommand(string Email, string Password) : IRequest<bool>;
+public record LoginUserCommand(string Email, string Password) : IRequest<ClaimsPrincipal?>;
 
-public sealed class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, bool>
+public sealed class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, ClaimsPrincipal?>
 {
     private readonly IIdentityService _identityService;
 
@@ -13,7 +14,7 @@ public sealed class LoginUserCommandHandler : IRequestHandler<LoginUserCommand, 
         _identityService = identityService;
     }
 
-    public Task<bool> Handle(LoginUserCommand request, CancellationToken cancellationToken)
+    public Task<ClaimsPrincipal?> Handle(LoginUserCommand request, CancellationToken cancellationToken)
     {
         return _identityService.PasswordSignInAsync(request.Email, request.Password, cancellationToken);
     }

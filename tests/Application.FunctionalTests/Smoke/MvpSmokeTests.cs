@@ -33,9 +33,9 @@ public class MvpSmokeTests : TestBase
         var password = "Testing1234!";
         await TestApp.RunAsUserAsync("login-smoke@local", password, []);
 
-        var succeeded = await TestApp.SendAsync(new LoginUserCommand("login-smoke@local", password));
+        var principal = await TestApp.SendAsync(new LoginUserCommand("login-smoke@local", password));
 
-        succeeded.ShouldBeTrue();
+        principal.ShouldNotBeNull();
     }
 
     [Test]

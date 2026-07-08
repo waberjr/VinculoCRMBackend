@@ -27,14 +27,14 @@ public sealed class Users : IEndpointGroup
 
     [EndpointSummary("Entrar")]
     [EndpointDescription("Autentica um usuário e retorna os tokens de acesso.")]
-    public static async Task<Results<EmptyHttpResult, ProblemHttpResult>> Login(
+    public static async Task<Results<SignInHttpResult, ProblemHttpResult>> Login(
         ISender sender,
         [FromBody] LoginRequest request,
         CancellationToken cancellationToken)
     {
-        var succeeded = await sender.Send(new LoginUserCommand(request.Email, request.Password), cancellationToken);
-        return succeeded
-            ? TypedResults.Empty
+        var principal = await sender.Send(new LoginUserCommand(request.Email, request.Password), cancellationToken);
+        return principal is not null
+            ? TypedResults.SignIn(principal, authenticationScheme: IdentityConstants.BearerScheme)
             : TypedResults.Problem(
                 statusCode: StatusCodes.Status401Unauthorized,
                 title: "Credenciais inválidas.");

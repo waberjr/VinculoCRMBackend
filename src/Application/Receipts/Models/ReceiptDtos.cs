@@ -36,3 +36,16 @@ public sealed class ReceiptPrintDto
 }
 
 public sealed record ReceiptPdfDto(string FileName, byte[] Content);
+
+public sealed class ReceiptValidationDto
+{
+    public Guid Id { get; init; }
+    public string Number { get; init; } = string.Empty;
+    public string VerificationCode { get; init; } = string.Empty;
+    public string OrganizationName { get; init; } = string.Empty;
+    public string DonorName { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public DateTimeOffset PaidAtUtc { get; init; }
+    public DateTimeOffset IssuedAtUtc { get; init; }
+    public string Status { get; init; } = string.Empty;
+}
