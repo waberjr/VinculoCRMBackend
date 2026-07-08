@@ -51,6 +51,14 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
                 DonorName = donation.Donor.FullName,
                 CampaignName = donation.Campaign == null ? "Sem campanha" : donation.Campaign.Name,
                 GoalAmount = donation.Campaign == null ? monthlyGoal : donation.Campaign.GoalAmount ?? 0,
+                ProjectName = _context.DonationProjects
+                    .Where(projectLink => projectLink.DonationId == donation.Id)
+                    .Select(projectLink => projectLink.Project.Name)
+                    .FirstOrDefault() ?? "Sem projeto/destinacao",
+                ProjectGoalAmount = _context.DonationProjects
+                    .Where(projectLink => projectLink.DonationId == donation.Id)
+                    .Select(projectLink => projectLink.Project.GoalAmount ?? 0)
+                    .FirstOrDefault(),
             })
             .ToListAsync(cancellationToken);
 
@@ -116,6 +124,11 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
                 .GroupBy(donation => new { donation.CampaignName, donation.GoalAmount })
                 .OrderByDescending(group => group.Sum(donation => donation.Amount))
                 .Select(group => new DonationByCampaignDto(group.Key.CampaignName, group.Sum(donation => donation.Amount), group.Key.GoalAmount))
+                .ToList(),
+            DonationsByProject = confirmedDonations
+                .GroupBy(donation => new { donation.ProjectName, donation.ProjectGoalAmount })
+                .OrderByDescending(group => group.Sum(donation => donation.Amount))
+                .Select(group => new DonationByProjectDto(group.Key.ProjectName, group.Sum(donation => donation.Amount), group.Key.ProjectGoalAmount))
                 .ToList(),
             LatestDonations = confirmedDonations
                 .OrderByDescending(donation => donation.PaidAt)
