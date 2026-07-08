@@ -95,10 +95,32 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
                     })
                     .ToList());
 
+        var projectMetrics = projectIds.Length == 0
+            ? []
+            : await _context.DonationProjects
+                .AsNoTracking()
+                .Where(link =>
+                    projectIds.Contains(link.ProjectId) &&
+                    link.Donation.Status == DonationStatus.Confirmed)
+                .GroupBy(link => link.ProjectId)
+                .Select(group => new
+                {
+                    ProjectId = group.Key,
+                    RaisedAmount = group.Sum(link => link.Donation.Amount),
+                    DonorsCount = group
+                        .Select(link => link.Donation.DonorId)
+                        .Distinct()
+                        .Count(),
+                })
+                .ToListAsync(cancellationToken);
+
+        var metricsLookup = projectMetrics.ToDictionary(metric => metric.ProjectId);
+
         var items = projects
             .Select(project =>
             {
                 campaignLookup.TryGetValue(project.Id, out var campaigns);
+                metricsLookup.TryGetValue(project.Id, out var metrics);
 
                 return new ProjectListItemDto
                 {
@@ -107,8 +129,8 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
                     Description = project.Description,
                     Status = project.Status.ToString(),
                     GoalAmount = project.GoalAmount ?? 0,
-                    RaisedAmount = 0,
-                    DonorsCount = 0,
+                    RaisedAmount = metrics?.RaisedAmount ?? 0,
+                    DonorsCount = metrics?.DonorsCount ?? 0,
                     ImpactMetric = project.ImpactMetric,
                     Campaigns = campaigns ?? [],
                     StartDateUtc = project.StartDateUtc,

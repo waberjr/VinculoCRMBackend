@@ -10,6 +10,7 @@ public record GetDonationsQuery : IRequest<PaginatedResult<DonationListItemDto>>
     public string? Search { get; init; }
     public Guid? DonorId { get; init; }
     public Guid? CampaignId { get; init; }
+    public Guid? ProjectId { get; init; }
     public string? Status { get; init; }
     public string? PaymentMethod { get; init; }
     public DateTimeOffset? FromUtc { get; init; }
@@ -48,6 +49,14 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
 
         if (request.DonorId is not null) query = query.Where(donation => donation.DonorId == request.DonorId);
         if (request.CampaignId is not null) query = query.Where(donation => donation.CampaignId == request.CampaignId);
+        if (request.ProjectId is not null)
+        {
+            query = query.Where(donation =>
+                _context.DonationProjects.Any(projectLink =>
+                    projectLink.DonationId == donation.Id &&
+                    projectLink.ProjectId == request.ProjectId));
+        }
+
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
             var status = SystemOptionMapper.Parse<DonationStatus>(request.Status);
