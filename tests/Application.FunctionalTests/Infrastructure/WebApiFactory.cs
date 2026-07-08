@@ -1,4 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using VinculoBackend.Application.Common.Interfaces;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -37,6 +41,38 @@ public class WebApiFactory(string connectionString) : WebApplicationFactory<Prog
                     mock.SetupGet(x => x.HasOrganization).Returns(organizationId is not null);
                     return mock.Object;
                 });
+
+            services
+                .RemoveAll<IFileStorageService>()
+                .AddSingleton<IFileStorageService, InMemoryFileStorageService>();
         });
+    }
+
+    private sealed class InMemoryFileStorageService : IFileStorageService
+    {
+        private readonly Dictionary<string, StoredFileDownload> _files = [];
+
+        public async Task<StoredFileReference> StoreAsync(StoreFileRequest request, CancellationToken cancellationToken)
+        {
+            var key = Guid.NewGuid().ToString("N");
+            var content = new MemoryStream();
+            await request.Content.CopyToAsync(content, cancellationToken);
+            content.Position = 0;
+            _files[key] = new StoredFileDownload(request.FileName, request.ContentType, content);
+            return new StoredFileReference("memory", key, $"storage://memory/{key}");
+        }
+
+        public Task<StoredFileDownload?> OpenReadAsync(string internalUri, CancellationToken cancellationToken)
+        {
+            var key = internalUri["storage://memory/".Length..];
+            return Task.FromResult(_files.GetValueOrDefault(key));
+        }
+
+        public Task DeleteAsync(string internalUri, CancellationToken cancellationToken)
+        {
+            var key = internalUri["storage://memory/".Length..];
+            _files.Remove(key);
+            return Task.CompletedTask;
+        }
     }
 }

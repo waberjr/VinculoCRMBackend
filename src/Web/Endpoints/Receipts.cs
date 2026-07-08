@@ -3,6 +3,7 @@ using VinculoBackend.Application.Receipts.Commands.CancelReceipt;
 using VinculoBackend.Application.Receipts.Commands.IssueReceipt;
 using VinculoBackend.Application.Receipts.Commands.ReissueReceipt;
 using VinculoBackend.Application.Receipts.Models;
+using VinculoBackend.Application.Receipts.Queries.GetReceiptPdf;
 using VinculoBackend.Application.Receipts.Queries.GetReceiptPrint;
 using VinculoBackend.Application.Receipts.Queries.GetReceipts;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -72,16 +73,16 @@ public sealed class Receipts : IEndpointGroup
 
     public static async Task<Results<FileContentHttpResult, NotFound>> PdfReceipt(ISender sender, Guid id)
     {
-        var receipt = await sender.Send(new GetReceiptPrintQuery(id));
-        if (receipt is null)
+        var receiptPdf = await sender.Send(new GetReceiptPdfQuery(id));
+        if (receiptPdf is null)
         {
             return TypedResults.NotFound();
         }
 
         return TypedResults.File(
-            CreateSimplePdf(ReceiptLines(receipt)),
+            receiptPdf.Content,
             "application/pdf",
-            $"{receipt.Number}.pdf");
+            receiptPdf.FileName);
     }
 
     private static string RenderReceiptHtml(ReceiptPrintDto receipt)
@@ -143,77 +144,4 @@ public sealed class Receipts : IEndpointGroup
 """;
     }
 
-    private static IReadOnlyCollection<string> ReceiptLines(ReceiptPrintDto receipt)
-    {
-        return
-        [
-            $"Recibo de doacao {receipt.Number}",
-            $"Organizacao: {receipt.OrganizationName}",
-            string.IsNullOrWhiteSpace(receipt.OrganizationDocument) ? "" : $"Documento organizacao: {receipt.OrganizationDocument}",
-            $"Doador: {receipt.DonorName}",
-            string.IsNullOrWhiteSpace(receipt.DonorDocument) ? "" : $"Documento doador: {receipt.DonorDocument}",
-            $"Valor: {receipt.Amount.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))}",
-            $"Pagamento: {receipt.PaidAtUtc:dd/MM/yyyy}",
-            $"Campanha: {receipt.CampaignName ?? "Sem campanha"}",
-            $"Projeto/destinacao: {receipt.ProjectName ?? "Sem projeto/destinacao"}",
-            $"Referencia: {receipt.DonationReference}",
-            $"Emitido em: {receipt.IssuedAtUtc:dd/MM/yyyy HH:mm}",
-        ];
-    }
-
-    private static byte[] CreateSimplePdf(IReadOnlyCollection<string> lines)
-    {
-        var content = new StringBuilder();
-        content.AppendLine("BT");
-        content.AppendLine("/F1 12 Tf");
-        content.AppendLine("50 780 Td");
-        foreach (var line in lines.Where(line => !string.IsNullOrWhiteSpace(line)))
-        {
-            content.Append('(').Append(EscapePdf(line)).AppendLine(") Tj");
-            content.AppendLine("0 -22 Td");
-        }
-        content.AppendLine("ET");
-
-        var stream = content.ToString();
-        var objects = new[]
-        {
-            "<< /Type /Catalog /Pages 2 0 R >>",
-            "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-            $"<< /Length {Encoding.ASCII.GetByteCount(stream)} >>\nstream\n{stream}endstream",
-        };
-
-        var pdf = new StringBuilder();
-        var offsets = new List<int> { 0 };
-        pdf.AppendLine("%PDF-1.4");
-        foreach (var (obj, index) in objects.Select((obj, index) => (obj, index)))
-        {
-            offsets.Add(Encoding.ASCII.GetByteCount(pdf.ToString()));
-            pdf.AppendLine($"{index + 1} 0 obj");
-            pdf.AppendLine(obj);
-            pdf.AppendLine("endobj");
-        }
-
-        var xrefOffset = Encoding.ASCII.GetByteCount(pdf.ToString());
-        pdf.AppendLine("xref");
-        pdf.AppendLine($"0 {objects.Length + 1}");
-        pdf.AppendLine("0000000000 65535 f ");
-        foreach (var offset in offsets.Skip(1))
-        {
-            pdf.AppendLine($"{offset:0000000000} 00000 n ");
-        }
-        pdf.AppendLine("trailer");
-        pdf.AppendLine($"<< /Size {objects.Length + 1} /Root 1 0 R >>");
-        pdf.AppendLine("startxref");
-        pdf.AppendLine(xrefOffset.ToString(System.Globalization.CultureInfo.InvariantCulture));
-        pdf.AppendLine("%%EOF");
-
-        return Encoding.ASCII.GetBytes(pdf.ToString());
-    }
-
-    private static string EscapePdf(string value) =>
-        value.Replace("\\", "\\\\", StringComparison.Ordinal)
-            .Replace("(", "\\(", StringComparison.Ordinal)
-            .Replace(")", "\\)", StringComparison.Ordinal);
 }

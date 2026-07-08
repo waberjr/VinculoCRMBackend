@@ -73,11 +73,9 @@ public class IdentityService : IIdentityService
             return false;
         }
 
-        _signInManager.AuthenticationScheme = IdentityConstants.BearerScheme;
-        var result = await _signInManager.PasswordSignInAsync(
-            user.UserName ?? email,
+        var result = await _signInManager.CheckPasswordSignInAsync(
+            user,
             password,
-            isPersistent: false,
             lockoutOnFailure: true);
 
         return result.Succeeded;

@@ -1,70 +1,93 @@
-using VinculoBackend.Application.Common.Interfaces;
-using VinculoBackend.Application.Common.Models;
-using VinculoBackend.Domain.Entities;
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
+using VinculoBackend.Application.DocumentAttachments.Commands.CreateDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Models;
+using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 
 namespace VinculoBackend.Web.Endpoints;
 
 public sealed class DocumentAttachments : IEndpointGroup
 {
-    public sealed record DocumentAttachmentDto(Guid Id, string EntityType, Guid EntityId, string Title, string Url, string? Description, DateTimeOffset Created);
     public sealed record CreateDocumentAttachmentRequest(string EntityType, Guid EntityId, string Title, string Url, string? Description);
 
     public static void Map(RouteGroupBuilder groupBuilder)
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(List);
+        groupBuilder.MapGet(Download, "{id}/Download");
         groupBuilder.MapPost(Create);
+        groupBuilder.MapPost(Upload, "Upload").DisableAntiforgery();
+        groupBuilder.MapDelete(Delete, "{id}");
     }
 
     public static async Task<Ok<IReadOnlyCollection<DocumentAttachmentDto>>> List(
-        IApplicationDbContext context,
-        IOrganizationContext organizationContext,
+        ISender sender,
         string entityType,
         Guid entityId,
         CancellationToken cancellationToken)
     {
-        _ = RequiredOrganization.From(organizationContext);
-
-        var items = await context.DocumentAttachments
-            .AsNoTracking()
-            .Where(document => document.EntityType == entityType && document.EntityId == entityId)
-            .OrderByDescending(document => document.Created)
-            .Select(document => new DocumentAttachmentDto(
-                document.Id,
-                document.EntityType,
-                document.EntityId,
-                document.Title,
-                document.Url,
-                document.Description,
-                document.Created))
-            .ToListAsync(cancellationToken);
-
-        return TypedResults.Ok((IReadOnlyCollection<DocumentAttachmentDto>)items);
+        var items = await sender.Send(new GetDocumentAttachmentsQuery(entityType, entityId), cancellationToken);
+        return TypedResults.Ok(items);
     }
 
     public static async Task<Created<Guid>> Create(
-        IApplicationDbContext context,
-        IOrganizationContext organizationContext,
-        IUser user,
+        ISender sender,
         CreateDocumentAttachmentRequest request,
         CancellationToken cancellationToken)
     {
-        var organizationId = RequiredOrganization.From(organizationContext);
-        var document = new DocumentAttachment
-        {
-            OrganizationId = organizationId,
-            EntityType = request.EntityType.Trim(),
-            EntityId = request.EntityId,
-            Title = request.Title.Trim(),
-            Url = request.Url.Trim(),
-            Description = request.Description?.Trim(),
-            CreatedByUserId = user.Id,
-        };
+        var id = await sender.Send(
+            new CreateDocumentAttachmentCommand(
+                request.EntityType,
+                request.EntityId,
+                request.Title,
+                request.Url,
+                request.Description),
+            cancellationToken);
 
-        context.DocumentAttachments.Add(document);
-        await context.SaveChangesAsync(cancellationToken);
-        return TypedResults.Created($"/api/DocumentAttachments/{document.Id}", document.Id);
+        return TypedResults.Created($"/api/DocumentAttachments/{id}", id);
+    }
+
+    public static async Task<Created<Guid>> Upload(
+        ISender sender,
+        IFormFile file,
+        string entityType,
+        Guid entityId,
+        string title,
+        string? description,
+        CancellationToken cancellationToken)
+    {
+        await using var content = file.OpenReadStream();
+        var id = await sender.Send(
+            new UploadDocumentAttachmentCommand(
+                entityType,
+                entityId,
+                title,
+                description,
+                file.FileName,
+                file.ContentType,
+                content,
+                file.Length),
+            cancellationToken);
+
+        return TypedResults.Created($"/api/DocumentAttachments/{id}", id);
+    }
+
+    public static async Task<Results<FileStreamHttpResult, NotFound>> Download(
+        ISender sender,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var download = await sender.Send(new DownloadDocumentAttachmentQuery(id), cancellationToken);
+        return download is null
+            ? TypedResults.NotFound()
+            : TypedResults.File(download.Content, download.ContentType, download.FileName);
+    }
+
+    public static async Task<NoContent> Delete(ISender sender, Guid id, CancellationToken cancellationToken)
+    {
+        await sender.Send(new DeleteDocumentAttachmentCommand(id), cancellationToken);
+        return TypedResults.NoContent();
     }
 }

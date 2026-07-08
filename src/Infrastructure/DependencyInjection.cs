@@ -5,6 +5,7 @@ using VinculoBackend.Infrastructure.Documents;
 using VinculoBackend.Infrastructure.Identity;
 using VinculoBackend.Infrastructure.Locations;
 using VinculoBackend.Infrastructure.Organizations;
+using VinculoBackend.Infrastructure.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -30,6 +31,8 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+        services.Configure<AzureBlobFileStorageOptions>(configuration.GetSection(AzureBlobFileStorageOptions.SectionName));
+        services.AddScoped<IFileStorageService, AzureBlobFileStorageService>();
 
         services.AddScoped<ApplicationDbContextInitialiser>();
         services.AddHttpClient<ILocationLookupService, IbgeLocationLookupService>(client =>

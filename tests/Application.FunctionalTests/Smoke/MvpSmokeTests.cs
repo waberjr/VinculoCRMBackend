@@ -1,6 +1,10 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Net.Http.Json;
+using System.Text;
+using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 using System.Threading.Tasks;
 using VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
 using VinculoBackend.Application.Donations.Commands.ConfirmDonation;
@@ -26,14 +30,9 @@ public class MvpSmokeTests : TestBase
         var password = "Testing1234!";
         await TestApp.RunAsUserAsync("login-smoke@local", password, []);
 
-        using var client = TestApp.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/Users/login", new
-        {
-            Email = "login-smoke@local",
-            Password = password,
-        });
+        var succeeded = await TestApp.SendAsync(new LoginUserCommand("login-smoke@local", password));
 
-        response.IsSuccessStatusCode.ShouldBeTrue();
+        succeeded.ShouldBeTrue();
     }
 
     [Test]
@@ -143,6 +142,31 @@ public class MvpSmokeTests : TestBase
             duplicate.Id == donorId &&
             duplicate.MatchedFields.Contains("email") &&
             duplicate.MatchedFields.Contains("phone"));
+    }
+
+    [Test]
+    public async Task ShouldUploadDocumentAttachmentForDonor()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Documento");
+        await using var content = new MemoryStream(Encoding.UTF8.GetBytes("comprovante"));
+
+        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+            "Donor",
+            donorId,
+            "Comprovante",
+            "Arquivo de teste",
+            "comprovante.txt",
+            "text/plain",
+            content,
+            content.Length));
+
+        var documents = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
+
+        documents.ShouldContain(document =>
+            document.Id == documentId &&
+            document.Title == "Comprovante" &&
+            document.Url == $"/api/DocumentAttachments/{documentId}/Download");
     }
 
     private static async Task<Guid> CreateAndUseOrganizationAsync(string name = "Organizacao Smoke")

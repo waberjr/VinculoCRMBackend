@@ -33,3 +33,5 @@ public sealed class ReceiptPrintDto
     public DateTimeOffset IssuedAtUtc { get; init; }
     public string DonationReference { get; init; } = string.Empty;
 }
+
+public sealed record ReceiptPdfDto(string FileName, byte[] Content);
