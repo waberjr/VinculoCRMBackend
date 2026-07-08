@@ -40,18 +40,53 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
 
         donation.Cancel(request.Reason, DateTimeOffset.UtcNow);
 
+        var context = await _context.Donations
+            .AsNoTracking()
+            .Where(entity => entity.Id == donation.Id)
+            .Select(entity => new
+            {
+                CampaignName = entity.Campaign == null ? null : entity.Campaign.Name,
+                ProjectName = _context.DonationProjects
+                    .Where(projectLink => projectLink.DonationId == entity.Id)
+                    .Select(projectLink => projectLink.Project.Name)
+                    .FirstOrDefault(),
+            })
+            .FirstAsync(cancellationToken);
+
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
             Title = "Contribuição cancelada",
-            Description = donation.CancellationReason,
+            Description = DonationTimelineDescription(donation.CancellationReason, context.CampaignName, context.ProjectName),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),
             RelatedEntityId = donation.Id,
         });
 
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string DonationTimelineDescription(string? reason, string? campaignName, string? projectName)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            parts.Add(reason);
+        }
+
+        if (!string.IsNullOrWhiteSpace(campaignName))
+        {
+            parts.Add($"Campanha: {campaignName}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(projectName))
+        {
+            parts.Add($"Projeto/destinacao: {projectName}.");
+        }
+
+        return string.Join(" ", parts);
     }
 }

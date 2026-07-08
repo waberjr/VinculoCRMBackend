@@ -10,6 +10,7 @@ public record GetDashboardOverviewQuery : IRequest<DashboardOverviewDto>
 {
     public DateTimeOffset? StartDateUtc { get; init; }
     public DateTimeOffset? EndDateUtc { get; init; }
+    public Guid? ProjectId { get; init; }
 }
 
 public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashboardOverviewQuery, DashboardOverviewDto>
@@ -36,13 +37,23 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             .Select(organization => organization.DefaultMonthlyGoal ?? 0)
             .FirstOrDefaultAsync(cancellationToken);
 
-        var confirmedDonations = await _context.Donations
+        var confirmedDonationQuery = _context.Donations
             .AsNoTracking()
             .Where(donation =>
                 donation.Status == DonationStatus.Confirmed &&
                 donation.PaidAtUtc != null &&
                 donation.PaidAtUtc >= start &&
-                donation.PaidAtUtc <= end)
+                donation.PaidAtUtc <= end);
+
+        if (request.ProjectId is not null)
+        {
+            confirmedDonationQuery = confirmedDonationQuery.Where(donation =>
+                _context.DonationProjects.Any(projectLink =>
+                    projectLink.DonationId == donation.Id &&
+                    projectLink.ProjectId == request.ProjectId));
+        }
+
+        var confirmedDonations = await confirmedDonationQuery
             .Select(donation => new
             {
                 donation.Id,

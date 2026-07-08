@@ -15,12 +15,14 @@ public sealed class Dashboard : IEndpointGroup
     public static async Task<Ok<DashboardOverviewDto>> GetOverview(
         ISender sender,
         DateTimeOffset? startDateUtc,
-        DateTimeOffset? endDateUtc)
+        DateTimeOffset? endDateUtc,
+        Guid? projectId)
     {
         var result = await sender.Send(new GetDashboardOverviewQuery
         {
             StartDateUtc = startDateUtc,
             EndDateUtc = endDateUtc,
+            ProjectId = projectId,
         });
 
         return TypedResults.Ok(result);

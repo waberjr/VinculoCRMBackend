@@ -1,0 +1,18 @@
+using VinculoBackend.Domain.Enums;
+
+namespace VinculoBackend.Application.Receipts.Models;
+
+public sealed class ReceiptListItemDto
+{
+    public Guid Id { get; init; }
+    public Guid DonationId { get; init; }
+    public string Number { get; init; } = string.Empty;
+    public string DonorName { get; init; } = string.Empty;
+    public string? CampaignName { get; init; }
+    public string? ProjectName { get; init; }
+    public string DonationReference { get; init; } = string.Empty;
+    public decimal Amount { get; init; }
+    public ReceiptStatus Status { get; init; }
+    public DateTimeOffset? IssuedAtUtc { get; init; }
+    public string? FileUrl { get; init; }
+}

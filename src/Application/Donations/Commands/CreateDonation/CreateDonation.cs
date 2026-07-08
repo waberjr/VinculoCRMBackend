@@ -47,16 +47,34 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
         }
 
-        if (request.CampaignId is not null &&
-            !await _context.Campaigns.AsNoTracking().AnyAsync(campaign => campaign.Id == request.CampaignId, cancellationToken))
+        string? campaignName = null;
+        if (request.CampaignId is not null)
         {
-            throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.CampaignId.Value.ToString());
+            campaignName = await _context.Campaigns
+                .AsNoTracking()
+                .Where(campaign => campaign.Id == request.CampaignId)
+                .Select(campaign => campaign.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (campaignName is null)
+            {
+                throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.CampaignId.Value.ToString());
+            }
         }
 
-        if (request.ProjectId is not null &&
-            !await _context.Projects.AsNoTracking().AnyAsync(project => project.Id == request.ProjectId, cancellationToken))
+        string? projectName = null;
+        if (request.ProjectId is not null)
         {
-            throw new Common.Exceptions.NotFoundException(nameof(Project), request.ProjectId.Value.ToString());
+            projectName = await _context.Projects
+                .AsNoTracking()
+                .Where(project => project.Id == request.ProjectId)
+                .Select(project => project.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (projectName is null)
+            {
+                throw new Common.Exceptions.NotFoundException(nameof(Project), request.ProjectId.Value.ToString());
+            }
         }
 
         if (request.DonationPlanId is not null)
@@ -112,7 +130,7 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             Title = SystemOptionMapper.Parse<DonationStatus>(request.Status) == DonationStatus.Confirmed
                 ? "Contribuição registrada como confirmada"
                 : "Contribuição registrada",
-            Description = $"Valor: {donation.Amount:C}.",
+            Description = DonationTimelineDescription(donation.Amount, campaignName, projectName, request.DonationPlanId is not null),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(Donation),
@@ -121,5 +139,31 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
         await _context.SaveChangesAsync(cancellationToken);
 
         return donation.Id;
+    }
+
+    private static string DonationTimelineDescription(
+        decimal amount,
+        string? campaignName,
+        string? projectName,
+        bool hasDonationPlan)
+    {
+        var parts = new List<string> { $"Valor: {amount:C}." };
+
+        if (!string.IsNullOrWhiteSpace(campaignName))
+        {
+            parts.Add($"Campanha: {campaignName}.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(projectName))
+        {
+            parts.Add($"Projeto/destinacao: {projectName}.");
+        }
+
+        if (hasDonationPlan)
+        {
+            parts.Add("Vinculada a recorrencia.");
+        }
+
+        return string.Join(" ", parts);
     }
 }

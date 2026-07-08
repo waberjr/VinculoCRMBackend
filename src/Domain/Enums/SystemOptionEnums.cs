@@ -73,6 +73,14 @@ public enum ProjectStatus
     Archived,
 }
 
+public enum ReceiptStatus
+{
+    Draft,
+    Issued,
+    Cancelled,
+    Reissued,
+}
+
 public enum CampaignChannel
 {
     Phone,

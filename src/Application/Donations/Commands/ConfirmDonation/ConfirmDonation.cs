@@ -40,13 +40,21 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
 
         donation.Confirm(request.PaidAtUtc, request.Reference);
 
+        var projectName = await _context.DonationProjects
+            .AsNoTracking()
+            .Where(projectLink => projectLink.DonationId == donation.Id)
+            .Select(projectLink => projectLink.Project.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
             Title = "Contribuição confirmada",
-            Description = $"Pagamento confirmado no valor de {donation.Amount:C}.",
+            Description = projectName is null
+                ? $"Pagamento confirmado no valor de {donation.Amount:C}."
+                : $"Pagamento confirmado no valor de {donation.Amount:C}. Projeto/destinacao: {projectName}.",
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),
             RelatedEntityId = donation.Id,
