@@ -1,6 +1,6 @@
 namespace VinculoBackend.Application.Users.Models;
 
-public sealed record CurrentOrganizationDto(Guid Id, string Name, decimal? DefaultMonthlyGoal, string Role);
+public sealed record CurrentOrganizationDto(Guid Id, string Name, decimal? DefaultMonthlyGoal, string Role, string ReceiptNumberPrefix = "REC", int ReceiptNumberNextSequence = 1);
 
 public sealed record CurrentUserDto(
     string Id,

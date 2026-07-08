@@ -34,6 +34,10 @@ public interface IApplicationDbContext
 
     DbSet<Receipt> Receipts { get; }
 
+    DbSet<ImpactUpdate> ImpactUpdates { get; }
+
+    DbSet<DocumentAttachment> DocumentAttachments { get; }
+
     DbSet<DonationPlan> DonationPlans { get; }
 
     DbSet<RelationshipTask> RelationshipTasks { get; }

@@ -61,12 +61,16 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
             ]);
         }
 
+        var organization = await _context.Organizations.FirstAsync(entity => entity.Id == organizationId, cancellationToken);
+        var receiptNumber = $"{organization.ReceiptNumberPrefix}-{organization.ReceiptNumberNextSequence:00000}";
+        organization.ReceiptNumberNextSequence += 1;
+
         var receipt = new Receipt
         {
             OrganizationId = organizationId,
             DonationId = donation.Id,
             DonorId = donation.DonorId,
-            Number = await NextReceiptNumber(organizationId, donation.PaidAtUtc.Value, cancellationToken),
+            Number = receiptNumber,
             Amount = donation.Amount,
             Status = ReceiptStatus.Issued,
             IssuedAtUtc = DateTimeOffset.UtcNow,
@@ -91,15 +95,5 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
         await _context.SaveChangesAsync(cancellationToken);
 
         return receipt.Id;
-    }
-
-    private async Task<string> NextReceiptNumber(Guid organizationId, DateTimeOffset paidAtUtc, CancellationToken cancellationToken)
-    {
-        var prefix = $"REC-{paidAtUtc:yyyy}";
-        var count = await _context.Receipts
-            .AsNoTracking()
-            .CountAsync(receipt => receipt.OrganizationId == organizationId && receipt.Number.StartsWith(prefix), cancellationToken);
-
-        return $"{prefix}-{count + 1:00000}";
     }
 }

@@ -164,7 +164,9 @@ public class IdentityService : IIdentityService
                     organization.Id,
                     organization.Name,
                     organization.DefaultMonthlyGoal,
-                    Roles.Administrator))
+                    Roles.Administrator,
+                    organization.ReceiptNumberPrefix,
+                    organization.ReceiptNumberNextSequence))
                 .ToListAsync(cancellationToken)
             : await _context.OrganizationMembers
                 .AsNoTracking()
@@ -183,7 +185,9 @@ public class IdentityService : IIdentityService
                     item.Organization.Id,
                     item.Organization.Name,
                     item.Organization.DefaultMonthlyGoal,
-                    item.Role))
+                    item.Role,
+                    item.Organization.ReceiptNumberPrefix,
+                    item.Organization.ReceiptNumberNextSequence))
                 .ToListAsync(cancellationToken);
 
         if (organizations.Count == 0 && user.OrganizationId is not null)
@@ -195,7 +199,9 @@ public class IdentityService : IIdentityService
                     entity.Id,
                     entity.Name,
                     entity.DefaultMonthlyGoal,
-                    Roles.Agent))
+                    Roles.Agent,
+                    entity.ReceiptNumberPrefix,
+                    entity.ReceiptNumberNextSequence))
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (legacyOrganization is not null)
