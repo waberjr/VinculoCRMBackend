@@ -13,6 +13,8 @@ public sealed record StoredFileReference(string Provider, string Key, string Int
 
 public sealed record StoredFileDownload(string FileName, string ContentType, Stream Content);
 
+public sealed record TemporaryFileAccessUrl(string Url, DateTimeOffset ExpiresAtUtc);
+
 public interface IFileStorageService
 {
     Task<StoredFileReference> StoreAsync(StoreFileRequest request, CancellationToken cancellationToken);
@@ -20,4 +22,6 @@ public interface IFileStorageService
     Task<StoredFileDownload?> OpenReadAsync(string internalUri, CancellationToken cancellationToken);
 
     Task DeleteAsync(string internalUri, CancellationToken cancellationToken);
+
+    Task<TemporaryFileAccessUrl?> CreateTemporaryReadUrlAsync(string internalUri, TimeSpan ttl, CancellationToken cancellationToken);
 }

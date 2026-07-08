@@ -1,5 +1,6 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using Azure.Storage.Sas;
 using Microsoft.Extensions.Options;
 using VinculoBackend.Application.Common.Interfaces;
 
@@ -85,6 +86,24 @@ public sealed class AzureBlobFileStorageService : IFileStorageService
         }
 
         await _containerClient.GetBlobClient(blobName).DeleteIfExistsAsync(cancellationToken: cancellationToken);
+    }
+
+    public async Task<TemporaryFileAccessUrl?> CreateTemporaryReadUrlAsync(string internalUri, TimeSpan ttl, CancellationToken cancellationToken)
+    {
+        if (!TryGetBlobName(internalUri, out var blobName))
+        {
+            return null;
+        }
+
+        var blob = _containerClient.GetBlobClient(blobName);
+        if (!blob.CanGenerateSasUri || !await blob.ExistsAsync(cancellationToken))
+        {
+            return null;
+        }
+
+        var expiresAtUtc = DateTimeOffset.UtcNow.Add(ttl);
+        var sasUri = blob.GenerateSasUri(BlobSasPermissions.Read, expiresAtUtc);
+        return new TemporaryFileAccessUrl(sasUri.ToString(), expiresAtUtc);
     }
 
     private static bool TryGetBlobName(string internalUri, out string blobName)

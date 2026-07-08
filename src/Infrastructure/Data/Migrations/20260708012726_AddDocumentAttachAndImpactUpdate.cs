@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace VinculoBackend.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class AddDocumentAttatchAndImpactUpdate : Migration
+    public partial class AddDocumentAttachAndImpactUpdate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

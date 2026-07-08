@@ -3,6 +3,7 @@ using VinculoBackend.Application.DocumentAttachments.Commands.CreateDocumentAtta
 using VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Models;
+using VinculoBackend.Application.DocumentAttachments.Queries.CreateDocumentAttachmentAccessUrl;
 using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 
@@ -17,6 +18,7 @@ public sealed class DocumentAttachments : IEndpointGroup
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(List);
         groupBuilder.MapGet(Download, "{id}/Download");
+        groupBuilder.MapGet(AccessUrl, "{id}/AccessUrl");
         groupBuilder.MapPost(Create);
         groupBuilder.MapPost(Upload, "Upload").DisableAntiforgery();
         groupBuilder.MapDelete(Delete, "{id}");
@@ -83,6 +85,16 @@ public sealed class DocumentAttachments : IEndpointGroup
         return download is null
             ? TypedResults.NotFound()
             : TypedResults.File(download.Content, download.ContentType, download.FileName);
+    }
+
+    public static async Task<Results<Ok<DocumentAttachmentAccessUrlDto>, NotFound>> AccessUrl(
+        ISender sender,
+        Guid id,
+        int minutes,
+        CancellationToken cancellationToken)
+    {
+        var accessUrl = await sender.Send(new CreateDocumentAttachmentAccessUrlQuery(id, minutes <= 0 ? 15 : minutes), cancellationToken);
+        return accessUrl is null ? TypedResults.NotFound() : TypedResults.Ok(accessUrl);
     }
 
     public static async Task<NoContent> Delete(ISender sender, Guid id, CancellationToken cancellationToken)

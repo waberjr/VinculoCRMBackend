@@ -1,10 +1,13 @@
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.Common.Security;
+using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
 
+[Authorize(Roles = Roles.SystemAdministrator + "," + Roles.Administrator + "," + Roles.Manager)]
 public sealed record DeleteDocumentAttachmentCommand(Guid Id) : IRequest;
 
 public sealed class DeleteDocumentAttachmentCommandHandler : IRequestHandler<DeleteDocumentAttachmentCommand>

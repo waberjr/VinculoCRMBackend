@@ -4,6 +4,8 @@ using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
 using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 using System.Threading.Tasks;
 using VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
@@ -167,6 +169,37 @@ public class MvpSmokeTests : TestBase
             document.Id == documentId &&
             document.Title == "Comprovante" &&
             document.Url == $"/api/DocumentAttachments/{documentId}/Download");
+    }
+
+    [Test]
+    public async Task ShouldDownloadAndRemoveDocumentAttachment()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Download");
+        await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo para baixar"));
+
+        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+            "Donor",
+            donorId,
+            "Arquivo download",
+            null,
+            "download.txt",
+            "text/plain",
+            content,
+            content.Length));
+
+        var download = await TestApp.SendAsync(new DownloadDocumentAttachmentQuery(documentId));
+        download.ShouldNotBeNull();
+        download.FileName.ShouldBe("download.txt");
+        using var reader = new StreamReader(download.Content, Encoding.UTF8);
+        (await reader.ReadToEndAsync()).ShouldBe("arquivo para baixar");
+
+        await TestApp.SendAsync(new DeleteDocumentAttachmentCommand(documentId));
+
+        var documents = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
+        documents.ShouldNotContain(document => document.Id == documentId);
+        var removedDownload = await TestApp.SendAsync(new DownloadDocumentAttachmentQuery(documentId));
+        removedDownload.ShouldBeNull();
     }
 
     private static async Task<Guid> CreateAndUseOrganizationAsync(string name = "Organizacao Smoke")

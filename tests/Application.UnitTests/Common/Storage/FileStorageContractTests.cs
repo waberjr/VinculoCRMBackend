@@ -1,4 +1,9 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Shouldly;
 using VinculoBackend.Application.Common.Interfaces;
@@ -58,6 +63,14 @@ public class FileStorageContractTests
             var key = internalUri["storage://memory/".Length..];
             _files.Remove(key);
             return Task.CompletedTask;
+        }
+
+        public Task<TemporaryFileAccessUrl?> CreateTemporaryReadUrlAsync(string internalUri, TimeSpan ttl, CancellationToken cancellationToken)
+        {
+            var key = internalUri["storage://memory/".Length..];
+            return Task.FromResult(_files.ContainsKey(key)
+                ? new TemporaryFileAccessUrl($"https://storage.local/{key}", DateTimeOffset.UtcNow.Add(ttl))
+                : null);
         }
     }
 }

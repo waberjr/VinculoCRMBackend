@@ -11,8 +11,8 @@ using VinculoBackend.Infrastructure.Data;
 namespace VinculoBackend.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260708012726_AddDocumentAttatchAndImpactUpdate")]
-    partial class AddDocumentAttatchAndImpactUpdate
+    [Migration("20260708012726_AddDocumentAttachAndImpactUpdate")]
+    partial class AddDocumentAttachAndImpactUpdate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
