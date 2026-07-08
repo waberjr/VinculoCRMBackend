@@ -6,6 +6,7 @@ namespace VinculoBackend.Application.Receipts.Queries.GetReceipts;
 
 public record GetReceiptsQuery : IRequest<PaginatedResult<ReceiptListItemDto>>
 {
+    public Guid? DonorId { get; init; }
     public int PageNumber { get; init; } = 1;
     public int PageSize { get; init; } = 50;
 }
@@ -25,8 +26,14 @@ public sealed class GetReceiptsQueryHandler : IRequestHandler<GetReceiptsQuery, 
     {
         _ = RequiredOrganization.From(_organizationContext);
 
-        var query = _context.Receipts
-            .AsNoTracking()
+        var query = _context.Receipts.AsNoTracking();
+
+        if (request.DonorId is not null)
+        {
+            query = query.Where(receipt => receipt.DonorId == request.DonorId);
+        }
+
+        var projected = query
             .OrderByDescending(receipt => receipt.IssuedAtUtc ?? receipt.Created)
             .Select(receipt => new ReceiptListItemDto
             {
@@ -44,8 +51,9 @@ public sealed class GetReceiptsQueryHandler : IRequestHandler<GetReceiptsQuery, 
                 Status = receipt.Status,
                 IssuedAtUtc = receipt.IssuedAtUtc,
                 FileUrl = receipt.FileUrl,
+                CancelReason = receipt.CancelReason,
             });
 
-        return await PaginatedResult<ReceiptListItemDto>.CreateAsync(query, request.PageNumber, request.PageSize, cancellationToken);
+        return await PaginatedResult<ReceiptListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);
     }
 }

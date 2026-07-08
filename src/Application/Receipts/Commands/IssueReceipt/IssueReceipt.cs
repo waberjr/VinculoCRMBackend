@@ -26,15 +26,23 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
 
-        var existingReceiptId = await _context.Receipts
+        var existingReceipt = await _context.Receipts
             .AsNoTracking()
-            .Where(receipt => receipt.DonationId == request.DonationId && receipt.Status != ReceiptStatus.Cancelled)
-            .Select(receipt => (Guid?)receipt.Id)
+            .Where(receipt => receipt.DonationId == request.DonationId)
+            .Select(receipt => new { receipt.Id, receipt.Status })
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (existingReceiptId is not null)
+        if (existingReceipt is not null)
         {
-            return existingReceiptId.Value;
+            if (existingReceipt.Status == ReceiptStatus.Cancelled)
+            {
+                throw new Common.Exceptions.ValidationException(
+                [
+                    new ValidationFailure(nameof(IssueReceiptCommand.DonationId), "Esta contribuicao possui recibo cancelado e deve ser tratada pela tela de recibos."),
+                ]);
+            }
+
+            return existingReceipt.Id;
         }
 
         var donation = await _context.Donations

@@ -88,6 +88,14 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
                     .Where(projectLink => projectLink.DonationId == donation.Id)
                     .Select(projectLink => projectLink.Project.Name)
                     .FirstOrDefault(),
+                ReceiptId = _context.Receipts
+                    .Where(receipt => receipt.DonationId == donation.Id && receipt.Status != ReceiptStatus.Cancelled)
+                    .Select(receipt => (Guid?)receipt.Id)
+                    .FirstOrDefault(),
+                ReceiptNumber = _context.Receipts
+                    .Where(receipt => receipt.DonationId == donation.Id && receipt.Status != ReceiptStatus.Cancelled)
+                    .Select(receipt => receipt.Number)
+                    .FirstOrDefault(),
                 Amount = donation.Amount,
                 ExpectedAtUtc = donation.ExpectedAtUtc,
                 PaidAtUtc = donation.PaidAtUtc,

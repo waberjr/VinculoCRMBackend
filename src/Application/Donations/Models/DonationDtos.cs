@@ -11,6 +11,8 @@ public sealed class DonationListItemDto
     public string? CampaignName { get; init; }
     public Guid? ProjectId { get; init; }
     public string? ProjectName { get; init; }
+    public Guid? ReceiptId { get; init; }
+    public string? ReceiptNumber { get; init; }
     public decimal Amount { get; init; }
     public OptionDto Type { get; init; } = new();
     public OptionDto Status { get; init; } = new();
