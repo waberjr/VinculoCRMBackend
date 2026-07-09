@@ -16,7 +16,10 @@ public sealed class AzureBlobFileStorageService : IFileStorageService
     public AzureBlobFileStorageService(IOptions<AzureBlobFileStorageOptions> options, ILogger<AzureBlobFileStorageService> logger)
     {
         var storageOptions = options.Value;
-        _containerClient = new BlobContainerClient(storageOptions.ConnectionString, storageOptions.ContainerName);
+        _containerClient = new BlobContainerClient(
+            storageOptions.ConnectionString,
+            storageOptions.ContainerName,
+            CreateClientOptions(storageOptions));
         _logger = logger;
     }
 
@@ -130,6 +133,16 @@ public sealed class AzureBlobFileStorageService : IFileStorageService
 
         blobName = internalUri[prefix.Length..];
         return !string.IsNullOrWhiteSpace(blobName);
+    }
+
+    private static BlobClientOptions CreateClientOptions(AzureBlobFileStorageOptions options)
+    {
+        if (!Enum.TryParse<BlobClientOptions.ServiceVersion>(options.ServiceVersion, ignoreCase: true, out var serviceVersion))
+        {
+            throw new InvalidOperationException($"FileStorage:ServiceVersion '{options.ServiceVersion}' nao e uma versao valida do Azure Blob Storage.");
+        }
+
+        return new BlobClientOptions(serviceVersion);
     }
 
     private static string SanitizeSegment(string value)

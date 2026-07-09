@@ -15,6 +15,7 @@ public static class DependencyInjection
 
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
         services.AddScoped<IOrganizationDefaultsService, OrganizationDefaultsService>();
+        services.AddScoped<IOrganizationLogoService, OrganizationLogoService>();
         services.AddScoped<IDocumentAttachmentAuthorizationService, DocumentAttachmentAuthorizationService>();
         services.AddScoped<IDocumentAttachmentAuditService, DocumentAttachmentAuditService>();
 

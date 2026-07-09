@@ -47,7 +47,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                     Roles.Administrator,
                     organization.ReceiptNumberPrefix,
                     organization.ReceiptNumberNextSequence,
-                    organization.LogoUrl))
+                    PublicLogoUrl(organization.Id, organization.LogoUrl)))
                 .ToListAsync(cancellationToken);
         }
 
@@ -96,7 +96,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
             Roles.Administrator,
             organization.ReceiptNumberPrefix,
             organization.ReceiptNumberNextSequence,
-            organization.LogoUrl);
+            PublicLogoUrl(organization.Id, organization.LogoUrl));
     }
 
     public async Task UpdateAsync(string userId, Guid organizationId, UpdateOrganizationRequest request, CancellationToken cancellationToken)
@@ -113,7 +113,10 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
         organization.Name = request.Name.Trim();
         organization.LegalName = string.IsNullOrWhiteSpace(request.LegalName) ? null : request.LegalName.Trim();
         organization.Document = string.IsNullOrWhiteSpace(request.Document) ? null : request.Document.Trim();
-        organization.LogoUrl = string.IsNullOrWhiteSpace(request.LogoUrl) ? null : request.LogoUrl.Trim();
+        if (request.LogoUrl is not null)
+        {
+            organization.LogoUrl = string.IsNullOrWhiteSpace(request.LogoUrl) ? null : request.LogoUrl.Trim();
+        }
         organization.DefaultMonthlyGoal = request.DefaultMonthlyGoal;
         organization.ReceiptNumberPrefix = string.IsNullOrWhiteSpace(request.ReceiptNumberPrefix) ? "REC" : request.ReceiptNumberPrefix.Trim();
         organization.ReceiptNumberNextSequence = Math.Max(1, request.ReceiptNumberNextSequence ?? organization.ReceiptNumberNextSequence);
@@ -362,7 +365,7 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                 invitation.Role,
                 item.ReceiptNumberPrefix,
                 item.ReceiptNumberNextSequence,
-                item.LogoUrl))
+                PublicLogoUrl(item.Id, item.LogoUrl)))
             .FirstAsync(cancellationToken);
     }
 
@@ -390,7 +393,19 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                 item.Role,
                 item.Organization.ReceiptNumberPrefix,
                 item.Organization.ReceiptNumberNextSequence,
-                item.Organization.LogoUrl));
+                PublicLogoUrl(item.Organization.Id, item.Organization.LogoUrl)));
+    }
+
+    private static string? PublicLogoUrl(Guid organizationId, string? logoUrl)
+    {
+        if (string.IsNullOrWhiteSpace(logoUrl))
+        {
+            return null;
+        }
+
+        return logoUrl.StartsWith("storage://", StringComparison.OrdinalIgnoreCase)
+            ? $"/api/Organizations/{organizationId}/Logo"
+            : logoUrl;
     }
 
     private async Task<ApplicationUser> RequiredUserAsync(string userId)

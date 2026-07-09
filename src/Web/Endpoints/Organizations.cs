@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Organizations.Commands.AcceptOrganizationInvitation;
 using VinculoBackend.Application.Organizations.Commands.CreateOrganization;
 using VinculoBackend.Application.Organizations.Commands.DeleteOrganization;
@@ -9,6 +10,7 @@ using VinculoBackend.Application.Organizations.Commands.RevokeOrganizationInvita
 using VinculoBackend.Application.Organizations.Commands.UpdateOrganization;
 using VinculoBackend.Application.Organizations.Commands.UpdateOrganizationMember;
 using VinculoBackend.Application.Organizations.Models;
+using VinculoBackend.Application.Organizations.Queries.DownloadOrganizationLogo;
 using VinculoBackend.Application.Organizations.Queries.GetOrganizationTeam;
 using VinculoBackend.Application.Organizations.Queries.ListOrganizations;
 
@@ -16,12 +18,35 @@ namespace VinculoBackend.Web.Endpoints;
 
 public sealed class Organizations : IEndpointGroup
 {
+    public class CreateOrganizationFormRequest
+    {
+        public string Name { get; init; } = string.Empty;
+
+        public string? LegalName { get; init; }
+
+        public string? Document { get; init; }
+
+        public decimal? DefaultMonthlyGoal { get; init; }
+
+        public string? ReceiptNumberPrefix { get; init; }
+
+        public int? ReceiptNumberNextSequence { get; init; }
+
+        public IFormFile? Logo { get; init; }
+    }
+
+    public sealed class UpdateOrganizationFormRequest : CreateOrganizationFormRequest
+    {
+        public bool IsActive { get; init; } = true;
+    }
+
     public static void Map(RouteGroupBuilder groupBuilder)
     {
         groupBuilder.MapGet(List, "").RequireAuthorization();
-        groupBuilder.MapPost(Create, "").RequireAuthorization();
-        groupBuilder.MapPut(Update, "{id}").RequireAuthorization();
+        groupBuilder.MapPost(Create, "").RequireAuthorization().DisableAntiforgery();
+        groupBuilder.MapPut(Update, "{id}").RequireAuthorization().DisableAntiforgery();
         groupBuilder.MapDelete(Delete, "{id}").RequireAuthorization();
+        groupBuilder.MapGet(Logo, "{id}/Logo").AllowAnonymous();
         groupBuilder.MapGet(Members, "current/members").RequireAuthorization();
         groupBuilder.MapPut(UpdateMember, "current/members/{memberId}").RequireAuthorization();
         groupBuilder.MapDelete(DeleteMember, "current/members/{memberId}").RequireAuthorization();
@@ -42,10 +67,19 @@ public sealed class Organizations : IEndpointGroup
     [EndpointDescription("Cria uma organização. Restrito a administradores da plataforma.")]
     public static async Task<Created<OrganizationResponse>> Create(
         ISender sender,
-        [FromBody] CreateOrganizationRequest request,
+        [FromForm] CreateOrganizationFormRequest form,
         CancellationToken cancellationToken)
     {
-        var response = await sender.Send(new CreateOrganizationCommand(request), cancellationToken);
+        await using var logoContent = form.Logo?.OpenReadStream();
+        var request = new CreateOrganizationRequest(
+            form.Name,
+            form.LegalName,
+            form.Document,
+            form.DefaultMonthlyGoal,
+            form.ReceiptNumberPrefix,
+            form.ReceiptNumberNextSequence);
+
+        var response = await sender.Send(new CreateOrganizationCommand(request, ToFileUpload(form.Logo, logoContent)), cancellationToken);
         return TypedResults.Created($"/api/Organizations/{response.Id}", response);
     }
 
@@ -54,10 +88,20 @@ public sealed class Organizations : IEndpointGroup
     public static async Task<NoContent> Update(
         ISender sender,
         Guid id,
-        [FromBody] UpdateOrganizationRequest request,
+        [FromForm] UpdateOrganizationFormRequest form,
         CancellationToken cancellationToken)
     {
-        await sender.Send(new UpdateOrganizationCommand(id, request), cancellationToken);
+        await using var logoContent = form.Logo?.OpenReadStream();
+        var request = new UpdateOrganizationRequest(
+            form.Name,
+            form.LegalName,
+            form.Document,
+            form.DefaultMonthlyGoal,
+            form.IsActive,
+            form.ReceiptNumberPrefix,
+            form.ReceiptNumberNextSequence);
+
+        await sender.Send(new UpdateOrganizationCommand(id, request, ToFileUpload(form.Logo, logoContent)), cancellationToken);
         return TypedResults.NoContent();
     }
 
@@ -67,6 +111,19 @@ public sealed class Organizations : IEndpointGroup
     {
         await sender.Send(new DeleteOrganizationCommand(id), cancellationToken);
         return TypedResults.NoContent();
+    }
+
+    [EndpointSummary("Logo da organizacao")]
+    [EndpointDescription("Retorna a imagem da logo da organizacao quando configurada.")]
+    public static async Task<Results<FileStreamHttpResult, NotFound>> Logo(
+        ISender sender,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var logo = await sender.Send(new DownloadOrganizationLogoQuery(id), cancellationToken);
+        return logo is null
+            ? TypedResults.NotFound()
+            : TypedResults.File(logo.Content, logo.ContentType, logo.FileName);
     }
 
     [EndpointSummary("Equipe da organização")]
@@ -126,5 +183,12 @@ public sealed class Organizations : IEndpointGroup
     {
         var response = await sender.Send(new AcceptOrganizationInvitationCommand(token, request), cancellationToken);
         return TypedResults.Ok(response);
+    }
+
+    private static FileUpload? ToFileUpload(IFormFile? file, Stream? content)
+    {
+        return file is null || content is null
+            ? null
+            : new FileUpload(file.FileName, file.ContentType, content, file.Length);
     }
 }

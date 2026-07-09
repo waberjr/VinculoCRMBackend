@@ -3,8 +3,9 @@ using System.IO;
 using System.Linq;
 using System.Net.Http.Json;
 using System.Text;
-using VinculoBackend.Application.DocumentAttachments.Commands.UploadDocumentAttachment;
+using VinculoBackend.Application.DocumentAttachments.Commands.CreateDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
+using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 using VinculoBackend.Application.Common.Exceptions;
@@ -154,15 +155,13 @@ public class MvpSmokeTests : TestBase
         var donorId = await CreateDonorAsync("Doador Documento");
         await using var content = new MemoryStream(Encoding.UTF8.GetBytes("comprovante"));
 
-        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+        var documentId = await TestApp.SendAsync(new CreateDocumentAttachmentCommand(
             "Donor",
             donorId,
             "Comprovante",
+            null,
             "Arquivo de teste",
-            "comprovante.txt",
-            "text/plain",
-            content,
-            content.Length));
+            new FileUpload("comprovante.txt", "text/plain", content, content.Length)));
 
         var documents = await TestApp.SendAsync(new GetDocumentAttachmentsQuery("Donor", donorId));
 
@@ -179,15 +178,13 @@ public class MvpSmokeTests : TestBase
         var donorId = await CreateDonorAsync("Doador Download");
         await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo para baixar"));
 
-        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+        var documentId = await TestApp.SendAsync(new CreateDocumentAttachmentCommand(
             "Donor",
             donorId,
             "Arquivo download",
             null,
-            "download.txt",
-            "text/plain",
-            content,
-            content.Length));
+            null,
+            new FileUpload("download.txt", "text/plain", content, content.Length)));
 
         var download = await TestApp.SendAsync(new DownloadDocumentAttachmentQuery(documentId));
         download.ShouldNotBeNull();
@@ -210,15 +207,13 @@ public class MvpSmokeTests : TestBase
         var donorId = await CreateDonorAsync("Doador Permissao Documento");
         await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo protegido"));
 
-        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+        var documentId = await TestApp.SendAsync(new CreateDocumentAttachmentCommand(
             "Donor",
             donorId,
             "Arquivo protegido",
             null,
-            "protegido.txt",
-            "text/plain",
-            content,
-            content.Length));
+            null,
+            new FileUpload("protegido.txt", "text/plain", content, content.Length)));
 
         await TestApp.RunAsUserAsync($"{Guid.NewGuid():N}@local", "Agent1234!", [Roles.Agent]);
         TestApp.SetOrganizationId(organizationId);
@@ -239,15 +234,13 @@ public class MvpSmokeTests : TestBase
         var donorId = await CreateDonorAsync("Doador Documento Organizacao A");
         await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo isolado"));
 
-        var documentId = await TestApp.SendAsync(new UploadDocumentAttachmentCommand(
+        var documentId = await TestApp.SendAsync(new CreateDocumentAttachmentCommand(
             "Donor",
             donorId,
             "Arquivo isolado",
             null,
-            "isolado.txt",
-            "text/plain",
-            content,
-            content.Length));
+            null,
+            new FileUpload("isolado.txt", "text/plain", content, content.Length)));
 
         await CreateAndUseOrganizationAsync("Organizacao Documento B");
 
