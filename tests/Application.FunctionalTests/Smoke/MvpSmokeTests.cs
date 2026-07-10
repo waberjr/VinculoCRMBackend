@@ -13,11 +13,14 @@ using VinculoBackend.Application.Common.Exceptions;
 using System.Threading.Tasks;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 using VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
+using VinculoBackend.Application.Donations.Commands.CancelDonation;
 using VinculoBackend.Application.Donations.Commands.ConfirmDonation;
 using VinculoBackend.Application.Donations.Commands.CreateDonation;
+using VinculoBackend.Application.Donations.Commands.RefundDonation;
 using VinculoBackend.Application.Donors.Commands.CreateDonor;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
+using VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
 using VinculoBackend.Application.ImpactProjects.Commands.CreateProject;
 using VinculoBackend.Application.ImpactProjects.Queries.ExportProjectAccountability;
 using VinculoBackend.Application.ImpactProjects.Queries.GetProjects;
@@ -73,6 +76,57 @@ public class MvpSmokeTests : TestBase
 
         dashboard.LatestDonations.ShouldContain(item => item.Id == donationId && item.Amount == 150);
         dashboard.DonationsByDay.Sum(item => item.Amount).ShouldBe(150);
+    }
+
+    [Test]
+    public async Task ShouldCancelDonationAndRegisterTimeline()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Cancelamento");
+        var donationId = await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = donorId,
+            Amount = 80,
+            Type = "OneTime",
+            Status = "Pending",
+            PaymentMethod = "Pix",
+            ExpectedAtUtc = DateTimeOffset.UtcNow.AddDays(3),
+        });
+
+        await TestApp.SendAsync(new CancelDonationCommand(donationId, "Doador desistiu da contribuicao."));
+
+        var timeline = await TestApp.SendAsync(new GetDonorTimelineQuery(donorId));
+
+        timeline.ShouldNotBeNull();
+        timeline.Items.ShouldContain(entry =>
+            entry.Title == "Contribuicao cancelada" &&
+            entry.Description.Contains("Doador desistiu da contribuicao.", StringComparison.Ordinal));
+    }
+
+    [Test]
+    public async Task ShouldRefundDonationAndRegisterTimeline()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Estorno");
+        var donationId = await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = donorId,
+            Amount = 95,
+            Type = "OneTime",
+            Status = "Confirmed",
+            PaymentMethod = "Pix",
+            PaidAtUtc = DateTimeOffset.UtcNow,
+            Reference = "REFUND-SMOKE-001",
+        });
+
+        await TestApp.SendAsync(new RefundDonationCommand(donationId, "Pagamento duplicado."));
+
+        var timeline = await TestApp.SendAsync(new GetDonorTimelineQuery(donorId));
+
+        timeline.ShouldNotBeNull();
+        timeline.Items.ShouldContain(entry =>
+            entry.Title == "Contribuicao estornada" &&
+            entry.Description.Contains("Pagamento duplicado.", StringComparison.Ordinal));
     }
 
     [Test]

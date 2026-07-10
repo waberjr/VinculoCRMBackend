@@ -1,7 +1,6 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Common.Exceptions;
-using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
@@ -80,21 +79,18 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             }
         }
 
-        var task = new RelationshipTask
-        {
-            OrganizationId = organizationId,
-            DonorId = request.DonorId,
-            CampaignId = request.CampaignId,
-            DonationId = request.DonationId,
-            Title = request.Title.Trim(),
-            Description = request.Description?.Trim(),
-            AssignedUserId = request.AssignedUserId,
-            CreatedByUserId = _user.Id,
-            Type = SystemOptionMapper.Parse<TaskType>(request.Type),
-            Priority = SystemOptionMapper.Parse<TaskPriority>(request.Priority),
-            Status = RelationshipTaskStatus.Open,
-            DueAtUtc = request.DueAtUtc,
-        };
+        var task = RelationshipTask.Create(
+            organizationId,
+            request.DonorId,
+            request.CampaignId,
+            request.DonationId,
+            request.Title,
+            request.Description,
+            request.AssignedUserId,
+            _user.Id,
+            SystemOptionMapper.Parse<TaskType>(request.Type),
+            SystemOptionMapper.Parse<TaskPriority>(request.Priority),
+            request.DueAtUtc);
 
         _context.RelationshipTasks.Add(task);
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry

@@ -67,20 +67,18 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
 
         if (outcome == ContactOutcome.RequestedCallback && request.FollowUpAtUtc is not null)
         {
-            _context.RelationshipTasks.Add(new RelationshipTask
-            {
-                OrganizationId = task.OrganizationId,
-                DonorId = task.DonorId,
-                CampaignId = task.CampaignId,
-                AssignedUserId = task.AssignedUserId,
-                CreatedByUserId = task.CreatedByUserId,
-                Type = TaskType.FollowUp,
-                Priority = TaskPriority.High,
-                Status = RelationshipTaskStatus.Open,
-                DueAtUtc = request.FollowUpAtUtc,
-                Title = "Retorno solicitado",
-                Description = "Follow-up criado automaticamente ao concluir tarefa.",
-            });
+            _context.RelationshipTasks.Add(RelationshipTask.Create(
+                task.OrganizationId,
+                task.DonorId,
+                task.CampaignId,
+                null,
+                "Retorno solicitado",
+                "Follow-up criado automaticamente ao concluir tarefa.",
+                task.AssignedUserId,
+                task.CreatedByUserId,
+                TaskType.FollowUp,
+                TaskPriority.High,
+                request.FollowUpAtUtc));
         }
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry

@@ -45,14 +45,6 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        if (task.Status is RelationshipTaskStatus.Completed or RelationshipTaskStatus.Cancelled)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(UpdateRelationshipTaskCommand.Id), "Tarefas concluidas ou canceladas não podem ser atualizadas."),
-            ]);
-        }
-
         var donor = await _context.Donors.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == request.DonorId, cancellationToken);
         if (donor is null)
         {
@@ -84,20 +76,21 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             {
                 throw new Common.Exceptions.ValidationException(
                 [
-                    new ValidationFailure(nameof(UpdateRelationshipTaskCommand.DonationId), "A contribuição informada não pertence ao doador."),
+                    new ValidationFailure(nameof(UpdateRelationshipTaskCommand.DonationId), "A contribuicao informada nao pertence ao doador."),
                 ]);
             }
         }
 
-        task.DonorId = request.DonorId;
-        task.CampaignId = request.CampaignId;
-        task.DonationId = request.DonationId;
-        task.Title = request.Title.Trim();
-        task.Description = request.Description?.Trim();
-        task.AssignedUserId = request.AssignedUserId;
-        task.Type = SystemOptionMapper.Parse<TaskType>(request.Type);
-        task.Priority = SystemOptionMapper.Parse<TaskPriority>(request.Priority);
-        task.DueAtUtc = request.DueAtUtc;
+        task.Update(
+            request.DonorId,
+            request.CampaignId,
+            request.DonationId,
+            request.Title,
+            request.Description,
+            request.AssignedUserId,
+            SystemOptionMapper.Parse<TaskType>(request.Type),
+            SystemOptionMapper.Parse<TaskPriority>(request.Priority),
+            request.DueAtUtc);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {

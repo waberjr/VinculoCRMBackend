@@ -23,6 +23,53 @@ public class RelationshipTask : OrganizationEntity
     public string? Description { get; set; }
     public string? CompletionNote { get; set; }
 
+    public static RelationshipTask Create(
+        Guid organizationId,
+        Guid donorId,
+        Guid? campaignId,
+        Guid? donationId,
+        string title,
+        string? description,
+        string? assignedUserId,
+        string? createdByUserId,
+        TaskType type,
+        TaskPriority priority,
+        DateTimeOffset? dueAtUtc)
+    {
+        var task = new RelationshipTask
+        {
+            OrganizationId = organizationId,
+            Status = RelationshipTaskStatus.Open,
+            CreatedByUserId = createdByUserId,
+        };
+        task.Update(donorId, campaignId, donationId, title, description, assignedUserId, type, priority, dueAtUtc);
+
+        return task;
+    }
+
+    public void Update(
+        Guid donorId,
+        Guid? campaignId,
+        Guid? donationId,
+        string title,
+        string? description,
+        string? assignedUserId,
+        TaskType type,
+        TaskPriority priority,
+        DateTimeOffset? dueAtUtc)
+    {
+        EnsureCanBeUpdated();
+        SetTitle(title);
+        DonorId = donorId;
+        CampaignId = campaignId;
+        DonationId = donationId;
+        Description = TrimToNull(description);
+        AssignedUserId = assignedUserId;
+        Type = type;
+        Priority = priority;
+        DueAtUtc = dueAtUtc;
+    }
+
     public void Start()
     {
         if (Status != RelationshipTaskStatus.Open)
@@ -54,5 +101,33 @@ public class RelationshipTask : OrganizationEntity
         }
 
         Status = RelationshipTaskStatus.Cancelled;
+    }
+
+    private void EnsureCanBeUpdated()
+    {
+        if (Status is RelationshipTaskStatus.Completed or RelationshipTaskStatus.Cancelled)
+        {
+            throw new InvalidOperationDomainException("Tarefas concluidas ou canceladas nao podem ser atualizadas.");
+        }
+    }
+
+    private void SetTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            throw new DomainValidationException("Informe o titulo da tarefa.");
+        }
+
+        Title = title.Trim();
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
     }
 }
