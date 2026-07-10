@@ -1,4 +1,6 @@
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
+using VinculoBackend.Domain.Exceptions;
 using NUnit.Framework;
 using Shouldly;
 
@@ -11,8 +13,8 @@ public class DonationPlanTests
     {
         var plan = new DonationPlan();
 
-        Should.Throw<ArgumentOutOfRangeException>(() => plan.SetExpectedAmount(0));
-        Should.Throw<ArgumentOutOfRangeException>(() => plan.SetExpectedAmount(-1));
+        Should.Throw<DomainValidationException>(() => plan.SetExpectedAmount(0));
+        Should.Throw<DomainValidationException>(() => plan.SetExpectedAmount(-1));
     }
 
     [Test]
@@ -32,7 +34,23 @@ public class DonationPlanTests
     {
         var plan = new DonationPlan();
 
-        Should.Throw<ArgumentOutOfRangeException>(() => plan.SetBillingDay(0));
-        Should.Throw<ArgumentOutOfRangeException>(() => plan.SetBillingDay(32));
+        Should.Throw<DomainValidationException>(() => plan.SetBillingDay(0));
+        Should.Throw<DomainValidationException>(() => plan.SetBillingDay(32));
+    }
+
+    [Test]
+    public void PauseShouldRequireActivePlan()
+    {
+        var plan = new DonationPlan { Status = DonationPlanStatus.Cancelled };
+
+        Should.Throw<InvalidOperationDomainException>(() => plan.Pause(DateTimeOffset.UtcNow));
+    }
+
+    [Test]
+    public void ResumeShouldRequirePausedPlan()
+    {
+        var plan = new DonationPlan { Status = DonationPlanStatus.Active };
+
+        Should.Throw<InvalidOperationDomainException>(() => plan.Resume());
     }
 }

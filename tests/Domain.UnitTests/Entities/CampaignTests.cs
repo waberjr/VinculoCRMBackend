@@ -1,4 +1,6 @@
 using VinculoBackend.Domain.Entities;
+using VinculoBackend.Domain.Enums;
+using VinculoBackend.Domain.Exceptions;
 using NUnit.Framework;
 using Shouldly;
 
@@ -25,7 +27,22 @@ public class CampaignTests
         var campaign = new Campaign();
         var startDateUtc = new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero);
 
-        Should.Throw<ArgumentException>(() => campaign.SetPeriod(startDateUtc, startDateUtc));
-        Should.Throw<ArgumentException>(() => campaign.SetPeriod(startDateUtc, startDateUtc.AddDays(-1)));
+        Should.Throw<DomainValidationException>(() => campaign.SetPeriod(startDateUtc, startDateUtc));
+        Should.Throw<DomainValidationException>(() => campaign.SetPeriod(startDateUtc, startDateUtc.AddDays(-1)));
+    }
+
+    [Test]
+    public void CompleteShouldRejectCancelledCampaign()
+    {
+        var campaign = new Campaign { Status = CampaignStatus.Cancelled };
+
+        Should.Throw<InvalidOperationDomainException>(() => campaign.Complete());
+    }
+
+    [Test]
+    public void ActivateShouldRejectFinishedCampaigns()
+    {
+        Should.Throw<InvalidOperationDomainException>(() => new Campaign { Status = CampaignStatus.Completed }.Activate());
+        Should.Throw<InvalidOperationDomainException>(() => new Campaign { Status = CampaignStatus.Cancelled }.Activate());
     }
 }

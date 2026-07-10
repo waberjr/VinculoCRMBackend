@@ -49,7 +49,7 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
         var totalCount = await query.CountAsync(cancellationToken);
 
         var projects = await query
-            .OrderBy(project => project.Status == ProjectStatus.Archived)
+            .OrderBy(project => project.Status)
             .ThenByDescending(project => project.LastModified)
             .ThenBy(project => project.Name)
             .Skip((pageNumber - 1) * pageSize)
@@ -95,26 +95,30 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
                     })
                     .ToList());
 
-        var projectMetrics = projectIds.Length == 0
+        var projectDonations = projectIds.Length == 0
             ? []
             : await _context.DonationProjects
                 .AsNoTracking()
                 .Where(link =>
                     projectIds.Contains(link.ProjectId) &&
                     link.Donation.Status == DonationStatus.Confirmed)
-                .GroupBy(link => link.ProjectId)
-                .Select(group => new
+                .Select(link => new
                 {
-                    ProjectId = group.Key,
-                    RaisedAmount = group.Sum(link => link.Donation.Amount),
-                    DonorsCount = group
-                        .Select(link => link.Donation.DonorId)
-                        .Distinct()
-                        .Count(),
+                    link.ProjectId,
+                    link.Donation.Amount,
+                    link.Donation.DonorId,
                 })
                 .ToListAsync(cancellationToken);
 
-        var metricsLookup = projectMetrics.ToDictionary(metric => metric.ProjectId);
+        var metricsLookup = projectDonations
+            .GroupBy(donation => donation.ProjectId)
+            .ToDictionary(
+                group => group.Key,
+                group => new
+                {
+                    RaisedAmount = group.Sum(donation => donation.Amount),
+                    DonorsCount = group.Select(donation => donation.DonorId).Distinct().Count(),
+                });
 
         var items = projects
             .Select(project =>
