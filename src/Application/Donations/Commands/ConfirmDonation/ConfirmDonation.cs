@@ -3,7 +3,6 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
-using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.ConfirmDonation;
 
@@ -30,14 +29,6 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        if (donation.Status is not (DonationStatus.Pending or DonationStatus.Overdue))
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(ConfirmDonationCommand.Id), "Apenas contribuições pendentes ou vencidas podem ser confirmadas."),
-            ]);
-        }
-
         donation.Confirm(request.PaidAtUtc, request.Reference);
 
         var projectName = await _context.DonationProjects
@@ -51,7 +42,7 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = "Contribuição confirmada",
+            Title = "Contribuicao confirmada",
             Description = projectName is null
                 ? $"Pagamento confirmado no valor de {donation.Amount:C}."
                 : $"Pagamento confirmado no valor de {donation.Amount:C}. Projeto/destinacao: {projectName}.",

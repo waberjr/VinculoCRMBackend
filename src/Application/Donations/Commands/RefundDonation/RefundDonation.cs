@@ -3,7 +3,6 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
-using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.RefundDonation;
 
@@ -30,14 +29,6 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        if (donation.Status != DonationStatus.Confirmed)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(RefundDonationCommand.Id), "Apenas contribuições confirmadas podem ser estornadas."),
-            ]);
-        }
-
         donation.Refund(request.Reason, DateTimeOffset.UtcNow);
 
         var context = await _context.Donations
@@ -58,7 +49,7 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = "Contribuição estornada",
+            Title = "Contribuicao estornada",
             Description = DonationTimelineDescription(donation.RefundReason, context.CampaignName, context.ProjectName),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),

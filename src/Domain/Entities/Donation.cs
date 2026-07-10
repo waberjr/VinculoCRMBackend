@@ -1,4 +1,3 @@
-using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Enums;
 using VinculoBackend.Domain.Exceptions;
 
@@ -26,6 +25,45 @@ public class Donation : OrganizationEntity
     public string? CancellationReason { get; set; }
     public string? RefundReason { get; set; }
     public string? CreatedByUserId { get; set; }
+
+    public static Donation Create(
+        Guid organizationId,
+        Guid donorId,
+        Guid? campaignId,
+        Guid? donationPlanId,
+        decimal amount,
+        DonationType type,
+        DonationStatus status,
+        PaymentMethod paymentMethod,
+        DateTimeOffset? expectedAtUtc,
+        DateTimeOffset? paidAtUtc,
+        string? reference,
+        string? externalPaymentId,
+        string? notes,
+        string? createdByUserId)
+    {
+        ValidateInitialDates(status, expectedAtUtc, paidAtUtc);
+
+        var donation = new Donation
+        {
+            OrganizationId = organizationId,
+            DonorId = donorId,
+            CampaignId = campaignId,
+            DonationPlanId = donationPlanId,
+            Type = type,
+            Status = status,
+            PaymentMethod = paymentMethod,
+            ExpectedAtUtc = expectedAtUtc,
+            PaidAtUtc = paidAtUtc,
+            Reference = TrimToNull(reference),
+            ExternalPaymentId = TrimToNull(externalPaymentId),
+            Notes = TrimToNull(notes),
+            CreatedByUserId = createdByUserId,
+        };
+        donation.SetAmount(amount);
+
+        return donation;
+    }
 
     public void SetAmount(decimal amount)
     {
@@ -58,7 +96,7 @@ public class Donation : OrganizationEntity
 
         Status = DonationStatus.Cancelled;
         CancelledAtUtc = cancelledAtUtc;
-        CancellationReason = reason.Trim();
+        CancellationReason = RequiredReason(reason, "Informe o motivo do cancelamento.");
     }
 
     public void Refund(string reason, DateTimeOffset refundedAtUtc)
@@ -70,6 +108,39 @@ public class Donation : OrganizationEntity
 
         Status = DonationStatus.Refunded;
         RefundedAtUtc = refundedAtUtc;
-        RefundReason = reason.Trim();
+        RefundReason = RequiredReason(reason, "Informe o motivo do estorno.");
+    }
+
+    private static void ValidateInitialDates(DonationStatus status, DateTimeOffset? expectedAtUtc, DateTimeOffset? paidAtUtc)
+    {
+        if (status == DonationStatus.Confirmed && paidAtUtc is null)
+        {
+            throw new DomainValidationException("A data de pagamento e obrigatoria para contribuicoes confirmadas.");
+        }
+
+        if (status is DonationStatus.Pending or DonationStatus.Overdue && expectedAtUtc is null)
+        {
+            throw new DomainValidationException("A data esperada e obrigatoria para contribuicoes pendentes ou vencidas.");
+        }
+    }
+
+    private static string RequiredReason(string reason, string message)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new DomainValidationException(message);
+        }
+
+        return reason.Trim();
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
     }
 }

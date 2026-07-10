@@ -3,7 +3,6 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
-using FluentValidation.Results;
 
 namespace VinculoBackend.Application.Donations.Commands.CancelDonation;
 
@@ -30,14 +29,6 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        if (donation.Status is not (DonationStatus.Pending or DonationStatus.Overdue))
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(CancelDonationCommand.Id), "Apenas contribuições pendentes ou vencidas podem ser canceladas."),
-            ]);
-        }
-
         donation.Cancel(request.Reason, DateTimeOffset.UtcNow);
 
         var context = await _context.Donations
@@ -58,7 +49,7 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
             OrganizationId = donation.OrganizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = "Contribuição cancelada",
+            Title = "Contribuicao cancelada",
             Description = DonationTimelineDescription(donation.CancellationReason, context.CampaignName, context.ProjectName),
             OccurredAtUtc = DateTimeOffset.UtcNow,
             RelatedEntityType = nameof(Donation),

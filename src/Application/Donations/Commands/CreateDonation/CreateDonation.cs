@@ -92,24 +92,22 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             }
         }
 
-        var donation = new Donation
-        {
-            OrganizationId = organizationId,
-            DonorId = request.DonorId,
-            CampaignId = request.CampaignId,
-            DonationPlanId = request.DonationPlanId,
-            Type = SystemOptionMapper.Parse<DonationType>(request.Type),
-            Status = SystemOptionMapper.Parse<DonationStatus>(request.Status),
-            PaymentMethod = SystemOptionMapper.Parse<PaymentMethod>(request.PaymentMethod),
-            ExpectedAtUtc = request.ExpectedAtUtc,
-            PaidAtUtc = request.PaidAtUtc,
-            Reference = request.Reference?.Trim(),
-            ExternalPaymentId = request.ExternalPaymentId?.Trim(),
-            Notes = request.Notes?.Trim(),
-            CreatedByUserId = _user.Id,
-        };
-
-        donation.SetAmount(request.Amount);
+        var donationStatus = SystemOptionMapper.Parse<DonationStatus>(request.Status);
+        var donation = Donation.Create(
+            organizationId,
+            request.DonorId,
+            request.CampaignId,
+            request.DonationPlanId,
+            request.Amount,
+            SystemOptionMapper.Parse<DonationType>(request.Type),
+            donationStatus,
+            SystemOptionMapper.Parse<PaymentMethod>(request.PaymentMethod),
+            request.ExpectedAtUtc,
+            request.PaidAtUtc,
+            request.Reference,
+            request.ExternalPaymentId,
+            request.Notes,
+            _user.Id);
 
         _context.Donations.Add(donation);
         if (request.ProjectId is not null)
@@ -127,7 +125,7 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
             OrganizationId = organizationId,
             DonorId = donation.DonorId,
             Type = TimelineEntryType.Donation,
-            Title = SystemOptionMapper.Parse<DonationStatus>(request.Status) == DonationStatus.Confirmed
+            Title = donationStatus == DonationStatus.Confirmed
                 ? "Contribuição registrada como confirmada"
                 : "Contribuição registrada",
             Description = DonationTimelineDescription(donation.Amount, campaignName, projectName, request.DonationPlanId is not null),

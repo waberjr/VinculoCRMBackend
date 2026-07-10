@@ -11,6 +11,7 @@ using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAtt
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 using VinculoBackend.Application.Common.Exceptions;
 using System.Threading.Tasks;
+using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 using VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
 using VinculoBackend.Application.Donations.Commands.ConfirmDonation;
 using VinculoBackend.Application.Donations.Commands.CreateDonation;
@@ -18,9 +19,13 @@ using VinculoBackend.Application.Donors.Commands.CreateDonor;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
 using VinculoBackend.Application.ImpactProjects.Commands.CreateProject;
+using VinculoBackend.Application.ImpactProjects.Queries.ExportProjectAccountability;
 using VinculoBackend.Application.ImpactProjects.Queries.GetProjects;
 using VinculoBackend.Application.Organizations.Commands.CreateOrganization;
 using VinculoBackend.Application.Organizations.Models;
+using VinculoBackend.Application.Receipts.Commands.IssueReceipt;
+using VinculoBackend.Application.Receipts.Queries.GetReceiptPdf;
+using VinculoBackend.Application.Receipts.Queries.GetReceiptPrint;
 using VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelationshipTask;
 using VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTask;
 using VinculoBackend.Application.RelationshipTasks.Queries.GetRelationshipTasks;
@@ -178,6 +183,84 @@ public class MvpSmokeTests : TestBase
             project.Name == "Projeto Smoke" &&
             project.Status == "Active" &&
             project.GoalAmount == 2500);
+    }
+
+    [Test]
+    public async Task ShouldGenerateReceiptPrintAndPdf()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Recibo");
+        var paidAt = DateTimeOffset.UtcNow;
+        var donationId = await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = donorId,
+            Amount = 120,
+            Type = "OneTime",
+            Status = "Confirmed",
+            PaymentMethod = "Pix",
+            PaidAtUtc = paidAt,
+            Reference = "REC-SMOKE-001",
+        });
+
+        var receiptId = await TestApp.SendAsync(new IssueReceiptCommand(donationId));
+
+        var print = await TestApp.SendAsync(new GetReceiptPrintQuery(receiptId));
+        print.ShouldNotBeNull();
+        print.DonorName.ShouldBe("Doador Recibo");
+        print.Amount.ShouldBe(120);
+        print.DonationReference.ShouldBe("REC-SMOKE-001");
+
+        var pdf = await TestApp.SendAsync(new GetReceiptPdfQuery(receiptId));
+        pdf.ShouldNotBeNull();
+        pdf.FileName.ShouldEndWith(".pdf");
+        Encoding.ASCII.GetString(pdf.Content.Take(4).ToArray()).ShouldBe("%PDF");
+    }
+
+    [Test]
+    public async Task ShouldExportProjectAccountabilityAsCsvAndPdf()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Prestacao");
+        var campaignId = await TestApp.SendAsync(new CreateCampaignCommand
+        {
+            Name = "Campanha Prestacao",
+            Type = "Fundraising",
+            Channel = "Email",
+            GoalAmount = 1000,
+            StartDateUtc = DateTimeOffset.UtcNow.AddDays(-1),
+            EndDateUtc = DateTimeOffset.UtcNow.AddDays(30),
+        });
+        var projectId = await TestApp.SendAsync(new CreateProjectCommand
+        {
+            Name = "Projeto Prestacao",
+            GoalAmount = 1000,
+            Status = "Active",
+            CampaignIds = [campaignId],
+        });
+        var donationId = await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = donorId,
+            CampaignId = campaignId,
+            ProjectId = projectId,
+            Amount = 250,
+            Type = "OneTime",
+            Status = "Confirmed",
+            PaymentMethod = "Pix",
+            PaidAtUtc = DateTimeOffset.UtcNow,
+            Reference = "PREST-SMOKE-001",
+        });
+        await TestApp.SendAsync(new IssueReceiptCommand(donationId));
+
+        var csv = await TestApp.SendAsync(new ExportProjectAccountabilityQuery(projectId, "csv", null, null, null));
+        csv.ShouldNotBeNull();
+        csv.ContentType.ShouldBe("text/csv");
+        Encoding.UTF8.GetString(csv.Content).ShouldContain("Doador Prestacao");
+        Encoding.UTF8.GetString(csv.Content).ShouldContain("PREST-SMOKE-001");
+
+        var pdf = await TestApp.SendAsync(new ExportProjectAccountabilityQuery(projectId, "pdf", null, null, null));
+        pdf.ShouldNotBeNull();
+        pdf.ContentType.ShouldBe("application/pdf");
+        Encoding.ASCII.GetString(pdf.Content.Take(4).ToArray()).ShouldBe("%PDF");
     }
 
     [Test]
