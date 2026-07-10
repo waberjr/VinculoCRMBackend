@@ -3,7 +3,6 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
-using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CancelRelationshipTask;
 
@@ -30,15 +29,7 @@ public sealed class CancelRelationshipTaskCommandHandler : IRequestHandler<Cance
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        if (task.Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(CancelRelationshipTaskCommand.Id), "Apenas tarefas abertas ou em andamento podem ser canceladas."),
-            ]);
-        }
-
-        task.Status = RelationshipTaskStatus.Cancelled;
+        task.Cancel();
 
         await _context.SaveChangesAsync(cancellationToken);
     }

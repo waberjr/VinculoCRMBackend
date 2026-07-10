@@ -37,21 +37,8 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        if (task.Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(CompleteRelationshipTaskCommand.Id), "Apenas tarefas abertas ou em andamento podem ser concluidas."),
-            ]);
-        }
-
-        task.Status = RelationshipTaskStatus.Completed;
-        task.ContactOutcome = string.IsNullOrWhiteSpace(request.Outcome)
-            ? null
-            : SystemOptionMapper.Parse<ContactOutcome>(request.Outcome);
-        task.CompletedAtUtc = DateTimeOffset.UtcNow;
-        task.CompletionNote = request.CompletionNote?.Trim();
         var outcome = string.IsNullOrWhiteSpace(request.Outcome) ? (ContactOutcome?)null : SystemOptionMapper.Parse<ContactOutcome>(request.Outcome);
+        task.Complete(outcome, request.CompletionNote, DateTimeOffset.UtcNow);
 
         if (outcome == ContactOutcome.DoNotContact)
         {
@@ -103,7 +90,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             Type = TimelineEntryType.Contact,
             Title = "Tarefa concluida",
             Description = request.CompletionNote?.Trim(),
-            OccurredAtUtc = task.CompletedAtUtc.Value,
+            OccurredAtUtc = task.CompletedAtUtc!.Value,
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(RelationshipTask),
             RelatedEntityId = task.Id,

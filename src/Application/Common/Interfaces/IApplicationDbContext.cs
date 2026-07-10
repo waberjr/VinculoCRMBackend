@@ -40,6 +40,12 @@ public interface IApplicationDbContext
 
     DbSet<DocumentAttachmentAuditEntry> DocumentAttachmentAuditEntries { get; }
 
+    DbSet<CommunicationTemplate> CommunicationTemplates { get; }
+
+    DbSet<CommunicationCampaign> CommunicationCampaigns { get; }
+
+    DbSet<CommunicationCampaignRecipient> CommunicationCampaignRecipients { get; }
+
     DbSet<DonationPlan> DonationPlans { get; }
 
     DbSet<RelationshipTask> RelationshipTasks { get; }

@@ -32,16 +32,7 @@ public sealed class CancelReceiptCommandHandler : IRequestHandler<CancelReceiptC
             throw new Common.Exceptions.NotFoundException(nameof(Receipt), request.Id.ToString());
         }
 
-        if (receipt.Status == ReceiptStatus.Cancelled)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(CancelReceiptCommand.Id), "O recibo ja esta cancelado."),
-            ]);
-        }
-
-        receipt.Status = ReceiptStatus.Cancelled;
-        receipt.CancelReason = request.Reason.Trim();
+        receipt.Cancel(request.Reason);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {

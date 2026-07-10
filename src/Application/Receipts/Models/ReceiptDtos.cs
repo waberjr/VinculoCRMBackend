@@ -21,6 +21,7 @@ public sealed class ReceiptListItemDto
 public sealed class ReceiptPrintDto
 {
     public Guid Id { get; init; }
+    public Guid OrganizationId { get; init; }
     public string Number { get; init; } = string.Empty;
     public string OrganizationName { get; init; } = string.Empty;
     public string? OrganizationDocument { get; init; }

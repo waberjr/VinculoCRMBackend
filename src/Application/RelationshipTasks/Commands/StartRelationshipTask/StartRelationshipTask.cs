@@ -3,7 +3,6 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
-using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.StartRelationshipTask;
 
@@ -30,15 +29,7 @@ public sealed class StartRelationshipTaskCommandHandler : IRequestHandler<StartR
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        if (task.Status != RelationshipTaskStatus.Open)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(StartRelationshipTaskCommand.Id), "Apenas tarefas abertas podem ser iniciadas."),
-            ]);
-        }
-
-        task.Status = RelationshipTaskStatus.InProgress;
+        task.Start();
 
         await _context.SaveChangesAsync(cancellationToken);
     }

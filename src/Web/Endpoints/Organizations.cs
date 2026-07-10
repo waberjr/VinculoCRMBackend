@@ -4,6 +4,7 @@ using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Organizations.Commands.AcceptOrganizationInvitation;
 using VinculoBackend.Application.Organizations.Commands.CreateOrganization;
 using VinculoBackend.Application.Organizations.Commands.DeleteOrganization;
+using VinculoBackend.Application.Organizations.Commands.DeleteOrganizationLogo;
 using VinculoBackend.Application.Organizations.Commands.DeleteOrganizationMember;
 using VinculoBackend.Application.Organizations.Commands.InviteOrganizationUser;
 using VinculoBackend.Application.Organizations.Commands.RevokeOrganizationInvitation;
@@ -47,6 +48,7 @@ public sealed class Organizations : IEndpointGroup
         groupBuilder.MapPut(Update, "{id}").RequireAuthorization().DisableAntiforgery();
         groupBuilder.MapDelete(Delete, "{id}").RequireAuthorization();
         groupBuilder.MapGet(Logo, "{id}/Logo").AllowAnonymous();
+        groupBuilder.MapDelete(DeleteLogo, "{id}/Logo").RequireAuthorization();
         groupBuilder.MapGet(Members, "current/members").RequireAuthorization();
         groupBuilder.MapPut(UpdateMember, "current/members/{memberId}").RequireAuthorization();
         groupBuilder.MapDelete(DeleteMember, "current/members/{memberId}").RequireAuthorization();
@@ -113,14 +115,24 @@ public sealed class Organizations : IEndpointGroup
         return TypedResults.NoContent();
     }
 
+    [EndpointSummary("Remover logo da organizacao")]
+    [EndpointDescription("Remove a logo configurada para a organizacao. Restrito a administradores da plataforma.")]
+    public static async Task<NoContent> DeleteLogo(ISender sender, Guid id, CancellationToken cancellationToken)
+    {
+        await sender.Send(new DeleteOrganizationLogoCommand(id), cancellationToken);
+        return TypedResults.NoContent();
+    }
+
     [EndpointSummary("Logo da organizacao")]
     [EndpointDescription("Retorna a imagem da logo da organizacao quando configurada.")]
     public static async Task<Results<FileStreamHttpResult, NotFound>> Logo(
         ISender sender,
         Guid id,
+        HttpResponse response,
         CancellationToken cancellationToken)
     {
         var logo = await sender.Send(new DownloadOrganizationLogoQuery(id), cancellationToken);
+        response.Headers.CacheControl = "public, max-age=300, must-revalidate";
         return logo is null
             ? TypedResults.NotFound()
             : TypedResults.File(logo.Content, logo.ContentType, logo.FileName);

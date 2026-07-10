@@ -3,6 +3,8 @@ using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.ImpactProjects.Commands.CreateProject;
 using VinculoBackend.Application.ImpactProjects.Commands.UpdateProject;
 using VinculoBackend.Application.ImpactProjects.Models;
+using VinculoBackend.Application.ImpactProjects.Queries.ExportProjectAccountability;
+using VinculoBackend.Application.ImpactProjects.Queries.GetProjectAccountability;
 using VinculoBackend.Application.ImpactProjects.Queries.GetProjects;
 
 namespace VinculoBackend.Web.Endpoints;
@@ -13,8 +15,37 @@ public sealed class Projects : IEndpointGroup
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetProjects);
+        groupBuilder.MapGet(Accountability, "{id}/Accountability");
+        groupBuilder.MapGet(AccountabilityExport, "{id}/Accountability/Export");
         groupBuilder.MapPost(CreateProject);
         groupBuilder.MapPut(UpdateProject, "{id}");
+    }
+
+    public static async Task<Results<FileContentHttpResult, NotFound>> AccountabilityExport(
+        ISender sender,
+        Guid id,
+        string? format,
+        Guid? campaignId,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportProjectAccountabilityQuery(id, format ?? "csv", campaignId, startDateUtc, endDateUtc), cancellationToken);
+        return result is null
+            ? TypedResults.NotFound()
+            : TypedResults.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    public static async Task<Results<Ok<ProjectAccountabilityDto>, NotFound>> Accountability(
+        ISender sender,
+        Guid id,
+        Guid? campaignId,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetProjectAccountabilityQuery(id, campaignId, startDateUtc, endDateUtc), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
     public static async Task<Ok<PaginatedResult<ProjectListItemDto>>> GetProjects(

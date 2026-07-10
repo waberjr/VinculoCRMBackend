@@ -2,7 +2,6 @@ using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
-using FluentValidation.Results;
 
 namespace VinculoBackend.Application.DonationPlans.Commands.CancelDonationPlan;
 
@@ -31,17 +30,7 @@ public sealed class CancelDonationPlanCommandHandler : IRequestHandler<CancelDon
             throw new Common.Exceptions.NotFoundException(nameof(DonationPlan), request.Id.ToString());
         }
 
-        if (plan.Status == DonationPlanStatus.Cancelled)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(CancelDonationPlanCommand.Id), "O plano já está cancelado."),
-            ]);
-        }
-
-        plan.Status = DonationPlanStatus.Cancelled;
-        plan.CancelledAtUtc = DateTimeOffset.UtcNow;
-        plan.CancellationReason = request.Reason.Trim();
+        plan.Cancel(request.Reason, DateTimeOffset.UtcNow);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {

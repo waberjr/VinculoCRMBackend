@@ -32,18 +32,7 @@ public sealed class ReissueReceiptCommandHandler : IRequestHandler<ReissueReceip
             throw new Common.Exceptions.NotFoundException(nameof(Receipt), request.Id.ToString());
         }
 
-        if (receipt.Status == ReceiptStatus.Cancelled)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(ReissueReceiptCommand.Id), "Recibos cancelados nao podem ser reemitidos."),
-            ]);
-        }
-
-        receipt.Status = ReceiptStatus.Reissued;
-        receipt.IssuedAtUtc = DateTimeOffset.UtcNow;
-        receipt.FileUrl = null;
-        receipt.IssuedByUserId = _user.Id;
+        receipt.Reissue(_user.Id, DateTimeOffset.UtcNow);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
@@ -52,7 +41,7 @@ public sealed class ReissueReceiptCommandHandler : IRequestHandler<ReissueReceip
             Type = TimelineEntryType.Donation,
             Title = "Recibo reemitido",
             Description = $"Recibo {receipt.Number} reemitido. Motivo: {request.Reason.Trim()}",
-            OccurredAtUtc = receipt.IssuedAtUtc.Value,
+            OccurredAtUtc = receipt.IssuedAtUtc!.Value,
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(Receipt),
             RelatedEntityId = receipt.Id,

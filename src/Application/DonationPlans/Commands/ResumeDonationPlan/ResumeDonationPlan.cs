@@ -31,13 +31,7 @@ public sealed class ResumeDonationPlanCommandHandler : IRequestHandler<ResumeDon
             throw new Common.Exceptions.NotFoundException(nameof(DonationPlan), request.Id.ToString());
         }
 
-        if (plan.Status != DonationPlanStatus.Paused)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(ResumeDonationPlanCommand.Id), "Apenas planos pausados podem ser retomados."),
-            ]);
-        }
+        plan.Resume();
 
         var hasActivePlanForCampaign = await _context.DonationPlans.AsNoTracking().AnyAsync(other =>
             other.Id != plan.Id &&
@@ -53,9 +47,6 @@ public sealed class ResumeDonationPlanCommandHandler : IRequestHandler<ResumeDon
                 new ValidationFailure(nameof(ResumeDonationPlanCommand.Id), "O doador já possui um plano ativo para este contexto."),
             ]);
         }
-
-        plan.Status = DonationPlanStatus.Active;
-        plan.PausedAtUtc = null;
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {

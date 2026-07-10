@@ -32,6 +32,7 @@ public sealed class GetReceiptPrintQueryHandler : IRequestHandler<GetReceiptPrin
             .Select(receipt => new ReceiptPrintDto
             {
                 Id = receipt.Id,
+                OrganizationId = organizationId,
                 Number = receipt.Number,
                 OrganizationName = _context.Organizations
                     .Where(organization => organization.Id == organizationId)

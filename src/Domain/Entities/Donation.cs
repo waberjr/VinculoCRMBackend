@@ -1,5 +1,6 @@
 using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Enums;
+using VinculoBackend.Domain.Exceptions;
 
 namespace VinculoBackend.Domain.Entities;
 
@@ -30,7 +31,7 @@ public class Donation : OrganizationEntity
     {
         if (amount <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(amount), "O valor da contribuição deve ser maior que zero.");
+            throw new DomainValidationException("O valor da contribuicao deve ser maior que zero.");
         }
 
         Amount = amount;
@@ -40,7 +41,7 @@ public class Donation : OrganizationEntity
     {
         if (Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
-            throw new InvalidOperationException("Apenas contribuições pendentes ou vencidas podem ser confirmadas.");
+            throw new InvalidOperationDomainException("Apenas contribuicoes pendentes ou vencidas podem ser confirmadas.");
         }
 
         Status = DonationStatus.Confirmed;
@@ -52,7 +53,7 @@ public class Donation : OrganizationEntity
     {
         if (Status is not (DonationStatus.Pending or DonationStatus.Overdue))
         {
-            throw new InvalidOperationException("Apenas contribuições pendentes ou vencidas podem ser canceladas.");
+            throw new InvalidOperationDomainException("Apenas contribuicoes pendentes ou vencidas podem ser canceladas.");
         }
 
         Status = DonationStatus.Cancelled;
@@ -64,7 +65,7 @@ public class Donation : OrganizationEntity
     {
         if (Status != DonationStatus.Confirmed)
         {
-            throw new InvalidOperationException("Apenas contribuições confirmadas podem ser estornadas.");
+            throw new InvalidOperationDomainException("Apenas contribuicoes confirmadas podem ser estornadas.");
         }
 
         Status = DonationStatus.Refunded;

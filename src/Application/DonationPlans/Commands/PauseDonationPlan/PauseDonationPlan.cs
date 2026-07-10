@@ -31,16 +31,7 @@ public sealed class PauseDonationPlanCommandHandler : IRequestHandler<PauseDonat
             throw new Common.Exceptions.NotFoundException(nameof(DonationPlan), request.Id.ToString());
         }
 
-        if (plan.Status != DonationPlanStatus.Active)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(PauseDonationPlanCommand.Id), "Apenas planos ativos podem ser pausados."),
-            ]);
-        }
-
-        plan.Status = DonationPlanStatus.Paused;
-        plan.PausedAtUtc = DateTimeOffset.UtcNow;
+        plan.Pause(DateTimeOffset.UtcNow);
 
         AddTimeline(plan, _context, _user.Id, "Plano recorrente pausado", null);
         await _context.SaveChangesAsync(cancellationToken);

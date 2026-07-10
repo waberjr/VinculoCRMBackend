@@ -28,7 +28,7 @@ public sealed class CompleteCampaignCommandHandler : IRequestHandler<CompleteCam
             throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.Id.ToString());
         }
 
-        campaign.Status = CampaignStatus.Completed;
+        campaign.Complete();
 
         await _context.SaveChangesAsync(cancellationToken);
     }

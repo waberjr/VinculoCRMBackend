@@ -53,30 +53,11 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.DonationId.ToString());
         }
 
-        if (donation.Status != DonationStatus.Confirmed || donation.PaidAtUtc is null)
-        {
-            throw new Common.Exceptions.ValidationException(
-            [
-                new ValidationFailure(nameof(IssueReceiptCommand.DonationId), "Recibos so podem ser emitidos para contribuicoes confirmadas."),
-            ]);
-        }
-
         var organization = await _context.Organizations.FirstAsync(entity => entity.Id == organizationId, cancellationToken);
         var receiptNumber = $"{organization.ReceiptNumberPrefix}-{organization.ReceiptNumberNextSequence:00000}";
         organization.ReceiptNumberNextSequence += 1;
 
-        var receipt = new Receipt
-        {
-            OrganizationId = organizationId,
-            DonationId = donation.Id,
-            DonorId = donation.DonorId,
-            Number = receiptNumber,
-            Amount = donation.Amount,
-            Status = ReceiptStatus.Issued,
-            IssuedAtUtc = DateTimeOffset.UtcNow,
-            FileUrl = null,
-            IssuedByUserId = _user.Id,
-        };
+        var receipt = Receipt.Issue(organizationId, donation, receiptNumber, _user.Id, DateTimeOffset.UtcNow);
 
         _context.Receipts.Add(receipt);
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
@@ -86,7 +67,7 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
             Type = TimelineEntryType.Donation,
             Title = "Recibo emitido",
             Description = $"Recibo {receipt.Number} emitido para contribuicao de {receipt.Amount:C}.",
-            OccurredAtUtc = receipt.IssuedAtUtc.Value,
+            OccurredAtUtc = receipt.IssuedAtUtc!.Value,
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(Receipt),
             RelatedEntityId = receipt.Id,

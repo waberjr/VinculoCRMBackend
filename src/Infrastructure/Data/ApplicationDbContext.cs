@@ -51,6 +51,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
     public DbSet<DocumentAttachment> DocumentAttachments => Set<DocumentAttachment>();
     public DbSet<DocumentAttachmentAuditEntry> DocumentAttachmentAuditEntries => Set<DocumentAttachmentAuditEntry>();
 
+    public DbSet<CommunicationTemplate> CommunicationTemplates => Set<CommunicationTemplate>();
+
+    public DbSet<CommunicationCampaign> CommunicationCampaigns => Set<CommunicationCampaign>();
+
+    public DbSet<CommunicationCampaignRecipient> CommunicationCampaignRecipients => Set<CommunicationCampaignRecipient>();
+
     public DbSet<DonationPlan> DonationPlans => Set<DonationPlan>();
 
     public DbSet<RelationshipTask> RelationshipTasks => Set<RelationshipTask>();
@@ -79,6 +85,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<ImpactUpdate>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DocumentAttachment>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DocumentAttachmentAuditEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<CommunicationTemplate>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<CommunicationCampaign>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<CommunicationCampaignRecipient>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonationPlan>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<RelationshipTask>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonorTimelineEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));

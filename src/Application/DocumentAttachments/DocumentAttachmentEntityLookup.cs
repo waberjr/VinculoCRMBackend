@@ -16,6 +16,7 @@ internal static class DocumentAttachmentEntityLookup
             "Donation" => await context.Donations.AsNoTracking().AnyAsync(entity => entity.Id == entityId, cancellationToken),
             "Receipt" => await context.Receipts.AsNoTracking().AnyAsync(entity => entity.Id == entityId, cancellationToken),
             "Project" => await context.Projects.AsNoTracking().AnyAsync(entity => entity.Id == entityId, cancellationToken),
+            "ImpactUpdate" => await context.ImpactUpdates.AsNoTracking().AnyAsync(entity => entity.Id == entityId, cancellationToken),
             _ => false,
         };
     }

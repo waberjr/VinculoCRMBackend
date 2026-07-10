@@ -28,7 +28,7 @@ public sealed class CancelCampaignCommandHandler : IRequestHandler<CancelCampaig
             throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.Id.ToString());
         }
 
-        campaign.Status = CampaignStatus.Cancelled;
+        campaign.Cancel();
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

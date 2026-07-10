@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Common.Exceptions;
+using VinculoBackend.Domain.Exceptions;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using ApplicationNotFoundException = VinculoBackend.Application.Common.Exceptions.NotFoundException;
@@ -53,6 +54,13 @@ public class ProblemDetailsExceptionHandler : IExceptionHandler
                 Status = StatusCodes.Status403Forbidden,
                 Title = "Acesso proibido",
                 Type = "https://tools.ietf.org/html/rfc9110#section-15.5.4"
+            }),
+            DomainException de => (StatusCodes.Status400BadRequest, new ProblemDetails
+            {
+                Status = StatusCodes.Status400BadRequest,
+                Type = "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+                Title = "Regra de dominio violada.",
+                Detail = de.Message
             }),
             _ => (StatusCodes.Status500InternalServerError, new ProblemDetails
             {

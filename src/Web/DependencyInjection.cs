@@ -18,6 +18,7 @@ public static class DependencyInjection
 
         builder.Services.AddScoped<IUser, CurrentUser>();
         builder.Services.AddScoped<IOrganizationContext, OrganizationContext>();
+        builder.Services.AddScoped<IReceiptHtmlRenderer, ReceiptHtmlRenderer>();
 
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddExceptionHandler<ProblemDetailsExceptionHandler>();

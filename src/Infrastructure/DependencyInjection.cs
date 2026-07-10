@@ -6,11 +6,13 @@ using VinculoBackend.Infrastructure.Documents;
 using VinculoBackend.Infrastructure.Identity;
 using VinculoBackend.Infrastructure.Locations;
 using VinculoBackend.Infrastructure.Organizations;
+using VinculoBackend.Infrastructure.Pdf;
 using VinculoBackend.Infrastructure.Storage;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using VinculoBackend.Application.ImpactProjects.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -57,5 +59,7 @@ public static class DependencyInjection
         services.AddSingleton<IBrazilianDocumentValidator, DocsBrBrazilianDocumentValidator>();
         services.AddTransient<IIdentityService, IdentityService>();
         services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
+        services.AddScoped<IReceiptPdfGenerator, QuestPdfReceiptPdfGenerator>();
+        services.AddScoped<IProjectAccountabilityPdfExporter, QuestPdfProjectAccountabilityPdfExporter>();
     }
 }

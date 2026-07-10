@@ -1,4 +1,5 @@
 using VinculoBackend.Domain.Enums;
+using VinculoBackend.Domain.Exceptions;
 
 namespace VinculoBackend.Domain.Entities;
 
@@ -16,7 +17,7 @@ public class Project : OrganizationEntity
     {
         if (goalAmount is not null && goalAmount <= 0)
         {
-            throw new ArgumentOutOfRangeException(nameof(goalAmount), "A meta do projeto deve ser maior que zero.");
+            throw new DomainValidationException("A meta do projeto deve ser maior que zero.");
         }
 
         GoalAmount = goalAmount;
@@ -26,7 +27,7 @@ public class Project : OrganizationEntity
     {
         if (startDateUtc is not null && endDateUtc is not null && startDateUtc >= endDateUtc)
         {
-            throw new ArgumentException("A data de termino do projeto deve ser maior que a data de inicio.", nameof(endDateUtc));
+            throw new DomainValidationException("A data de termino do projeto deve ser maior que a data de inicio.");
         }
 
         StartDateUtc = startDateUtc;

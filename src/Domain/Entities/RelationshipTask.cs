@@ -1,4 +1,5 @@
 using VinculoBackend.Domain.Enums;
+using VinculoBackend.Domain.Exceptions;
 
 namespace VinculoBackend.Domain.Entities;
 
@@ -21,4 +22,37 @@ public class RelationshipTask : OrganizationEntity
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string? CompletionNote { get; set; }
+
+    public void Start()
+    {
+        if (Status != RelationshipTaskStatus.Open)
+        {
+            throw new InvalidOperationDomainException("Apenas tarefas abertas podem ser iniciadas.");
+        }
+
+        Status = RelationshipTaskStatus.InProgress;
+    }
+
+    public void Complete(ContactOutcome? outcome, string? completionNote, DateTimeOffset completedAtUtc)
+    {
+        if (Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))
+        {
+            throw new InvalidOperationDomainException("Apenas tarefas abertas ou em andamento podem ser concluidas.");
+        }
+
+        Status = RelationshipTaskStatus.Completed;
+        ContactOutcome = outcome;
+        CompletedAtUtc = completedAtUtc;
+        CompletionNote = completionNote?.Trim();
+    }
+
+    public void Cancel()
+    {
+        if (Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))
+        {
+            throw new InvalidOperationDomainException("Apenas tarefas abertas ou em andamento podem ser canceladas.");
+        }
+
+        Status = RelationshipTaskStatus.Cancelled;
+    }
 }

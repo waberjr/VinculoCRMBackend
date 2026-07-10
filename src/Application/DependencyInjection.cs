@@ -2,6 +2,7 @@ using System.Reflection;
 using VinculoBackend.Application.Common.Behaviours;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.DocumentAttachments.Services;
+using VinculoBackend.Application.Communications.Services;
 using VinculoBackend.Application.Organizations.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IOrganizationLogoService, OrganizationLogoService>();
         services.AddScoped<IDocumentAttachmentAuthorizationService, DocumentAttachmentAuthorizationService>();
         services.AddScoped<IDocumentAttachmentAuditService, DocumentAttachmentAuditService>();
+        services.AddScoped<ICommunicationCampaignRecipientPlanner, CommunicationCampaignRecipientPlanner>();
 
         services.AddMediatR(cfg => {
             cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly());

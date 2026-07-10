@@ -28,7 +28,7 @@ public sealed class ActivateCampaignCommandHandler : IRequestHandler<ActivateCam
             throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.Id.ToString());
         }
 
-        campaign.Status = CampaignStatus.Active;
+        campaign.Activate();
 
         await _context.SaveChangesAsync(cancellationToken);
     }
