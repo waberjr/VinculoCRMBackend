@@ -39,12 +39,14 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
             throw new Common.Exceptions.NotFoundException(nameof(Project), request.Id.ToString());
         }
 
-        project.Name = request.Name.Trim();
-        project.Description = request.Description?.Trim();
-        project.ImpactMetric = request.ImpactMetric?.Trim();
-        project.Status = SystemOptionMapper.Parse<ProjectStatus>(request.Status);
-        project.SetGoalAmount(request.GoalAmount);
-        project.SetPeriod(request.StartDateUtc, request.EndDateUtc);
+        project.Update(
+            request.Name,
+            request.Description,
+            request.GoalAmount,
+            request.ImpactMetric,
+            SystemOptionMapper.Parse<ProjectStatus>(request.Status),
+            request.StartDateUtc,
+            request.EndDateUtc);
 
         await SyncCampaigns(project.Id, request.CampaignIds.Distinct().ToArray(), cancellationToken);
 

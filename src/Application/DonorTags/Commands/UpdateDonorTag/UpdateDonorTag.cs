@@ -33,9 +33,7 @@ public sealed class UpdateDonorTagCommandHandler : IRequestHandler<UpdateDonorTa
             throw new Common.Exceptions.NotFoundException(nameof(DonorTags), request.Id.ToString());
         }
 
-        entity.Name = request.Name.Trim();
-        entity.Description = request.Description?.Trim();
-        entity.IsActive = request.IsActive;
+        entity.Update(request.Name, request.Description, request.IsActive);
 
         await _context.SaveChangesAsync(cancellationToken);
     }

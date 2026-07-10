@@ -13,6 +13,49 @@ public class Project : OrganizationEntity
     public DateTimeOffset? StartDateUtc { get; private set; }
     public DateTimeOffset? EndDateUtc { get; private set; }
 
+    public static Project Create(
+        Guid organizationId,
+        string name,
+        string? description,
+        decimal? goalAmount,
+        string? impactMetric,
+        ProjectStatus status,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc)
+    {
+        var project = new Project { OrganizationId = organizationId };
+        project.Update(name, description, goalAmount, impactMetric, status, startDateUtc, endDateUtc);
+
+        return project;
+    }
+
+    public void Update(
+        string name,
+        string? description,
+        decimal? goalAmount,
+        string? impactMetric,
+        ProjectStatus status,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc)
+    {
+        SetName(name);
+        Description = TrimToNull(description);
+        ImpactMetric = TrimToNull(impactMetric);
+        Status = status;
+        SetGoalAmount(goalAmount);
+        SetPeriod(startDateUtc, endDateUtc);
+    }
+
+    private void SetName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainValidationException("Informe o nome do projeto.");
+        }
+
+        Name = name.Trim();
+    }
+
     public void SetGoalAmount(decimal? goalAmount)
     {
         if (goalAmount is not null && goalAmount <= 0)
@@ -32,5 +75,15 @@ public class Project : OrganizationEntity
 
         StartDateUtc = startDateUtc;
         EndDateUtc = endDateUtc;
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
     }
 }

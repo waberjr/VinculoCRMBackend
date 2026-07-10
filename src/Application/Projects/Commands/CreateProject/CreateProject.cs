@@ -47,16 +47,15 @@ public sealed class CreateProjectCommandHandler : IRequestHandler<CreateProjectC
             }
         }
 
-        var project = new Project
-        {
-            OrganizationId = organizationId,
-            Name = request.Name.Trim(),
-            Description = request.Description?.Trim(),
-            ImpactMetric = request.ImpactMetric?.Trim(),
-            Status = SystemOptionMapper.Parse<ProjectStatus>(request.Status),
-        };
-        project.SetGoalAmount(request.GoalAmount);
-        project.SetPeriod(request.StartDateUtc, request.EndDateUtc);
+        var project = Project.Create(
+            organizationId,
+            request.Name,
+            request.Description,
+            request.GoalAmount,
+            request.ImpactMetric,
+            SystemOptionMapper.Parse<ProjectStatus>(request.Status),
+            request.StartDateUtc,
+            request.EndDateUtc);
 
         _context.Projects.Add(project);
         foreach (var campaignId in campaignIds)

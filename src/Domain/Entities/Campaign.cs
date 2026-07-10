@@ -15,6 +15,45 @@ public class Campaign : OrganizationEntity
     public DateTimeOffset? EndDateUtc { get; private set; }
     public string? AssignedUserId { get; set; }
 
+    public static Campaign Create(
+        Guid organizationId,
+        string name,
+        string? description,
+        CampaignType type,
+        CampaignChannel? channel,
+        decimal? goalAmount,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        string? assignedUserId)
+    {
+        var campaign = new Campaign
+        {
+            OrganizationId = organizationId,
+            Status = CampaignStatus.Draft,
+            AssignedUserId = assignedUserId,
+        };
+        campaign.Update(name, description, type, channel, goalAmount, startDateUtc, endDateUtc);
+
+        return campaign;
+    }
+
+    public void Update(
+        string name,
+        string? description,
+        CampaignType type,
+        CampaignChannel? channel,
+        decimal? goalAmount,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc)
+    {
+        SetName(name);
+        Description = TrimToNull(description);
+        Type = type;
+        Channel = channel;
+        SetGoalAmount(goalAmount);
+        SetPeriod(startDateUtc, endDateUtc);
+    }
+
     public void Activate()
     {
         if (Status is CampaignStatus.Completed or CampaignStatus.Cancelled)
@@ -45,6 +84,16 @@ public class Campaign : OrganizationEntity
         Status = CampaignStatus.Cancelled;
     }
 
+    public void SetGoalAmount(decimal? goalAmount)
+    {
+        if (goalAmount is null or <= 0)
+        {
+            throw new DomainValidationException("A meta da campanha deve ser maior que zero.");
+        }
+
+        GoalAmount = goalAmount;
+    }
+
     public void SetPeriod(DateTimeOffset? startDateUtc, DateTimeOffset? endDateUtc)
     {
         if (startDateUtc is not null && endDateUtc is not null && startDateUtc >= endDateUtc)
@@ -54,5 +103,25 @@ public class Campaign : OrganizationEntity
 
         StartDateUtc = startDateUtc;
         EndDateUtc = endDateUtc;
+    }
+
+    private void SetName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainValidationException("Informe o nome da campanha.");
+        }
+
+        Name = name.Trim();
+    }
+
+    private static string? TrimToNull(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return value.Trim();
     }
 }

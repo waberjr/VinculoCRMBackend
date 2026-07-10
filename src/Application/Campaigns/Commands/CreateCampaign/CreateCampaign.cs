@@ -1,6 +1,5 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
-using VinculoBackend.Domain.Constants;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
 
@@ -34,20 +33,18 @@ public sealed class CreateCampaignCommandHandler : IRequestHandler<CreateCampaig
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
 
-        var campaign = new Campaign
-        {
-            OrganizationId = organizationId,
-            Name = request.Name.Trim(),
-            Description = request.Description?.Trim(),
-            Type = SystemOptionMapper.Parse<CampaignType>(request.Type),
-            Status = CampaignStatus.Draft,
-            Channel = string.IsNullOrWhiteSpace(request.Channel)
+        var campaign = Campaign.Create(
+            organizationId,
+            request.Name,
+            request.Description,
+            SystemOptionMapper.Parse<CampaignType>(request.Type),
+            string.IsNullOrWhiteSpace(request.Channel)
                 ? null
                 : SystemOptionMapper.Parse<CampaignChannel>(request.Channel),
-            GoalAmount = request.GoalAmount,
-            AssignedUserId = _user.Id,
-        };
-        campaign.SetPeriod(request.StartDateUtc, request.EndDateUtc);
+            request.GoalAmount,
+            request.StartDateUtc,
+            request.EndDateUtc,
+            _user.Id);
 
         _context.Campaigns.Add(campaign);
         await _context.SaveChangesAsync(cancellationToken);

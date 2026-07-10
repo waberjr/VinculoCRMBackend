@@ -20,13 +20,7 @@ public sealed class CreateDonorTagCommandHandler : IRequestHandler<CreateDonorTa
     public async Task<Guid> Handle(CreateDonorTagCommand request, CancellationToken cancellationToken)
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
-        var tag = new DonorTag
-        {
-            OrganizationId = organizationId,
-            Name = request.Name.Trim(),
-            Description = request.Description?.Trim(),
-            IsActive = true,
-        };
+        var tag = DonorTag.Create(organizationId, request.Name, request.Description);
 
         _context.DonorTags.Add(tag);
         await _context.SaveChangesAsync(cancellationToken);

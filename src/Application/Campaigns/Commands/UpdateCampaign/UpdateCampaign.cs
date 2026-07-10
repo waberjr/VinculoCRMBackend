@@ -38,14 +38,16 @@ public sealed class UpdateCampaignCommandHandler : IRequestHandler<UpdateCampaig
             throw new Common.Exceptions.NotFoundException(nameof(Campaign), request.Id.ToString());
         }
 
-        campaign.Name = request.Name.Trim();
-        campaign.Description = request.Description?.Trim();
-        campaign.Type = SystemOptionMapper.Parse<CampaignType>(request.Type);
-        campaign.Channel = string.IsNullOrWhiteSpace(request.Channel)
-            ? null
-            : SystemOptionMapper.Parse<CampaignChannel>(request.Channel);
-        campaign.GoalAmount = request.GoalAmount;
-        campaign.SetPeriod(request.StartDateUtc, request.EndDateUtc);
+        campaign.Update(
+            request.Name,
+            request.Description,
+            SystemOptionMapper.Parse<CampaignType>(request.Type),
+            string.IsNullOrWhiteSpace(request.Channel)
+                ? null
+                : SystemOptionMapper.Parse<CampaignChannel>(request.Channel),
+            request.GoalAmount,
+            request.StartDateUtc,
+            request.EndDateUtc);
 
         await _context.SaveChangesAsync(cancellationToken);
     }

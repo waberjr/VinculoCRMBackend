@@ -112,12 +112,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
 
             if (tagId is null)
             {
-                var donorTag = new DonorTag
-                {
-                    OrganizationId = organizationId,
-                    Name = tagName,
-                    IsActive = true,
-                };
+                var donorTag = DonorTag.Create(organizationId, tagName);
                 _context.DonorTags.Add(donorTag);
                 tagId = donorTag.Id;
             }

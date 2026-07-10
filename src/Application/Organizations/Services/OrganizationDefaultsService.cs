@@ -89,13 +89,7 @@ public sealed class OrganizationDefaultsService : IOrganizationDefaultsService
                 continue;
             }
 
-            _context.DonorTags.Add(new DonorTag
-            {
-                OrganizationId = organizationId,
-                Name = tag.Name,
-                Description = tag.Description,
-                IsActive = true,
-            });
+            _context.DonorTags.Add(DonorTag.Create(organizationId, tag.Name, tag.Description));
         }
     }
 

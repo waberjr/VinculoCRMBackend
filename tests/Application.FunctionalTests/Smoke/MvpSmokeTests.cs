@@ -6,6 +6,7 @@ using System.Text;
 using VinculoBackend.Application.DocumentAttachments.Commands.CreateDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Commands.DeleteDocumentAttachment;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.DocumentAttachments.Queries.CreateDocumentAttachmentAccessUrl;
 using VinculoBackend.Application.DocumentAttachments.Queries.DownloadDocumentAttachment;
 using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachments;
 using VinculoBackend.Application.Common.Exceptions;
@@ -16,6 +17,8 @@ using VinculoBackend.Application.Donations.Commands.CreateDonation;
 using VinculoBackend.Application.Donors.Commands.CreateDonor;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
+using VinculoBackend.Application.ImpactProjects.Commands.CreateProject;
+using VinculoBackend.Application.ImpactProjects.Queries.GetProjects;
 using VinculoBackend.Application.Organizations.Commands.CreateOrganization;
 using VinculoBackend.Application.Organizations.Models;
 using VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelationshipTask;
@@ -149,6 +152,35 @@ public class MvpSmokeTests : TestBase
     }
 
     [Test]
+    public async Task ShouldCreateAndListProjects()
+    {
+        await CreateAndUseOrganizationAsync();
+
+        var projectId = await TestApp.SendAsync(new CreateProjectCommand
+        {
+            Name = " Projeto Smoke ",
+            Description = "Prestacao de contas do projeto",
+            GoalAmount = 2500,
+            ImpactMetric = "50 familias atendidas",
+            Status = "Active",
+            StartDateUtc = DateTimeOffset.UtcNow.AddDays(-1),
+            EndDateUtc = DateTimeOffset.UtcNow.AddDays(30),
+        });
+
+        var projects = await TestApp.SendAsync(new GetProjectsQuery
+        {
+            Search = "smoke",
+            PageSize = 10,
+        });
+
+        projects.Items.ShouldContain(project =>
+            project.Id == projectId &&
+            project.Name == "Projeto Smoke" &&
+            project.Status == "Active" &&
+            project.GoalAmount == 2500);
+    }
+
+    [Test]
     public async Task ShouldUploadDocumentAttachmentForDonor()
     {
         await CreateAndUseOrganizationAsync();
@@ -169,6 +201,28 @@ public class MvpSmokeTests : TestBase
             document.Id == documentId &&
             document.Title == "Comprovante" &&
             document.Url == $"/api/DocumentAttachments/{documentId}/Download");
+    }
+
+    [Test]
+    public async Task ShouldCreateTemporaryAccessUrlForDocumentAttachment()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Link Temporario");
+        await using var content = new MemoryStream(Encoding.UTF8.GetBytes("arquivo com link temporario"));
+
+        var documentId = await TestApp.SendAsync(new CreateDocumentAttachmentCommand(
+            "Donor",
+            donorId,
+            "Arquivo com link",
+            null,
+            null,
+            new FileUpload("temporario.txt", "text/plain", content, content.Length)));
+
+        var accessUrl = await TestApp.SendAsync(new CreateDocumentAttachmentAccessUrlQuery(documentId, 5));
+
+        accessUrl.ShouldNotBeNull();
+        accessUrl.Url.ShouldStartWith("https://storage.local/");
+        accessUrl.ExpiresAtUtc.ShouldBeGreaterThan(DateTimeOffset.UtcNow);
     }
 
     [Test]
