@@ -45,10 +45,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             var donor = await _context.Donors.FirstOrDefaultAsync(entity => entity.Id == task.DonorId, cancellationToken);
             if (donor is not null)
             {
-                donor.DoNotContact = true;
-                donor.AllowsCommunication = false;
-                donor.DoNotContactReason = request.DoNotContactReason?.Trim();
-                donor.Status = DonorStatus.DoNotContact;
+                donor.BlockContact(request.DoNotContactReason);
 
                 _context.DonorTimelineEntries.Add(new DonorTimelineEntry
                 {

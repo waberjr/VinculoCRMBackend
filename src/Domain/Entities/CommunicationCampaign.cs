@@ -46,6 +46,16 @@ public class CommunicationCampaign : OrganizationEntity
     {
         EnsureEditable();
 
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainValidationException("Informe o nome da campanha de comunicacao.");
+        }
+
+        if (string.IsNullOrWhiteSpace(audience))
+        {
+            throw new DomainValidationException("Informe o publico da campanha de comunicacao.");
+        }
+
         Name = name.Trim();
         Channel = channel;
         Audience = audience.Trim();

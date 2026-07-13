@@ -31,7 +31,7 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
 
     public async Task Handle(UpdateProjectCommand request, CancellationToken cancellationToken)
     {
-        _ = RequiredOrganization.From(_organizationContext);
+        var organizationId = RequiredOrganization.From(_organizationContext);
 
         var project = await _context.Projects.FindAsync([request.Id], cancellationToken);
         if (project is null)
@@ -48,43 +48,41 @@ public sealed class UpdateProjectCommandHandler : IRequestHandler<UpdateProjectC
             request.StartDateUtc,
             request.EndDateUtc);
 
-        await SyncCampaigns(project.Id, request.CampaignIds.Distinct().ToArray(), cancellationToken);
+        await SyncCampaigns(organizationId, project.Id, request.CampaignIds.Distinct().ToArray(), cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private async Task SyncCampaigns(Guid projectId, IReadOnlyCollection<Guid> campaignIds, CancellationToken cancellationToken)
+    private async Task SyncCampaigns(Guid organizationId, Guid projectId, IReadOnlyCollection<Guid> campaignIds, CancellationToken cancellationToken)
     {
         if (campaignIds.Count > 0)
         {
             var existingCampaigns = await _context.Campaigns
                 .AsNoTracking()
-                .Where(campaign => campaignIds.Contains(campaign.Id))
                 .Select(campaign => campaign.Id)
                 .ToListAsync(cancellationToken);
 
-            if (existingCampaigns.Count != campaignIds.Count)
+            if (campaignIds.Except(existingCampaigns).Any())
             {
                 throw new Common.Exceptions.NotFoundException(nameof(Campaign), "Uma ou mais campanhas informadas nao foram encontradas.");
             }
         }
 
         var currentLinks = await _context.ProjectCampaigns
-            .Where(link => link.ProjectId == projectId)
+            .IgnoreQueryFilters()
+            .Where(link => link.OrganizationId == organizationId && link.ProjectId == projectId)
             .ToListAsync(cancellationToken);
         var campaignIdsToKeep = campaignIds.ToHashSet();
 
-        foreach (var link in currentLinks.Where(link => !campaignIdsToKeep.Contains(link.CampaignId)))
+        foreach (var link in currentLinks)
         {
-            link.IsDeleted = true;
+            link.IsDeleted = !campaignIdsToKeep.Contains(link.CampaignId);
         }
 
         var currentCampaignIds = currentLinks
-            .Where(link => !link.IsDeleted)
             .Select(link => link.CampaignId)
             .ToHashSet();
 
-        var organizationId = RequiredOrganization.From(_organizationContext);
         foreach (var campaignId in campaignIds.Where(campaignId => !currentCampaignIds.Contains(campaignId)))
         {
             _context.ProjectCampaigns.Add(new ProjectCampaign

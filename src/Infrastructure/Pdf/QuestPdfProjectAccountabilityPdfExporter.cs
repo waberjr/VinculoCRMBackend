@@ -26,7 +26,35 @@ public sealed class QuestPdfProjectAccountabilityPdfExporter : IProjectAccountab
                 {
                     column.Spacing(14);
                     column.Item().Text($"Prestacao de contas - {report.ProjectName}").FontSize(20).SemiBold();
+                    column.Item().Text($"Filtro: {FilterSummary(report)}").FontColor(Colors.Grey.Darken2);
                     column.Item().Text($"Arrecadado: {report.RaisedAmount:C} | Meta: {report.GoalAmount:C} | Doadores: {report.DonorsCount} | Doacoes: {report.DonationsCount}");
+                    column.Item().Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(2);
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+                        table.Header(header =>
+                        {
+                            header.Cell().Text("Campanha").SemiBold();
+                            header.Cell().AlignRight().Text("Arrecadado").SemiBold();
+                            header.Cell().AlignRight().Text("Doadores").SemiBold();
+                            header.Cell().AlignRight().Text("Ticket medio").SemiBold();
+                            header.Cell().AlignRight().Text("%").SemiBold();
+                        });
+                        foreach (var campaign in report.Campaigns)
+                        {
+                            table.Cell().Text(campaign.Name);
+                            table.Cell().AlignRight().Text(campaign.RaisedAmount.ToString("C"));
+                            table.Cell().AlignRight().Text(campaign.DonorsCount.ToString());
+                            table.Cell().AlignRight().Text(campaign.AverageDonationAmount.ToString("C"));
+                            table.Cell().AlignRight().Text($"{campaign.SharePercentage:N2}%");
+                        }
+                    });
                     column.Item().Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
@@ -54,5 +82,14 @@ public sealed class QuestPdfProjectAccountabilityPdfExporter : IProjectAccountab
                 });
             });
         }).GeneratePdf();
+    }
+
+    private static string FilterSummary(ProjectAccountabilityDto report)
+    {
+        var campaign = report.FilterCampaignName ?? "Todas as campanhas";
+        var start = report.FilterStartDateUtc?.ToString("dd/MM/yyyy") ?? "inicio";
+        var end = report.FilterEndDateUtc?.ToString("dd/MM/yyyy") ?? "hoje";
+
+        return $"{campaign} | {start} a {end}";
     }
 }

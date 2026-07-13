@@ -31,8 +31,13 @@ public sealed class ProjectAccountabilityDto
     public decimal RaisedAmount { get; init; }
     public int DonorsCount { get; init; }
     public int DonationsCount { get; init; }
+    public Guid? FilterCampaignId { get; init; }
+    public string? FilterCampaignName { get; init; }
+    public DateTimeOffset? FilterStartDateUtc { get; init; }
+    public DateTimeOffset? FilterEndDateUtc { get; init; }
     public DateTimeOffset? StartDateUtc { get; init; }
     public DateTimeOffset? EndDateUtc { get; init; }
+    public IReadOnlyCollection<ProjectCampaignDto> AvailableCampaigns { get; init; } = [];
     public IReadOnlyCollection<ProjectCampaignAccountabilityDto> Campaigns { get; init; } = [];
     public IReadOnlyCollection<ProjectDonationAccountabilityDto> Donations { get; init; } = [];
     public IReadOnlyCollection<ProjectImpactUpdateAccountabilityDto> ImpactUpdates { get; init; } = [];
@@ -44,6 +49,9 @@ public sealed class ProjectCampaignAccountabilityDto
     public string Name { get; init; } = string.Empty;
     public decimal RaisedAmount { get; init; }
     public int DonationsCount { get; init; }
+    public int DonorsCount { get; init; }
+    public decimal AverageDonationAmount { get; init; }
+    public decimal SharePercentage { get; init; }
 }
 
 public sealed class ProjectDonationAccountabilityDto

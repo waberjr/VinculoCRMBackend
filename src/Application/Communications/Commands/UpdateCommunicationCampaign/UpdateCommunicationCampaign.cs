@@ -33,6 +33,18 @@ public sealed class UpdateCommunicationCampaignCommandHandler : IRequestHandler<
             throw new global::VinculoBackend.Application.Common.Exceptions.NotFoundException(nameof(CommunicationCampaign), request.Id.ToString());
         }
 
+        if (request.TemplateId is not null)
+        {
+            var templateExists = await _context.CommunicationTemplates
+                .AsNoTracking()
+                .AnyAsync(template => template.Id == request.TemplateId.Value && template.IsActive, cancellationToken);
+
+            if (!templateExists)
+            {
+                throw new global::VinculoBackend.Application.Common.Exceptions.NotFoundException(nameof(CommunicationTemplate), request.TemplateId.Value.ToString());
+            }
+        }
+
         var channel = CommunicationChannelParser.Parse(request.Channel, nameof(request.Channel));
         campaign.UpdatePlan(
             request.Name,

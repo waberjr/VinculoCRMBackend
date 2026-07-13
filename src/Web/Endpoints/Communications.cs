@@ -5,6 +5,7 @@ using VinculoBackend.Application.Communications.Commands.CreateCommunicationTemp
 using VinculoBackend.Application.Communications.Commands.UpdateCommunicationCampaign;
 using VinculoBackend.Application.Communications.Commands.UpdateCommunicationTemplate;
 using VinculoBackend.Application.Communications.Models;
+using VinculoBackend.Application.Communications.Queries.GetCommunicationCampaignRecipients;
 using VinculoBackend.Application.Communications.Queries.GetCommunicationCampaigns;
 using VinculoBackend.Application.Communications.Queries.GetCommunicationTemplates;
 
@@ -19,6 +20,7 @@ public sealed class Communications : IEndpointGroup
         groupBuilder.MapPost(CreateTemplate, "Templates");
         groupBuilder.MapPut(UpdateTemplate, "Templates/{id}");
         groupBuilder.MapGet(Campaigns, "Campaigns");
+        groupBuilder.MapGet(CampaignRecipients, "Campaigns/{id}/Recipients");
         groupBuilder.MapPost(CreateCampaign, "Campaigns");
         groupBuilder.MapPut(UpdateCampaign, "Campaigns/{id}");
         groupBuilder.MapPost(CancelCampaign, "Campaigns/{id}/Cancel");
@@ -57,6 +59,15 @@ public sealed class Communications : IEndpointGroup
     {
         var result = await sender.Send(new GetCommunicationCampaignsQuery(), cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<Results<Ok<IReadOnlyCollection<CommunicationRecipientDto>>, NotFound>> CampaignRecipients(
+        ISender sender,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetCommunicationCampaignRecipientsQuery(id), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
     public static async Task<Created<Guid>> CreateCampaign(

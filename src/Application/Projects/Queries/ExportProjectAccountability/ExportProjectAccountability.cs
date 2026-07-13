@@ -42,6 +42,15 @@ public sealed class ExportProjectAccountabilityQueryHandler : IRequestHandler<Ex
         var builder = new StringBuilder();
         builder.AppendLine("Projeto,Meta,Arrecadado,Doadores,Doacoes");
         builder.AppendLine($"{Csv(report.ProjectName)},{report.GoalAmount},{report.RaisedAmount},{report.DonorsCount},{report.DonationsCount}");
+        builder.AppendLine("Campanha filtrada,Inicio,Fim");
+        builder.AppendLine($"{Csv(report.FilterCampaignName ?? "Todas")},{report.FilterStartDateUtc:yyyy-MM-dd},{report.FilterEndDateUtc:yyyy-MM-dd}");
+        builder.AppendLine();
+        builder.AppendLine("Campanha,Arrecadado,Doadores,Doacoes,Ticket medio,Participacao");
+        foreach (var campaign in report.Campaigns)
+        {
+            builder.AppendLine($"{Csv(campaign.Name)},{campaign.RaisedAmount},{campaign.DonorsCount},{campaign.DonationsCount},{campaign.AverageDonationAmount},{campaign.SharePercentage}%");
+        }
+
         builder.AppendLine();
         builder.AppendLine("Doador,Campanha,Valor,Pagamento,Recibo,Referencia");
         foreach (var donation in report.Donations)

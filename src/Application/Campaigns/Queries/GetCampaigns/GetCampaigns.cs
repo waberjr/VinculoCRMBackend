@@ -67,23 +67,37 @@ public sealed class GetCampaignsQueryHandler : IRequestHandler<GetCampaignsQuery
             .ToListAsync(cancellationToken);
 
         var campaignIds = campaigns.Select(campaign => campaign.Id).ToArray();
+        var campaignIdSet = campaignIds.ToHashSet();
 
-        var donationMetrics = campaignIds.Length == 0
+        var campaignDonations = campaignIds.Length == 0
             ? []
-            : await _context.Donations
+            : (await _context.Donations
                 .AsNoTracking()
-                .Where(donation => donation.CampaignId.HasValue && campaignIds.Contains(donation.CampaignId.Value))
-                .GroupBy(donation => donation.CampaignId!.Value)
-                .Select(group => new
+                .Where(donation => donation.CampaignId.HasValue)
+                .Select(donation => new
                 {
-                    CampaignId = group.Key,
-                    ConfirmedAmount = group
-                        .Where(donation => donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
-                        .Sum(donation => (decimal?)donation.Amount) ?? 0,
-                    DonorsCount = group.Select(donation => donation.DonorId).Distinct().Count(),
-                    DonationsCount = group.Count(),
+                    CampaignId = donation.CampaignId!.Value,
+                    donation.Status,
+                    donation.PaidAtUtc,
+                    donation.Amount,
+                    donation.DonorId,
                 })
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken))
+                .Where(donation => campaignIdSet.Contains(donation.CampaignId))
+                .ToList();
+
+        var donationMetrics = campaignDonations
+            .GroupBy(donation => donation.CampaignId)
+            .Select(group => new
+            {
+                CampaignId = group.Key,
+                ConfirmedAmount = group
+                    .Where(donation => donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
+                    .Sum(donation => donation.Amount),
+                DonorsCount = group.Select(donation => donation.DonorId).Distinct().Count(),
+                DonationsCount = group.Count(),
+            })
+            .ToList();
 
         var metricsByCampaignId = donationMetrics.ToDictionary(metric => metric.CampaignId);
 

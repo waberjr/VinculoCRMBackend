@@ -71,37 +71,39 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
         var previousAllowsCommunication = donor.AllowsCommunication;
         var previousDoNotContact = donor.DoNotContact;
 
-        donor.FullName = request.FullName.Trim();
-        donor.PersonType = SystemOptionMapper.Parse<DonorPersonType>(request.PersonType);
-        donor.Status = request.DoNotContact ? DonorStatus.DoNotContact : SystemOptionMapper.Parse<DonorStatus>(request.Status);
-        donor.SourceOptionId = string.IsNullOrWhiteSpace(request.Source)
-            ? null
-            : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.DonorSource, request.Source, cancellationToken);
-        donor.RelationshipProfileOptionId = string.IsNullOrWhiteSpace(request.RelationshipProfile)
-            ? null
-            : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.RelationshipProfile, request.RelationshipProfile, cancellationToken);
-        donor.PreferredContactChannelOptionId = string.IsNullOrWhiteSpace(request.PreferredContactChannel)
-            ? null
-            : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.ContactChannel, request.PreferredContactChannel, cancellationToken);
-        donor.Document = normalizedDocument;
-        donor.Email = request.Email?.Trim();
-        donor.Phone = request.Phone?.Trim();
-        donor.WhatsApp = request.WhatsApp?.Trim();
-        donor.City = request.City?.Trim();
-        donor.State = request.State?.Trim();
-        donor.AllowsCommunication = request.AllowsCommunication;
-        donor.DoNotContact = request.DoNotContact;
-        donor.DoNotContactReason = request.DoNotContactReason?.Trim();
-        donor.AssignedUserId = request.AssignedUserId;
-        donor.AcquisitionCampaignId = request.AcquisitionCampaignId;
-        donor.Notes = request.Notes?.Trim();
+        donor.Update(
+            request.FullName,
+            SystemOptionMapper.Parse<DonorPersonType>(request.PersonType),
+            SystemOptionMapper.Parse<DonorStatus>(request.Status),
+            string.IsNullOrWhiteSpace(request.Source)
+                ? null
+                : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.DonorSource, request.Source, cancellationToken),
+            string.IsNullOrWhiteSpace(request.RelationshipProfile)
+                ? null
+                : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.RelationshipProfile, request.RelationshipProfile, cancellationToken),
+            string.IsNullOrWhiteSpace(request.PreferredContactChannel)
+                ? null
+                : await OptionLookup.RequiredIdAsync(_context, ConfigurableOptionCategory.ContactChannel, request.PreferredContactChannel, cancellationToken),
+            normalizedDocument,
+            request.Email,
+            request.Phone,
+            request.WhatsApp,
+            donor.BirthDate,
+            request.City,
+            request.State,
+            donor.AddressLine1,
+            donor.AddressLine2,
+            donor.PostalCode,
+            request.AllowsCommunication,
+            request.DoNotContact,
+            request.DoNotContactReason,
+            request.AssignedUserId,
+            request.AcquisitionCampaignId,
+            request.Notes);
 
         await ApplyContactsAsync(donor, request, organizationId, cancellationToken);
 
-        await _context.DonorTagAssignments
-            .Where(assignment => assignment.DonorId == donor.Id)
-            .ExecuteUpdateAsync(setters => setters.SetProperty(assignment => assignment.IsDeleted, true), cancellationToken);
-
+        var tagIds = new List<Guid>();
         foreach (var tagName in request.Tags.Select(tag => tag.Trim()).Where(tag => tag.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase))
         {
             var normalizedTag = tagName.ToLower();
@@ -117,10 +119,27 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
                 tagId = donorTag.Id;
             }
 
-            donor.TagAssignments.Add(new DonorTagAssignment
+            tagIds.Add(tagId.Value);
+        }
+
+        var existingTagAssignments = await _context.DonorTagAssignments
+            .IgnoreQueryFilters()
+            .Where(assignment => assignment.OrganizationId == organizationId && assignment.DonorId == donor.Id)
+            .ToListAsync(cancellationToken);
+
+        foreach (var assignment in existingTagAssignments)
+        {
+            assignment.IsDeleted = !tagIds.Contains(assignment.DonorTagId);
+        }
+
+        var existingTagIds = existingTagAssignments.Select(assignment => assignment.DonorTagId).ToHashSet();
+        foreach (var tagId in tagIds.Where(tagId => !existingTagIds.Contains(tagId)))
+        {
+            _context.DonorTagAssignments.Add(new DonorTagAssignment
             {
                 OrganizationId = organizationId,
-                DonorTagId = tagId.Value,
+                DonorId = donor.Id,
+                DonorTagId = tagId,
             });
         }
 
@@ -204,38 +223,25 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             .Where(email => email.DonorId == donor.Id)
             .ExecuteUpdateAsync(setters => setters.SetProperty(email => email.IsDeleted, true), cancellationToken);
 
-        var phoneIndex = 0;
-        foreach (var phone in phones.Where(phone => !string.IsNullOrWhiteSpace(phone.Number)))
-        {
-            var type = string.IsNullOrWhiteSpace(phone.TypeCode) ? PhoneType.Mobile : SystemOptionMapper.Parse<PhoneType>(phone.TypeCode);
-            donor.Phones.Add(new DonorPhone
-            {
-                OrganizationId = organizationId,
-                DonorId = donor.Id,
-                Type = type,
-                Number = phone.Number.Trim(),
-                IsPrimary = phone.IsPrimary || phoneIndex == 0,
-            });
-            phoneIndex++;
-        }
+        var replacementPhones = donor.PreparePhonesForReplacement(phones
+            .Where(phone => !string.IsNullOrWhiteSpace(phone.Number))
+            .Select(phone => DonorPhone.Create(
+                organizationId,
+                donor.Id,
+                string.IsNullOrWhiteSpace(phone.TypeCode) ? PhoneType.Mobile : SystemOptionMapper.Parse<PhoneType>(phone.TypeCode),
+                phone.Number,
+                phone.IsPrimary)));
 
-        var emailIndex = 0;
-        foreach (var email in emails.Where(email => !string.IsNullOrWhiteSpace(email.Address)))
-        {
-            var type = string.IsNullOrWhiteSpace(email.TypeCode) ? EmailType.Personal : SystemOptionMapper.Parse<EmailType>(email.TypeCode);
-            donor.Emails.Add(new DonorEmail
-            {
-                OrganizationId = organizationId,
-                DonorId = donor.Id,
-                Type = type,
-                Address = email.Address.Trim(),
-                IsPrimary = email.IsPrimary || emailIndex == 0,
-            });
-            emailIndex++;
-        }
+        var replacementEmails = donor.PrepareEmailsForReplacement(emails
+            .Where(email => !string.IsNullOrWhiteSpace(email.Address))
+            .Select(email => DonorEmail.Create(
+                organizationId,
+                donor.Id,
+                string.IsNullOrWhiteSpace(email.TypeCode) ? EmailType.Personal : SystemOptionMapper.Parse<EmailType>(email.TypeCode),
+                email.Address,
+                email.IsPrimary)));
 
-        donor.Phone = donor.Phones.OrderByDescending(phone => phone.IsPrimary).Select(phone => phone.Number).FirstOrDefault();
-        donor.WhatsApp = phones.FirstOrDefault(phone => !string.IsNullOrWhiteSpace(phone.TypeCode) && SystemOptionMapper.Parse<PhoneType>(phone.TypeCode) == PhoneType.WhatsApp)?.Number?.Trim() ?? donor.Phone;
-        donor.Email = donor.Emails.OrderByDescending(email => email.IsPrimary).Select(email => email.Address).FirstOrDefault();
+        _context.DonorPhones.AddRange(replacementPhones);
+        _context.DonorEmails.AddRange(replacementEmails);
     }
 }

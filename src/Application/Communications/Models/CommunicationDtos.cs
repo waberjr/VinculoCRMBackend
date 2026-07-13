@@ -26,3 +26,17 @@ public sealed class CommunicationCampaignDto
     public int RecipientsCount { get; init; }
     public int BlockedByConsentCount { get; init; }
 }
+
+public sealed class CommunicationRecipientDto
+{
+    public Guid Id { get; init; }
+    public Guid DonorId { get; init; }
+    public string DonorName { get; init; } = string.Empty;
+    public string? DonorEmail { get; init; }
+    public string? DonorPhone { get; init; }
+    public bool AllowsCommunication { get; init; }
+    public bool DoNotContact { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public string? BlockReason { get; init; }
+    public Guid? TimelineEntryId { get; init; }
+}

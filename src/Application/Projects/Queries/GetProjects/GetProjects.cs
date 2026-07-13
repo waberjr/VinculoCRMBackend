@@ -69,11 +69,11 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
             .ToListAsync(cancellationToken);
 
         var projectIds = projects.Select(project => project.Id).ToArray();
+        var projectIdSet = projectIds.ToHashSet();
         var campaignsByProjectId = projectIds.Length == 0
             ? []
-            : await _context.ProjectCampaigns
+            : (await _context.ProjectCampaigns
                 .AsNoTracking()
-                .Where(link => projectIds.Contains(link.ProjectId))
                 .OrderBy(link => link.Campaign.Name)
                 .Select(link => new
                 {
@@ -81,7 +81,9 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
                     link.CampaignId,
                     CampaignName = link.Campaign.Name,
                 })
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken))
+                .Where(link => projectIdSet.Contains(link.ProjectId))
+                .ToList();
 
         var campaignLookup = campaignsByProjectId
             .GroupBy(link => link.ProjectId)
@@ -97,10 +99,9 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
 
         var projectDonations = projectIds.Length == 0
             ? []
-            : await _context.DonationProjects
+            : (await _context.DonationProjects
                 .AsNoTracking()
                 .Where(link =>
-                    projectIds.Contains(link.ProjectId) &&
                     link.Donation.Status == DonationStatus.Confirmed)
                 .Select(link => new
                 {
@@ -108,7 +109,9 @@ public sealed class GetProjectsQueryHandler : IRequestHandler<GetProjectsQuery, 
                     link.Donation.Amount,
                     link.Donation.DonorId,
                 })
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken))
+                .Where(link => projectIdSet.Contains(link.ProjectId))
+                .ToList();
 
         var metricsLookup = projectDonations
             .GroupBy(donation => donation.ProjectId)

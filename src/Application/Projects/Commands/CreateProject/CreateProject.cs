@@ -37,11 +37,10 @@ public sealed class CreateProjectCommandHandler : IRequestHandler<CreateProjectC
         {
             var existingCampaigns = await _context.Campaigns
                 .AsNoTracking()
-                .Where(campaign => campaignIds.Contains(campaign.Id))
                 .Select(campaign => campaign.Id)
                 .ToListAsync(cancellationToken);
 
-            if (existingCampaigns.Count != campaignIds.Length)
+            if (campaignIds.Except(existingCampaigns).Any())
             {
                 throw new Common.Exceptions.NotFoundException(nameof(Campaign), "Uma ou mais campanhas informadas nao foram encontradas.");
             }

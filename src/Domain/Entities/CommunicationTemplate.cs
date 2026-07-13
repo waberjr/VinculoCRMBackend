@@ -1,4 +1,5 @@
 using VinculoBackend.Domain.Enums;
+using VinculoBackend.Domain.Exceptions;
 
 namespace VinculoBackend.Domain.Entities;
 
@@ -32,9 +33,19 @@ public class CommunicationTemplate : OrganizationEntity
         IEnumerable<string> variables,
         bool isActive)
     {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            throw new DomainValidationException("Informe o nome do template de comunicacao.");
+        }
+
+        if (string.IsNullOrWhiteSpace(body))
+        {
+            throw new DomainValidationException("Informe o conteudo do template de comunicacao.");
+        }
+
         Name = name.Trim();
         Channel = channel;
-        Subject = subject?.Trim();
+        Subject = string.IsNullOrWhiteSpace(subject) ? null : subject.Trim();
         Body = body.Trim();
         Variables = string.Join(",", variables.Select(variable => variable.Trim()).Where(variable => variable.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase));
         IsActive = isActive;

@@ -26,14 +26,10 @@ public sealed class CommunicationCampaignRecipientPlanner : ICommunicationCampai
     public async Task PlanRecipientsAsync(CommunicationCampaign campaign, IReadOnlyCollection<Guid> donorIds, CancellationToken cancellationToken)
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
-        var selectedDonorIds = donorIds.Where(id => id != Guid.Empty).Distinct().ToArray();
-        var donorsQuery = _context.Donors.AsNoTracking();
-        if (selectedDonorIds.Length > 0)
-        {
-            donorsQuery = donorsQuery.Where(donor => selectedDonorIds.Contains(donor.Id));
-        }
+        var selectedDonorIds = donorIds.Where(id => id != Guid.Empty).Distinct().ToHashSet();
 
-        var donors = await donorsQuery
+        var donors = await _context.Donors
+            .AsNoTracking()
             .Select(donor => new
             {
                 donor.Id,
@@ -41,6 +37,11 @@ public sealed class CommunicationCampaignRecipientPlanner : ICommunicationCampai
                 donor.DoNotContact,
             })
             .ToListAsync(cancellationToken);
+
+        if (selectedDonorIds.Count > 0)
+        {
+            donors = donors.Where(donor => selectedDonorIds.Contains(donor.Id)).ToList();
+        }
 
         foreach (var donor in donors)
         {

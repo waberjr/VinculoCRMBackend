@@ -12,17 +12,23 @@ using VinculoBackend.Application.DocumentAttachments.Queries.GetDocumentAttachme
 using VinculoBackend.Application.Common.Exceptions;
 using System.Threading.Tasks;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
+using VinculoBackend.Application.Communications.Commands.CreateCommunicationCampaign;
+using VinculoBackend.Application.Communications.Queries.GetCommunicationCampaignRecipients;
+using VinculoBackend.Application.Communications.Queries.GetCommunicationCampaigns;
 using VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
 using VinculoBackend.Application.Donations.Commands.CancelDonation;
 using VinculoBackend.Application.Donations.Commands.ConfirmDonation;
 using VinculoBackend.Application.Donations.Commands.CreateDonation;
 using VinculoBackend.Application.Donations.Commands.RefundDonation;
 using VinculoBackend.Application.Donors.Commands.CreateDonor;
+using VinculoBackend.Application.Donors.Commands.UpdateDonor;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
 using VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
 using VinculoBackend.Application.ImpactProjects.Commands.CreateProject;
+using VinculoBackend.Application.ImpactProjects.Commands.UpdateProject;
 using VinculoBackend.Application.ImpactProjects.Queries.ExportProjectAccountability;
+using VinculoBackend.Application.ImpactProjects.Queries.GetProjectAccountability;
 using VinculoBackend.Application.ImpactProjects.Queries.GetProjects;
 using VinculoBackend.Application.Organizations.Commands.CreateOrganization;
 using VinculoBackend.Application.Organizations.Models;
@@ -211,6 +217,189 @@ public class MvpSmokeTests : TestBase
     }
 
     [Test]
+    public async Task ShouldCreateDoNotContactDonorConsistently()
+    {
+        await CreateAndUseOrganizationAsync();
+
+        var donorId = await TestApp.SendAsync(new CreateDonorCommand
+        {
+            FullName = "Doador Bloqueado",
+            PersonType = "Individual",
+            Status = "Lead",
+            Source = "Manual",
+            Email = "bloqueado@example.com",
+            AllowsCommunication = true,
+            DoNotContact = true,
+            DoNotContactReason = "Solicitou descadastro.",
+        });
+
+        var donor = await TestApp.SendAsync(new GetDonorByIdQuery(donorId));
+
+        donor.ShouldNotBeNull();
+        donor.Status.Code.ShouldBe("do-not-contact");
+        donor.AllowsCommunication.ShouldBeFalse();
+        donor.DoNotContact.ShouldBeTrue();
+        donor.DoNotContactReason.ShouldBe("Solicitou descadastro.");
+    }
+
+    [Test]
+    public async Task ShouldNormalizeDonorContactsAndKeepSinglePrimary()
+    {
+        await CreateAndUseOrganizationAsync();
+
+        var donorId = await TestApp.SendAsync(new CreateDonorCommand
+        {
+            FullName = "Doador Contatos",
+            PersonType = "Individual",
+            Status = "Lead",
+            Source = "Manual",
+            Phones =
+            [
+                new VinculoBackend.Application.Donors.Commands.CreateDonor.DonorPhoneRequest("Mobile", "  62999990000  ", true),
+                new VinculoBackend.Application.Donors.Commands.CreateDonor.DonorPhoneRequest("WhatsApp", "  62988880000  ", true),
+            ],
+            Emails =
+            [
+                new VinculoBackend.Application.Donors.Commands.CreateDonor.DonorEmailRequest("Personal", " pessoal@example.com ", false),
+                new VinculoBackend.Application.Donors.Commands.CreateDonor.DonorEmailRequest("Work", " trabalho@example.com ", false),
+            ],
+        });
+
+        var donor = await TestApp.SendAsync(new GetDonorByIdQuery(donorId));
+
+        donor.ShouldNotBeNull();
+        donor.Phone.ShouldBe("62999990000");
+        donor.WhatsApp.ShouldBe("62988880000");
+        donor.Email.ShouldBe("pessoal@example.com");
+        donor.Phones.Count(phone => phone.IsPrimary).ShouldBe(1);
+        donor.Emails.Count(email => email.IsPrimary).ShouldBe(1);
+    }
+
+    [Test]
+    public async Task ShouldUpdateDonorContactsAndKeepSinglePrimary()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await TestApp.SendAsync(new CreateDonorCommand
+        {
+            FullName = "Doador Atualizar Contatos",
+            PersonType = "Individual",
+            Status = "Lead",
+            Source = "Manual",
+            Phone = "62911110000",
+            Email = "antigo@example.com",
+            AllowsCommunication = true,
+            Tags = ["antiga", "recorrente"],
+        });
+
+        await TestApp.SendAsync(new UpdateDonorCommand
+        {
+            Id = donorId,
+            FullName = "Doador Atualizar Contatos",
+            PersonType = "Individual",
+            Status = "Active",
+            Source = "Manual",
+            AllowsCommunication = true,
+            Phones =
+            [
+                new VinculoBackend.Application.Donors.Commands.UpdateDonor.DonorPhoneRequest("Mobile", "  62922220000  ", false),
+                new VinculoBackend.Application.Donors.Commands.UpdateDonor.DonorPhoneRequest("WhatsApp", "  62933330000  ", true),
+                new VinculoBackend.Application.Donors.Commands.UpdateDonor.DonorPhoneRequest("Work", "  6233334444  ", true),
+            ],
+            Emails =
+            [
+                new VinculoBackend.Application.Donors.Commands.UpdateDonor.DonorEmailRequest("Personal", " novo@example.com ", false),
+                new VinculoBackend.Application.Donors.Commands.UpdateDonor.DonorEmailRequest("Work", " trabalho@example.com ", true),
+            ],
+            Tags = ["nova", "recorrente"],
+        });
+
+        var donor = await TestApp.SendAsync(new GetDonorByIdQuery(donorId));
+
+        donor.ShouldNotBeNull();
+        donor.Phone.ShouldBe("62933330000");
+        donor.WhatsApp.ShouldBe("62933330000");
+        donor.Email.ShouldBe("trabalho@example.com");
+        donor.Phones.Count(phone => phone.IsPrimary).ShouldBe(1);
+        donor.Phones.ShouldNotContain(phone => phone.Number == "62911110000");
+        donor.Emails.Count(email => email.IsPrimary).ShouldBe(1);
+        donor.Emails.ShouldNotContain(email => email.Address == "antigo@example.com");
+        donor.Tags.Select(tag => tag.Name.ToLowerInvariant()).ShouldBe(["nova", "recorrente"], ignoreOrder: true);
+        donor.Tags.ShouldNotContain(tag => tag.Name.Equals("antiga", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Test]
+    public async Task ShouldUpdateDonorConsentAndRegisterTimeline()
+    {
+        await CreateAndUseOrganizationAsync();
+        var donorId = await CreateDonorAsync("Doador Consentimento");
+
+        await TestApp.SendAsync(new UpdateDonorCommand
+        {
+            Id = donorId,
+            FullName = "Doador Consentimento",
+            PersonType = "Individual",
+            Status = "Active",
+            Source = "Manual",
+            AllowsCommunication = true,
+            DoNotContact = true,
+            DoNotContactReason = "Nao deseja mais contato.",
+        });
+
+        var donor = await TestApp.SendAsync(new GetDonorByIdQuery(donorId));
+        var timeline = await TestApp.SendAsync(new GetDonorTimelineQuery(donorId));
+
+        donor.ShouldNotBeNull();
+        donor.Status.Code.ShouldBe("do-not-contact");
+        donor.AllowsCommunication.ShouldBeFalse();
+        donor.DoNotContactReason.ShouldBe("Nao deseja mais contato.");
+        timeline.ShouldNotBeNull();
+        timeline.Items.ShouldContain(entry => entry.Description == "Nao deseja mais contato.");
+    }
+
+    [Test]
+    public async Task ShouldPlanCommunicationRespectingConsentAndTimeline()
+    {
+        await CreateAndUseOrganizationAsync();
+        var allowedDonorId = await CreateDonorAsync("Doador Comunicavel");
+        var blockedDonorId = await TestApp.SendAsync(new CreateDonorCommand
+        {
+            FullName = "Doador Nao Contatar",
+            PersonType = "Individual",
+            Status = "Lead",
+            Source = "Manual",
+            AllowsCommunication = true,
+            DoNotContact = true,
+            DoNotContactReason = "Nao quer comunicacoes.",
+        });
+
+        var campaignId = await TestApp.SendAsync(new CreateCommunicationCampaignCommand(
+            "Boletim interno",
+            "Email",
+            "Doadores selecionados",
+            null,
+            null,
+            [allowedDonorId, blockedDonorId]));
+
+        var campaigns = await TestApp.SendAsync(new GetCommunicationCampaignsQuery());
+        var recipients = await TestApp.SendAsync(new GetCommunicationCampaignRecipientsQuery(campaignId));
+        var allowedTimeline = await TestApp.SendAsync(new GetDonorTimelineQuery(allowedDonorId));
+        var blockedTimeline = await TestApp.SendAsync(new GetDonorTimelineQuery(blockedDonorId));
+
+        var campaign = campaigns.Single(item => item.Id == campaignId);
+        campaign.RecipientsCount.ShouldBe(1);
+        campaign.BlockedByConsentCount.ShouldBe(1);
+        recipients.ShouldNotBeNull();
+        recipients.ShouldContain(recipient => recipient.DonorId == allowedDonorId && recipient.Status == "Planned" && recipient.TimelineEntryId != null);
+        recipients.ShouldContain(recipient => recipient.DonorId == blockedDonorId && recipient.Status == "Blocked" && recipient.TimelineEntryId == null);
+        allowedTimeline.ShouldNotBeNull();
+        allowedTimeline.Items.ShouldContain(entry =>
+            entry.Title == "Comunicacao planejada: Boletim interno" &&
+            entry.Description.Contains("Sem envio real.", StringComparison.Ordinal));
+        blockedTimeline.ShouldNotBeNull();
+        blockedTimeline.Items.ShouldNotContain(entry => entry.Title == "Comunicacao planejada: Boletim interno");
+    }
+
+    [Test]
     public async Task ShouldCreateAndListProjects()
     {
         await CreateAndUseOrganizationAsync();
@@ -237,6 +426,63 @@ public class MvpSmokeTests : TestBase
             project.Name == "Projeto Smoke" &&
             project.Status == "Active" &&
             project.GoalAmount == 2500);
+    }
+
+    [Test]
+    public async Task ShouldUpdateProjectCampaignLinksWithoutDuplicatingArchivedLinks()
+    {
+        await CreateAndUseOrganizationAsync();
+        var firstCampaignId = await TestApp.SendAsync(new CreateCampaignCommand
+        {
+            Name = "Campanha Projeto A",
+            Type = "Fundraising",
+            Channel = "Email",
+            GoalAmount = 1000,
+            StartDateUtc = DateTimeOffset.UtcNow.AddDays(-1),
+            EndDateUtc = DateTimeOffset.UtcNow.AddDays(30),
+        });
+        var secondCampaignId = await TestApp.SendAsync(new CreateCampaignCommand
+        {
+            Name = "Campanha Projeto B",
+            Type = "Fundraising",
+            Channel = "Email",
+            GoalAmount = 1000,
+            StartDateUtc = DateTimeOffset.UtcNow.AddDays(-1),
+            EndDateUtc = DateTimeOffset.UtcNow.AddDays(30),
+        });
+        var projectId = await TestApp.SendAsync(new CreateProjectCommand
+        {
+            Name = "Projeto Vinculos",
+            GoalAmount = 2000,
+            Status = "Active",
+            CampaignIds = [firstCampaignId, secondCampaignId],
+        });
+
+        await TestApp.SendAsync(new UpdateProjectCommand
+        {
+            Id = projectId,
+            Name = "Projeto Vinculos",
+            GoalAmount = 2000,
+            Status = "Active",
+            CampaignIds = [firstCampaignId],
+        });
+        await TestApp.SendAsync(new UpdateProjectCommand
+        {
+            Id = projectId,
+            Name = "Projeto Vinculos",
+            GoalAmount = 2000,
+            Status = "Active",
+            CampaignIds = [firstCampaignId, secondCampaignId],
+        });
+
+        var projects = await TestApp.SendAsync(new GetProjectsQuery
+        {
+            Search = "Vinculos",
+            PageSize = 10,
+        });
+
+        var project = projects.Items.Single(item => item.Id == projectId);
+        project.Campaigns.Select(campaign => campaign.Id).ShouldBe([firstCampaignId, secondCampaignId], ignoreOrder: true);
     }
 
     [Test]
@@ -291,6 +537,18 @@ public class MvpSmokeTests : TestBase
             Status = "Active",
             CampaignIds = [campaignId],
         });
+        _ = await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = donorId,
+            CampaignId = campaignId,
+            ProjectId = projectId,
+            Amount = 75,
+            Type = "OneTime",
+            Status = "Confirmed",
+            PaymentMethod = "Pix",
+            PaidAtUtc = DateTimeOffset.UtcNow.AddDays(-10),
+            Reference = "PREST-OLD-SMOKE",
+        });
         var donationId = await TestApp.SendAsync(new CreateDonationCommand
         {
             DonorId = donorId,
@@ -304,6 +562,22 @@ public class MvpSmokeTests : TestBase
             Reference = "PREST-SMOKE-001",
         });
         await TestApp.SendAsync(new IssueReceiptCommand(donationId));
+
+        var filteredReport = await TestApp.SendAsync(new GetProjectAccountabilityQuery(
+            projectId,
+            campaignId,
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddDays(1)));
+        filteredReport.ShouldNotBeNull();
+        filteredReport.FilterCampaignId.ShouldBe(campaignId);
+        filteredReport.DonationsCount.ShouldBe(1);
+        filteredReport.RaisedAmount.ShouldBe(250);
+        filteredReport.Campaigns.Single().DonationsCount.ShouldBe(1);
+        filteredReport.Campaigns.Single().DonorsCount.ShouldBe(1);
+        filteredReport.Campaigns.Single().AverageDonationAmount.ShouldBe(250);
+        filteredReport.Campaigns.Single().SharePercentage.ShouldBe(100);
+        filteredReport.Donations.ShouldContain(donation => donation.Reference == "PREST-SMOKE-001");
+        filteredReport.Donations.ShouldNotContain(donation => donation.Reference == "PREST-OLD-SMOKE");
 
         var csv = await TestApp.SendAsync(new ExportProjectAccountabilityQuery(projectId, "csv", null, null, null));
         csv.ShouldNotBeNull();

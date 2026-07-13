@@ -95,15 +95,39 @@ public sealed class GetProjectAccountabilityQueryHandler : IRequestHandler<GetPr
             })
             .ToListAsync(cancellationToken);
 
+        var raisedAmount = donations.Sum(donation => donation.Amount);
         var campaigns = projectCampaigns
-            .Select(campaign => new ProjectCampaignAccountabilityDto
+            .Where(campaign => request.CampaignId is null || campaign.CampaignId == request.CampaignId)
+            .Select(campaign =>
+            {
+                var campaignDonations = donations
+                    .Where(donation => donation.CampaignId == campaign.CampaignId)
+                    .ToList();
+                var campaignRaisedAmount = campaignDonations.Sum(donation => donation.Amount);
+
+                return new ProjectCampaignAccountabilityDto
+                {
+                    Id = campaign.CampaignId,
+                    Name = campaign.CampaignName,
+                    RaisedAmount = campaignRaisedAmount,
+                    DonationsCount = campaignDonations.Count,
+                    DonorsCount = campaignDonations.Select(donation => donation.DonorId).Distinct().Count(),
+                    AverageDonationAmount = campaignDonations.Count == 0 ? 0 : campaignRaisedAmount / campaignDonations.Count,
+                    SharePercentage = raisedAmount == 0 ? 0 : Math.Round(campaignRaisedAmount / raisedAmount * 100, 2),
+                };
+            })
+            .ToList();
+        var filterCampaignName = request.CampaignId is null
+            ? null
+            : projectCampaigns
+                .Where(campaign => campaign.CampaignId == request.CampaignId)
+                .Select(campaign => campaign.CampaignName)
+                .FirstOrDefault();
+        var availableCampaigns = projectCampaigns
+            .Select(campaign => new ProjectCampaignDto
             {
                 Id = campaign.CampaignId,
                 Name = campaign.CampaignName,
-                RaisedAmount = donations
-                    .Where(donation => donation.CampaignId == campaign.CampaignId)
-                    .Sum(donation => donation.Amount),
-                DonationsCount = donations.Count(donation => donation.CampaignId == campaign.CampaignId),
             })
             .ToList();
 
@@ -120,17 +144,36 @@ public sealed class GetProjectAccountabilityQueryHandler : IRequestHandler<GetPr
             })
             .ToListAsync(cancellationToken);
 
+        if (request.StartDateUtc is not null)
+        {
+            impactUpdates = impactUpdates
+                .Where(update => update.PublishedAtUtc >= request.StartDateUtc)
+                .ToList();
+        }
+
+        if (request.EndDateUtc is not null)
+        {
+            impactUpdates = impactUpdates
+                .Where(update => update.PublishedAtUtc <= request.EndDateUtc)
+                .ToList();
+        }
+
         return new ProjectAccountabilityDto
         {
             ProjectId = project.Id,
             ProjectName = project.Name,
             Description = project.Description,
             GoalAmount = project.GoalAmount,
-            RaisedAmount = donations.Sum(donation => donation.Amount),
+            RaisedAmount = raisedAmount,
             DonationsCount = donations.Count,
             DonorsCount = donations.Select(donation => donation.DonorId).Distinct().Count(),
+            FilterCampaignId = request.CampaignId,
+            FilterCampaignName = filterCampaignName,
+            FilterStartDateUtc = request.StartDateUtc,
+            FilterEndDateUtc = request.EndDateUtc,
             StartDateUtc = project.StartDateUtc,
             EndDateUtc = project.EndDateUtc,
+            AvailableCampaigns = availableCampaigns,
             Campaigns = campaigns,
             Donations = donations,
             ImpactUpdates = impactUpdates,
