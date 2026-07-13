@@ -17,17 +17,22 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public GetDashboardOverviewQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetDashboardOverviewQueryHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<DashboardOverviewDto> Handle(GetDashboardOverviewQuery request, CancellationToken cancellationToken)
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
-        var today = DateTimeOffset.UtcNow;
+        var today = _timeProvider.GetUtcNow();
         var start = request.StartDateUtc ?? new DateTimeOffset(today.Year, today.Month, 1, 0, 0, 0, TimeSpan.Zero);
         var end = request.EndDateUtc ?? start.AddMonths(1).AddTicks(-1);
 
@@ -121,7 +126,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
         {
             Metrics =
             [
-                new("Arrecadacao confirmada", FormatCurrency(confirmedAmount), PeriodLabel(start, end), monthlyGoal <= 0 ? "Meta não configurada" : $"{Math.Round(confirmedAmount * 100 / monthlyGoal)}% da meta"),
+                new("Arrecadacao confirmada", FormatCurrency(confirmedAmount), PeriodLabel(start, end, today), monthlyGoal <= 0 ? "Meta não configurada" : $"{Math.Round(confirmedAmount * 100 / monthlyGoal)}% da meta"),
                 new("Doadores ativos", activeDonors.ToString(CultureInfo.InvariantCulture), "Status Active", $"{totalDonors} cadastrados"),
                 new("Pendencias", pendingOrOverdue.ToString(CultureInfo.InvariantCulture), "Cobranças pendentes ou vencidas", $"{dueToday} tarefas hoje"),
                 new("Ticket medio", FormatCurrency(averageDonation), "Doacoes confirmadas", $"{confirmedDonations.Count} confirmadas"),
@@ -152,7 +157,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
                 new("priority-overdue-donations", "Cobranças vencidas", $"{pendingOrOverdue} contribuições exigem acompanhamento.", "/contribuições", new Dictionary<string, string> { ["status"] = "Overdue" }, pendingOrOverdue > 0 ? "yellow" : "blue"),
                 new("priority-risk-donors", "Doadores em risco", $"{atRiskDonors} doadores precisam de acao de retencao.", "/doadores", new Dictionary<string, string> { ["segment"] = "AtRisk" }, atRiskDonors > 0 ? "yellow" : "blue"),
                 new("priority-leads", "Leads sem conversao", $"{leadsWithoutDonation} cadastros ainda sem primeira contribuição.", "/doadores", new Dictionary<string, string> { ["segment"] = "LeadsWithoutDonation" }, "blue"),
-                new("priority-documents", "Cadastros incompletos", $"{missingDocuments} doadores estáo sem documento cadastrado.", "/doadores", new Dictionary<string, string>(), missingDocuments > 0 ? "yellow" : "blue"),
+                new("priority-documents", "Cadastros incompletos", $"{missingDocuments} doadores estáo sem documento cadastrado.", "/doadores", new Dictionary<string, string> { ["documentStatus"] = "Missing" }, missingDocuments > 0 ? "yellow" : "blue"),
             ],
             Funnel =
             [
@@ -198,8 +203,8 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
     private static string Percent(int value, int total) =>
         total <= 0 ? "0%" : $"{Math.Round(value * 100m / total)}%";
 
-    private static string PeriodLabel(DateTimeOffset start, DateTimeOffset end) =>
-        start.Date == new DateTimeOffset(DateTimeOffset.UtcNow.Year, DateTimeOffset.UtcNow.Month, 1, 0, 0, 0, TimeSpan.Zero).Date
+    private static string PeriodLabel(DateTimeOffset start, DateTimeOffset end, DateTimeOffset today) =>
+        start.Date == new DateTimeOffset(today.Year, today.Month, 1, 0, 0, 0, TimeSpan.Zero).Date
             ? "Mes atual"
             : $"{start:dd/MM/yyyy} a {end:dd/MM/yyyy}";
 }

@@ -30,11 +30,13 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public GetDonorsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetDonorsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<PaginatedResult<DonorListItemDto>> Handle(GetDonorsQuery request, CancellationToken cancellationToken)
@@ -198,15 +200,27 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
 
     private IQueryable<Domain.Entities.Donor> ApplySegmentFilter(IQueryable<Domain.Entities.Donor> query, string? segment)
     {
+        var now = _timeProvider.GetUtcNow();
+        var newDonorsStartUtc = now.AddDays(-30);
+        var staleContactStartUtc = now.AddDays(-30);
+
         return segment switch
         {
             "Inactive" => query.Where(donor => donor.Status == DonorStatus.Inactive),
             "AtRisk" => query.Where(donor => donor.Status == DonorStatus.AtRisk),
+            "OverdueDonations" => query.Where(donor => _context.Donations.Any(donation =>
+                donation.DonorId == donor.Id &&
+                (donation.Status == DonationStatus.Overdue ||
+                    (donation.Status == DonationStatus.Pending && donation.ExpectedAtUtc < now)))),
             "LeadsWithoutDonation" => query.Where(donor =>
                 donor.Status == DonorStatus.Lead &&
                 !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)),
-            "NewDonors" => query.Where(donor => _context.Donations.Any(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)),
+            "NewDonors" => query.Where(donor => donor.Created >= newDonorsStartUtc),
             "NoRecentContact" => query.Where(donor =>
+                !_context.DonorTimelineEntries.Any(entry =>
+                    entry.DonorId == donor.Id &&
+                    entry.Type == TimelineEntryType.Contact &&
+                    entry.OccurredAtUtc >= staleContactStartUtc) &&
                 !_context.RelationshipTasks.Any(task =>
                     task.DonorId == donor.Id &&
                     (task.Status == RelationshipTaskStatus.Open || task.Status == RelationshipTaskStatus.InProgress))),

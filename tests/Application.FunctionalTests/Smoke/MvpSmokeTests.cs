@@ -25,6 +25,8 @@ using VinculoBackend.Application.Donors.Commands.UpdateDonor;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
 using VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
+using VinculoBackend.Application.Donors.Queries.GetDonorOperationalSegments;
+using VinculoBackend.Application.Donors.Queries.GetDonors;
 using VinculoBackend.Application.ImpactProjects.Commands.CreateProject;
 using VinculoBackend.Application.ImpactProjects.Commands.UpdateProject;
 using VinculoBackend.Application.ImpactProjects.Queries.ExportProjectAccountability;
@@ -214,6 +216,46 @@ public class MvpSmokeTests : TestBase
             duplicate.Id == donorId &&
             duplicate.MatchedFields.Contains("email") &&
             duplicate.MatchedFields.Contains("phone"));
+    }
+
+    [Test]
+    public async Task ShouldCalculateOperationalDonorSegments()
+    {
+        await CreateAndUseOrganizationAsync();
+        var overdueDonorId = await CreateDonorAsync("Doador Cobranca Vencida");
+        var leadWithoutDonationId = await TestApp.SendAsync(new CreateDonorCommand
+        {
+            FullName = "Lead Sem Conversao",
+            PersonType = "Individual",
+            Status = "Lead",
+            Source = "Manual",
+            Email = "lead-sem-conversao@example.com",
+            AllowsCommunication = true,
+        });
+
+        await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = overdueDonorId,
+            Amount = 90,
+            Type = "OneTime",
+            Status = "Pending",
+            PaymentMethod = "Pix",
+            ExpectedAtUtc = DateTimeOffset.UtcNow.AddDays(-2),
+        });
+
+        var segments = await TestApp.SendAsync(new GetDonorOperationalSegmentsQuery());
+        var overdueSegment = segments.Single(segment => segment.Code == "OverdueDonations");
+        var leadsSegment = segments.Single(segment => segment.Code == "LeadsWithoutDonation");
+        var filteredDonors = await TestApp.SendAsync(new GetDonorsQuery
+        {
+            Segment = "OverdueDonations",
+            PageSize = 10,
+        });
+
+        overdueSegment.Count.ShouldBeGreaterThanOrEqualTo(1);
+        leadsSegment.Count.ShouldBeGreaterThanOrEqualTo(1);
+        filteredDonors.Items.ShouldContain(donor => donor.Id == overdueDonorId);
+        filteredDonors.Items.ShouldNotContain(donor => donor.Id == leadWithoutDonationId);
     }
 
     [Test]

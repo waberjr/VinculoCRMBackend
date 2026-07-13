@@ -7,6 +7,7 @@ using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
 using VinculoBackend.Application.Donors.Queries.GetDonors;
 using VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
+using VinculoBackend.Application.Donors.Queries.GetDonorOperationalSegments;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace VinculoBackend.Web.Endpoints;
@@ -19,6 +20,7 @@ public sealed class Donors : IEndpointGroup
 
         groupBuilder.MapGet(GetDonors);
         groupBuilder.MapGet(FindDuplicates, "Duplicates");
+        groupBuilder.MapGet(GetOperationalSegments, "Segments");
         groupBuilder.MapGet(GetDonorById, "{id}");
         groupBuilder.MapGet(GetDonorTimeline, "{id}/Timeline");
         groupBuilder.MapPost(AddTimelineEntry, "{id}/Timeline");
@@ -67,6 +69,14 @@ public sealed class Donors : IEndpointGroup
             PageSize = pageSize,
         });
 
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<DonorOperationalSegmentDto>>> GetOperationalSegments(
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetDonorOperationalSegmentsQuery(), cancellationToken);
         return TypedResults.Ok(result);
     }
 
