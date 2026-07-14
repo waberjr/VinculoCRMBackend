@@ -12,11 +12,27 @@ using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 
 namespace VinculoBackend.Web.Endpoints;
 
 public sealed class Campaigns : IEndpointGroup
 {
+    public sealed class LandingPageConfigurationFormRequest
+    {
+        public string Title { get; init; } = string.Empty;
+
+        public string? Subtitle { get; init; }
+
+        public string? HeroImageUrl { get; init; }
+
+        public decimal? GoalAmount { get; init; }
+
+        public bool IsActive { get; init; } = true;
+
+        public IFormFile? HeroImage { get; init; }
+    }
+
     public static void Map(RouteGroupBuilder groupBuilder)
     {
         groupBuilder.RequireAuthorization();
@@ -25,7 +41,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(ExportCampaignReport, "Report/Export");
         groupBuilder.MapGet(GetLandingConfiguration, "Landing/{targetType}/{targetId}");
         groupBuilder.MapPost(CreateCampaign);
-        groupBuilder.MapPut(UpsertLandingConfiguration, "Landing/{targetType}/{targetId}");
+        groupBuilder.MapPut(UpsertLandingConfiguration, "Landing/{targetType}/{targetId}").DisableAntiforgery();
         groupBuilder.MapPut(UpdateCampaign, "{id}");
         groupBuilder.MapPost(ActivateCampaign, "{id}/Activate");
         groupBuilder.MapPost(CompleteCampaign, "{id}/Complete");
@@ -69,10 +85,23 @@ public sealed class Campaigns : IEndpointGroup
         ISender sender,
         string targetType,
         Guid targetId,
-        UpsertLandingPageConfigurationCommand command,
+        [FromForm] LandingPageConfigurationFormRequest form,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(command with { TargetType = targetType, TargetId = targetId }, cancellationToken);
+        await using var content = form.HeroImage?.OpenReadStream();
+        var result = await sender.Send(
+            new UpsertLandingPageConfigurationCommand
+            {
+                TargetType = targetType,
+                TargetId = targetId,
+                Title = form.Title,
+                Subtitle = form.Subtitle,
+                HeroImageUrl = form.HeroImageUrl,
+                GoalAmount = form.GoalAmount,
+                IsActive = form.IsActive,
+                HeroImage = ToFileUpload(form.HeroImage, content),
+            },
+            cancellationToken);
         return TypedResults.Ok(result);
     }
 
@@ -132,5 +161,12 @@ public sealed class Campaigns : IEndpointGroup
     {
         await sender.Send(new CancelCampaignCommand(id));
         return TypedResults.NoContent();
+    }
+
+    private static FileUpload? ToFileUpload(IFormFile? file, Stream? content)
+    {
+        return file is null || content is null
+            ? null
+            : new FileUpload(file.FileName, file.ContentType, content, file.Length);
     }
 }

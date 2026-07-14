@@ -78,5 +78,6 @@ public sealed class LandingPageConfigurationDto
 public sealed class PublicLeadSubmissionDto
 {
     public Guid DonorId { get; init; }
+    public Guid? DonationId { get; init; }
     public bool Created { get; init; }
 }

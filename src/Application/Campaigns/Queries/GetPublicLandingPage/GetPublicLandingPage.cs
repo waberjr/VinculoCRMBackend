@@ -9,17 +9,21 @@ public sealed record GetPublicLandingPageQuery(string Kind, Guid Id) : IRequest<
 public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublicLandingPageQuery, PublicLandingPageDto?>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IFileStorageService _fileStorage;
 
-    public GetPublicLandingPageQueryHandler(IApplicationDbContext context)
+    public GetPublicLandingPageQueryHandler(IApplicationDbContext context, IFileStorageService fileStorage)
     {
         _context = context;
+        _fileStorage = fileStorage;
     }
 
     public async Task<PublicLandingPageDto?> Handle(GetPublicLandingPageQuery request, CancellationToken cancellationToken)
     {
-        return request.Kind.Equals("campaign", StringComparison.OrdinalIgnoreCase)
+        var page = request.Kind.Equals("campaign", StringComparison.OrdinalIgnoreCase)
             ? await CampaignLanding(request.Id, cancellationToken)
             : await ProjectLanding(request.Id, cancellationToken);
+
+        return page is null ? null : await ResolveHeroImageUrl(page, cancellationToken);
     }
 
     private async Task<PublicLandingPageDto?> CampaignLanding(Guid id, CancellationToken cancellationToken)
@@ -120,5 +124,29 @@ public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublic
                 EndDateUtc = project.EndDateUtc,
             })
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<PublicLandingPageDto> ResolveHeroImageUrl(PublicLandingPageDto page, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(page.HeroImageUrl) ||
+            !page.HeroImageUrl.StartsWith("storage://", StringComparison.OrdinalIgnoreCase))
+        {
+            return page;
+        }
+
+        var accessUrl = await _fileStorage.CreateTemporaryReadUrlAsync(page.HeroImageUrl, TimeSpan.FromHours(2), cancellationToken);
+        return new PublicLandingPageDto
+        {
+            Kind = page.Kind,
+            Id = page.Id,
+            Title = page.Title,
+            Description = page.Description,
+            HeroImageUrl = accessUrl?.Url,
+            GoalAmount = page.GoalAmount,
+            ConfirmedAmount = page.ConfirmedAmount,
+            DonorsCount = page.DonorsCount,
+            StartDateUtc = page.StartDateUtc,
+            EndDateUtc = page.EndDateUtc,
+        };
     }
 }
