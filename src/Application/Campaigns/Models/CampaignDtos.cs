@@ -99,6 +99,7 @@ public sealed class LandingPageMetricsDto
 {
     public string TargetType { get; init; } = string.Empty;
     public Guid TargetId { get; init; }
+    public int ViewsCount { get; init; }
     public int LeadsCount { get; init; }
     public int PromisesCount { get; init; }
     public int ConfirmedDonationsCount { get; init; }

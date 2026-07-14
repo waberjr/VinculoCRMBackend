@@ -2,11 +2,18 @@ using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Queries.GetLandingPageMetrics;
 
-public sealed record GetLandingPageMetricsQuery(string TargetType, Guid TargetId) : IRequest<LandingPageMetricsDto>;
+public sealed record GetLandingPageMetricsQuery(
+    string TargetType,
+    Guid TargetId,
+    string? Source = null,
+    string? Status = null,
+    DateTimeOffset? StartDateUtc = null,
+    DateTimeOffset? EndDateUtc = null) : IRequest<LandingPageMetricsDto>;
 
 public sealed class GetLandingPageMetricsQueryHandler : IRequestHandler<GetLandingPageMetricsQuery, LandingPageMetricsDto>
 {
@@ -24,36 +31,78 @@ public sealed class GetLandingPageMetricsQueryHandler : IRequestHandler<GetLandi
         _ = RequiredOrganization.From(_organizationContext);
         var targetType = request.TargetType.Trim().ToLowerInvariant();
 
-        var leadEntries = await _context.DonorTimelineEntries
+        var leadQuery = _context.DonorTimelineEntries
             .AsNoTracking()
             .Where(entry =>
                 entry.RelatedEntityType == targetType &&
                 entry.RelatedEntityId == request.TargetId &&
-                entry.Title == "Interesse pela landing page")
-            .Select(entry => entry.Description ?? string.Empty)
-            .ToListAsync(cancellationToken);
+                entry.Title == "Interesse pela landing page");
 
-        var donations = await LandingDonations(targetType, request.TargetId).ToListAsync(cancellationToken);
+        if (request.StartDateUtc is not null)
+        {
+            leadQuery = leadQuery.Where(entry => entry.OccurredAtUtc >= request.StartDateUtc);
+        }
+
+        if (request.EndDateUtc is not null)
+        {
+            leadQuery = leadQuery.Where(entry => entry.OccurredAtUtc <= request.EndDateUtc);
+        }
+
+        var leadEntries = (await leadQuery
+            .Select(entry => entry.Description ?? string.Empty)
+            .ToListAsync(cancellationToken))
+            .Where(description => string.IsNullOrWhiteSpace(request.Source) || LandingPageContent.SourceFromTimeline(description).Equals(request.Source.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        var donations = (await LandingDonations(targetType, request.TargetId).ToListAsync(cancellationToken))
+            .Where(donation => string.IsNullOrWhiteSpace(request.Status) || donation.Status.ToString().Equals(request.Status.Trim(), StringComparison.OrdinalIgnoreCase))
+            .ToArray();
         var confirmedDonations = donations.Where(donation => donation.Status == DonationStatus.Confirmed).ToArray();
+        var viewsCount = await LandingViews(targetType, request.TargetId, request.Source, request.StartDateUtc, request.EndDateUtc).CountAsync(cancellationToken);
 
         return new LandingPageMetricsDto
         {
             TargetType = targetType,
             TargetId = request.TargetId,
-            LeadsCount = leadEntries.Count,
+            ViewsCount = viewsCount,
+            LeadsCount = leadEntries.Length,
             PromisesCount = donations.Count(donation => donation.Status is DonationStatus.Pending or DonationStatus.Overdue),
             ConfirmedDonationsCount = confirmedDonations.Length,
             PromisedAmount = donations
                 .Where(donation => donation.Status is DonationStatus.Pending or DonationStatus.Overdue)
                 .Sum(donation => donation.Amount),
             ConfirmedAmount = confirmedDonations.Sum(donation => donation.Amount),
-            ConversionRate = leadEntries.Count == 0 ? 0 : Math.Round(confirmedDonations.Select(donation => donation.DonorId).Distinct().Count() / (decimal)leadEntries.Count * 100, 2),
+            ConversionRate = leadEntries.Length == 0 ? 0 : Math.Round(confirmedDonations.Select(donation => donation.DonorId).Distinct().Count() / (decimal)leadEntries.Length * 100, 2),
             Sources = leadEntries
                 .GroupBy(LandingPageContent.SourceFromTimeline)
                 .Select(group => new LandingPageSourceMetricDto { Source = group.Key, LeadsCount = group.Count() })
                 .OrderByDescending(metric => metric.LeadsCount)
                 .ToArray(),
         };
+    }
+
+    private IQueryable<LandingPageView> LandingViews(string targetType, Guid targetId, string? source, DateTimeOffset? startDateUtc, DateTimeOffset? endDateUtc)
+    {
+        var query = _context.LandingPageViews
+            .AsNoTracking()
+            .Where(view => view.TargetType == targetType && view.TargetId == targetId);
+
+        if (!string.IsNullOrWhiteSpace(source))
+        {
+            query = query.Where(view => view.Source == source || view.UtmSource == source);
+        }
+
+        if (startDateUtc is not null)
+        {
+            query = query.Where(view => view.ViewedAtUtc >= startDateUtc);
+        }
+
+        if (endDateUtc is not null)
+        {
+            query = query.Where(view => view.ViewedAtUtc <= endDateUtc);
+        }
+
+        return query;
     }
 
     private IQueryable<DonationProjection> LandingDonations(string targetType, Guid targetId)

@@ -105,9 +105,13 @@ public sealed class Campaigns : IEndpointGroup
         ISender sender,
         string targetType,
         Guid targetId,
+        string? source,
+        string? status,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new GetLandingPageMetricsQuery(targetType, targetId), cancellationToken);
+        var result = await sender.Send(new GetLandingPageMetricsQuery(targetType, targetId, source, status, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.Ok(result);
     }
 
@@ -115,11 +119,15 @@ public sealed class Campaigns : IEndpointGroup
         ISender sender,
         string targetType,
         Guid targetId,
+        string? source,
+        string? status,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
         int pageNumber,
         int pageSize,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new GetLandingPageLeadsQuery(targetType, targetId, pageNumber <= 0 ? 1 : pageNumber, pageSize <= 0 ? 20 : pageSize), cancellationToken);
+        var result = await sender.Send(new GetLandingPageLeadsQuery(targetType, targetId, source, status, startDateUtc, endDateUtc, pageNumber <= 0 ? 1 : pageNumber, pageSize <= 0 ? 20 : pageSize), cancellationToken);
         return TypedResults.Ok(result);
     }
 

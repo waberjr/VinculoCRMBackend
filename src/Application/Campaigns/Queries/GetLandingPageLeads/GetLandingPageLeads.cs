@@ -6,7 +6,15 @@ using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Queries.GetLandingPageLeads;
 
-public sealed record GetLandingPageLeadsQuery(string TargetType, Guid TargetId, int PageNumber = 1, int PageSize = 20)
+public sealed record GetLandingPageLeadsQuery(
+    string TargetType,
+    Guid TargetId,
+    string? Source = null,
+    string? Status = null,
+    DateTimeOffset? StartDateUtc = null,
+    DateTimeOffset? EndDateUtc = null,
+    int PageNumber = 1,
+    int PageSize = 20)
     : IRequest<PaginatedResult<LandingPageLeadDto>>;
 
 public sealed class GetLandingPageLeadsQueryHandler : IRequestHandler<GetLandingPageLeadsQuery, PaginatedResult<LandingPageLeadDto>>
@@ -44,11 +52,17 @@ public sealed class GetLandingPageLeadsQueryHandler : IRequestHandler<GetLanding
                 entry.Donor.Phone,
             });
 
-        var total = await query.CountAsync(cancellationToken);
-        var rows = await query
-            .Skip((pageNumber - 1) * pageSize)
-            .Take(pageSize)
-            .ToListAsync(cancellationToken);
+        if (request.StartDateUtc is not null)
+        {
+            query = query.Where(entry => entry.OccurredAtUtc >= request.StartDateUtc);
+        }
+
+        if (request.EndDateUtc is not null)
+        {
+            query = query.Where(entry => entry.OccurredAtUtc <= request.EndDateUtc);
+        }
+
+        var rows = await query.ToListAsync(cancellationToken);
 
         var donorIds = rows.Select(row => row.DonorId).Distinct().ToArray();
         var donationLookup = await LandingDonations(targetType, request.TargetId)
@@ -57,7 +71,7 @@ public sealed class GetLandingPageLeadsQueryHandler : IRequestHandler<GetLanding
             .Select(group => group.OrderByDescending(donation => donation.Created).First())
             .ToDictionaryAsync(donation => donation.DonorId, cancellationToken);
 
-        var items = rows.Select(row =>
+        var filteredItems = rows.Select(row =>
         {
             donationLookup.TryGetValue(row.DonorId, out var donation);
             return new LandingPageLeadDto
@@ -73,14 +87,21 @@ public sealed class GetLandingPageLeadsQueryHandler : IRequestHandler<GetLanding
                 PromisedAmount = donation?.Amount,
                 DonationStatus = donation?.Status.ToString(),
             };
-        }).ToArray();
+        })
+        .Where(lead => string.IsNullOrWhiteSpace(request.Source) || lead.Source.Equals(request.Source.Trim(), StringComparison.OrdinalIgnoreCase))
+        .Where(lead => string.IsNullOrWhiteSpace(request.Status) || (lead.DonationStatus ?? "Lead").Equals(request.Status.Trim(), StringComparison.OrdinalIgnoreCase))
+        .ToArray();
+        var items = filteredItems
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToArray();
 
         return new PaginatedResult<LandingPageLeadDto>
         {
             Items = items,
             PageNumber = pageNumber,
-            TotalPages = (int)Math.Ceiling(total / (double)pageSize),
-            TotalCount = total,
+            TotalPages = (int)Math.Ceiling(filteredItems.Length / (double)pageSize),
+            TotalCount = filteredItems.Length,
         };
     }
 
