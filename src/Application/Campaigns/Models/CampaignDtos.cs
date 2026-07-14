@@ -56,9 +56,27 @@ public sealed class PublicLandingPageDto
     public Guid Id { get; init; }
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
+    public string? HeroImageUrl { get; init; }
     public decimal GoalAmount { get; init; }
     public decimal ConfirmedAmount { get; init; }
     public int DonorsCount { get; init; }
     public DateTimeOffset? StartDateUtc { get; init; }
     public DateTimeOffset? EndDateUtc { get; init; }
+}
+
+public sealed class LandingPageConfigurationDto
+{
+    public string TargetType { get; init; } = string.Empty;
+    public Guid TargetId { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? Subtitle { get; init; }
+    public string? HeroImageUrl { get; init; }
+    public decimal? GoalAmount { get; init; }
+    public bool IsActive { get; init; }
+}
+
+public sealed class PublicLeadSubmissionDto
+{
+    public Guid DonorId { get; init; }
+    public bool Created { get; init; }
 }

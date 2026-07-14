@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using VinculoBackend.Application.ImpactProjects.Services;
+using VinculoBackend.Application.Campaigns.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -61,5 +62,6 @@ public static class DependencyInjection
         services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
         services.AddScoped<IReceiptPdfGenerator, QuestPdfReceiptPdfGenerator>();
         services.AddScoped<IProjectAccountabilityPdfExporter, QuestPdfProjectAccountabilityPdfExporter>();
+        services.AddScoped<ICampaignReportPdfExporter, QuestPdfCampaignReportPdfExporter>();
     }
 }

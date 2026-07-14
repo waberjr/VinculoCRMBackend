@@ -3,10 +3,13 @@ using VinculoBackend.Application.Campaigns.Commands.CancelCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CompleteCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.UpdateCampaign;
+using VinculoBackend.Application.Campaigns.Commands.UpsertLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaignReport;
+using VinculoBackend.Application.Campaigns.Queries.ExportCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -19,7 +22,10 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetCampaigns);
         groupBuilder.MapGet(GetCampaignReport, "Report");
+        groupBuilder.MapGet(ExportCampaignReport, "Report/Export");
+        groupBuilder.MapGet(GetLandingConfiguration, "Landing/{targetType}/{targetId}");
         groupBuilder.MapPost(CreateCampaign);
+        groupBuilder.MapPut(UpsertLandingConfiguration, "Landing/{targetType}/{targetId}");
         groupBuilder.MapPut(UpdateCampaign, "{id}");
         groupBuilder.MapPost(ActivateCampaign, "{id}/Activate");
         groupBuilder.MapPost(CompleteCampaign, "{id}/Complete");
@@ -34,6 +40,39 @@ public sealed class Campaigns : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetCampaignReportQuery(startDateUtc, endDateUtc, status), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<FileContentHttpResult> ExportCampaignReport(
+        ISender sender,
+        string? format,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportCampaignReportQuery(format ?? "csv", startDateUtc, endDateUtc, status), cancellationToken);
+        return TypedResults.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    public static async Task<Results<Ok<LandingPageConfigurationDto>, NotFound>> GetLandingConfiguration(
+        ISender sender,
+        string targetType,
+        Guid targetId,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageConfigurationQuery(targetType, targetId), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<LandingPageConfigurationDto>> UpsertLandingConfiguration(
+        ISender sender,
+        string targetType,
+        Guid targetId,
+        UpsertLandingPageConfigurationCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command with { TargetType = targetType, TargetId = targetId }, cancellationToken);
         return TypedResults.Ok(result);
     }
 

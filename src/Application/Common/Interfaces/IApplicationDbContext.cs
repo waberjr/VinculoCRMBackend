@@ -28,6 +28,8 @@ public interface IApplicationDbContext
 
     DbSet<ProjectCampaign> ProjectCampaigns { get; }
 
+    DbSet<LandingPage> LandingPages { get; }
+
     DbSet<Donation> Donations { get; }
 
     DbSet<DonationProject> DonationProjects { get; }
