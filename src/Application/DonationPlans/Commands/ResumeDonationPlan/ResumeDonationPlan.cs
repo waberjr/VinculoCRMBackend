@@ -13,12 +13,18 @@ public sealed class ResumeDonationPlanCommandHandler : IRequestHandler<ResumeDon
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public ResumeDonationPlanCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public ResumeDonationPlanCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(ResumeDonationPlanCommand request, CancellationToken cancellationToken)
@@ -54,7 +60,7 @@ public sealed class ResumeDonationPlanCommandHandler : IRequestHandler<ResumeDon
             DonorId = plan.DonorId,
             Type = TimelineEntryType.Contact,
             Title = "Plano recorrente retomado",
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(DonationPlan),
             RelatedEntityId = plan.Id,

@@ -12,11 +12,16 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public CancelDonationCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public CancelDonationCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(CancelDonationCommand request, CancellationToken cancellationToken)
@@ -29,7 +34,8 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        donation.Cancel(request.Reason, DateTimeOffset.UtcNow);
+        var now = _timeProvider.GetUtcNow();
+        donation.Cancel(request.Reason, now);
 
         var context = await _context.Donations
             .AsNoTracking()
@@ -51,7 +57,7 @@ public sealed class CancelDonationCommandHandler : IRequestHandler<CancelDonatio
             Type = TimelineEntryType.Donation,
             Title = "Contribuicao cancelada",
             Description = DonationTimelineDescription(donation.CancellationReason, context.CampaignName, context.ProjectName),
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = now,
             RelatedEntityType = nameof(Donation),
             RelatedEntityId = donation.Id,
         });

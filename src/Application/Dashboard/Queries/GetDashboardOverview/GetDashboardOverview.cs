@@ -154,7 +154,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             PriorityActions =
             [
                 new("priority-overdue-tasks", "Tarefas vencidas", $"{overdueTasks} contatos precisam de retorno.", "/tarefas", new Dictionary<string, string> { ["due"] = "Overdue" }, overdueTasks > 0 ? "red" : "blue"),
-                new("priority-overdue-donations", "Cobranças vencidas", $"{pendingOrOverdue} contribuições exigem acompanhamento.", "/contribuições", new Dictionary<string, string> { ["status"] = "Overdue" }, pendingOrOverdue > 0 ? "yellow" : "blue"),
+                new("priority-overdue-donations", "Cobranças vencidas", $"{pendingOrOverdue} contribuições exigem acompanhamento.", "/contribuicoes", new Dictionary<string, string> { ["status"] = "Overdue" }, pendingOrOverdue > 0 ? "yellow" : "blue"),
                 new("priority-risk-donors", "Doadores em risco", $"{atRiskDonors} doadores precisam de acao de retencao.", "/doadores", new Dictionary<string, string> { ["segment"] = "AtRisk" }, atRiskDonors > 0 ? "yellow" : "blue"),
                 new("priority-leads", "Leads sem conversao", $"{leadsWithoutDonation} cadastros ainda sem primeira contribuição.", "/doadores", new Dictionary<string, string> { ["segment"] = "LeadsWithoutDonation" }, "blue"),
                 new("priority-documents", "Cadastros incompletos", $"{missingDocuments} doadores estáo sem documento cadastrado.", "/doadores", new Dictionary<string, string> { ["documentStatus"] = "Missing" }, missingDocuments > 0 ? "yellow" : "blue"),

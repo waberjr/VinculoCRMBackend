@@ -13,12 +13,18 @@ public sealed class PauseDonationPlanCommandHandler : IRequestHandler<PauseDonat
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public PauseDonationPlanCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public PauseDonationPlanCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(PauseDonationPlanCommand request, CancellationToken cancellationToken)
@@ -31,13 +37,14 @@ public sealed class PauseDonationPlanCommandHandler : IRequestHandler<PauseDonat
             throw new Common.Exceptions.NotFoundException(nameof(DonationPlan), request.Id.ToString());
         }
 
-        plan.Pause(DateTimeOffset.UtcNow);
+        var now = _timeProvider.GetUtcNow();
+        plan.Pause(now);
 
-        AddTimeline(plan, _context, _user.Id, "Plano recorrente pausado", null);
+        AddTimeline(plan, _context, _user.Id, "Plano recorrente pausado", null, now);
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    private static void AddTimeline(DonationPlan plan, IApplicationDbContext context, string? userId, string title, string? description)
+    private static void AddTimeline(DonationPlan plan, IApplicationDbContext context, string? userId, string title, string? description, DateTimeOffset occurredAtUtc)
     {
         context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
@@ -46,7 +53,7 @@ public sealed class PauseDonationPlanCommandHandler : IRequestHandler<PauseDonat
             Type = TimelineEntryType.Contact,
             Title = title,
             Description = description,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = occurredAtUtc,
             CreatedByUserId = userId,
             RelatedEntityType = nameof(DonationPlan),
             RelatedEntityId = plan.Id,

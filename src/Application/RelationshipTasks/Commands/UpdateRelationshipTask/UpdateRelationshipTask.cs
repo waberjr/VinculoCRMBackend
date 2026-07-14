@@ -27,12 +27,18 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public UpdateRelationshipTaskCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public UpdateRelationshipTaskCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(UpdateRelationshipTaskCommand request, CancellationToken cancellationToken)
@@ -99,7 +105,7 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             Type = TimelineEntryType.Task,
             Title = "Tarefa atualizada",
             Description = task.Title,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(RelationshipTask),
             RelatedEntityId = task.Id,

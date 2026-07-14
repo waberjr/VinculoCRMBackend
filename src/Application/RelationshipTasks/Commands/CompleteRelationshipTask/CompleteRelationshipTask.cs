@@ -19,12 +19,18 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CompleteRelationshipTaskCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CompleteRelationshipTaskCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(CompleteRelationshipTaskCommand request, CancellationToken cancellationToken)
@@ -37,8 +43,9 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
+        var now = _timeProvider.GetUtcNow();
         var outcome = string.IsNullOrWhiteSpace(request.Outcome) ? (ContactOutcome?)null : SystemOptionMapper.Parse<ContactOutcome>(request.Outcome);
-        task.Complete(outcome, request.CompletionNote, DateTimeOffset.UtcNow);
+        task.Complete(outcome, request.CompletionNote, now);
 
         if (outcome == ContactOutcome.DoNotContact)
         {
@@ -54,7 +61,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                     Type = TimelineEntryType.Contact,
                     Title = "Contato bloqueado",
                     Description = donor.DoNotContactReason,
-                    OccurredAtUtc = DateTimeOffset.UtcNow,
+                    OccurredAtUtc = now,
                     CreatedByUserId = _user.Id,
                     RelatedEntityType = nameof(RelationshipTask),
                     RelatedEntityId = task.Id,

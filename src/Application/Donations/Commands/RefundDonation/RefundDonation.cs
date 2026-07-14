@@ -12,11 +12,16 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public RefundDonationCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public RefundDonationCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(RefundDonationCommand request, CancellationToken cancellationToken)
@@ -29,7 +34,8 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
             throw new Common.Exceptions.NotFoundException(nameof(Donation), request.Id.ToString());
         }
 
-        donation.Refund(request.Reason, DateTimeOffset.UtcNow);
+        var now = _timeProvider.GetUtcNow();
+        donation.Refund(request.Reason, now);
 
         var context = await _context.Donations
             .AsNoTracking()
@@ -51,7 +57,7 @@ public sealed class RefundDonationCommandHandler : IRequestHandler<RefundDonatio
             Type = TimelineEntryType.Donation,
             Title = "Contribuicao estornada",
             Description = DonationTimelineDescription(donation.RefundReason, context.CampaignName, context.ProjectName),
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = now,
             RelatedEntityType = nameof(Donation),
             RelatedEntityId = donation.Id,
         });

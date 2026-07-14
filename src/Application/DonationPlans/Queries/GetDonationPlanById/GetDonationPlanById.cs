@@ -11,17 +11,23 @@ public sealed class GetDonationPlanByIdQueryHandler : IRequestHandler<GetDonatio
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public GetDonationPlanByIdQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetDonationPlanByIdQueryHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<DonationPlanListItemDto?> Handle(GetDonationPlanByIdQuery request, CancellationToken cancellationToken)
     {
         _ = RequiredOrganization.From(_organizationContext);
 
+        var today = _timeProvider.GetUtcNow();
         return await _context.DonationPlans
             .AsNoTracking()
             .Where(plan => plan.Id == request.Id)
@@ -39,16 +45,15 @@ public sealed class GetDonationPlanByIdQueryHandler : IRequestHandler<GetDonatio
                 LastConfirmedAt = _context.Donations
                     .Where(donation => donation.DonationPlanId == plan.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
-                NextExpectedAt = NextExpectedAt(plan.BillingDay),
+                NextExpectedAt = NextExpectedAt(plan.BillingDay, today),
                 CampaignName = plan.Campaign == null ? null : plan.Campaign.Name,
                 Notes = plan.Notes,
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private static DateTimeOffset NextExpectedAt(int billingDay)
+    private static DateTimeOffset NextExpectedAt(int billingDay, DateTimeOffset today)
     {
-        var today = DateTimeOffset.UtcNow;
         var candidate = ExpectedAt(today.Year, today.Month, billingDay);
         return candidate.Date < today.Date ? ExpectedAt(today.AddMonths(1).Year, today.AddMonths(1).Month, billingDay) : candidate;
     }

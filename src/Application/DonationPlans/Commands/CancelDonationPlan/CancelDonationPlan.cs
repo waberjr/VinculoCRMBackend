@@ -12,12 +12,18 @@ public sealed class CancelDonationPlanCommandHandler : IRequestHandler<CancelDon
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CancelDonationPlanCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CancelDonationPlanCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(CancelDonationPlanCommand request, CancellationToken cancellationToken)
@@ -30,7 +36,8 @@ public sealed class CancelDonationPlanCommandHandler : IRequestHandler<CancelDon
             throw new Common.Exceptions.NotFoundException(nameof(DonationPlan), request.Id.ToString());
         }
 
-        plan.Cancel(request.Reason, DateTimeOffset.UtcNow);
+        var now = _timeProvider.GetUtcNow();
+        plan.Cancel(request.Reason, now);
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
@@ -39,7 +46,7 @@ public sealed class CancelDonationPlanCommandHandler : IRequestHandler<CancelDon
             Type = TimelineEntryType.Contact,
             Title = "Plano recorrente cancelado",
             Description = plan.CancellationReason,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = now,
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(DonationPlan),
             RelatedEntityId = plan.Id,

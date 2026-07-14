@@ -30,6 +30,7 @@ public sealed class GetDonorOperationalSegmentsQueryHandler : IRequestHandler<Ge
         var now = _timeProvider.GetUtcNow();
         var newDonorsStartUtc = now.AddDays(-30);
         var staleContactStartUtc = now.AddDays(-30);
+        var staleDonationStartUtc = now.AddDays(-90);
 
         var inactive = await _context.Donors
             .AsNoTracking()
@@ -57,6 +58,23 @@ public sealed class GetDonorOperationalSegmentsQueryHandler : IRequestHandler<Ge
                     donation.DonorId == donor.Id &&
                     donation.Status == DonationStatus.Confirmed &&
                     donation.PaidAtUtc != null), cancellationToken);
+        var noDonation90Days = await _context.Donors
+            .AsNoTracking()
+            .CountAsync(donor =>
+                _context.Donations.Any(donation =>
+                    donation.DonorId == donor.Id &&
+                    donation.Status == DonationStatus.Confirmed &&
+                    donation.PaidAtUtc != null) &&
+                !_context.Donations.Any(donation =>
+                    donation.DonorId == donor.Id &&
+                    donation.Status == DonationStatus.Confirmed &&
+                    donation.PaidAtUtc != null &&
+                    donation.PaidAtUtc >= staleDonationStartUtc), cancellationToken);
+        var interruptedRecurring = await _context.Donors
+            .AsNoTracking()
+            .CountAsync(donor => _context.DonationPlans.Any(plan =>
+                plan.DonorId == donor.Id &&
+                (plan.Status == DonationPlanStatus.Paused || plan.Status == DonationPlanStatus.Cancelled)), cancellationToken);
         var newDonors = await _context.Donors
             .AsNoTracking()
             .CountAsync(donor => donor.Created >= newDonorsStartUtc, cancellationToken);
@@ -66,6 +84,8 @@ public sealed class GetDonorOperationalSegmentsQueryHandler : IRequestHandler<Ge
             Segment("AtRisk", "Em risco", "Doadores marcados para retencao.", atRisk, "yellow"),
             Segment("OverdueDonations", "Cobrancas vencidas", "Doadores com contribuicoes pendentes vencidas.", overdueDonations, "red"),
             Segment("NoRecentContact", "Sem contato recente", "Sem registro de contato nos ultimos 30 dias.", noRecentContact, "blue"),
+            Segment("NoDonation90Days", "Sem doacao ha 90 dias", "Doadores confirmados sem nova doacao recente.", noDonation90Days, "yellow"),
+            Segment("InterruptedRecurring", "Recorrencia interrompida", "Doadores com plano pausado ou cancelado.", interruptedRecurring, "red"),
             Segment("LeadsWithoutDonation", "Leads sem conversao", "Leads ainda sem doacao confirmada.", leadsWithoutDonation, "blue"),
             Segment("Inactive", "Inativos", "Doadores inativos para reativacao.", inactive, "neutral"),
             Segment("NewDonors", "Novos doadores", "Cadastros criados nos ultimos 30 dias.", newDonors, "green"),

@@ -20,6 +20,8 @@ using VinculoBackend.Application.Donations.Commands.CancelDonation;
 using VinculoBackend.Application.Donations.Commands.ConfirmDonation;
 using VinculoBackend.Application.Donations.Commands.CreateDonation;
 using VinculoBackend.Application.Donations.Commands.RefundDonation;
+using VinculoBackend.Application.DonationPlans.Commands.CreateDonationPlan;
+using VinculoBackend.Application.DonationPlans.Commands.PauseDonationPlan;
 using VinculoBackend.Application.Donors.Commands.CreateDonor;
 using VinculoBackend.Application.Donors.Commands.UpdateDonor;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
@@ -256,6 +258,63 @@ public class MvpSmokeTests : TestBase
         leadsSegment.Count.ShouldBeGreaterThanOrEqualTo(1);
         filteredDonors.Items.ShouldContain(donor => donor.Id == overdueDonorId);
         filteredDonors.Items.ShouldNotContain(donor => donor.Id == leadWithoutDonationId);
+    }
+
+    [Test]
+    public async Task ShouldCalculateRetentionOperationalDonorSegments()
+    {
+        await CreateAndUseOrganizationAsync();
+        var staleDonationDonorId = await CreateDonorAsync("Doador Sem Doacao Recente");
+        var interruptedRecurringDonorId = await CreateDonorAsync("Doador Recorrencia Pausada");
+        var recentDonationDonorId = await CreateDonorAsync("Doador Recente");
+
+        await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = staleDonationDonorId,
+            Amount = 130,
+            Type = "OneTime",
+            Status = "Confirmed",
+            PaymentMethod = "Pix",
+            PaidAtUtc = DateTimeOffset.UtcNow.AddDays(-120),
+        });
+        await TestApp.SendAsync(new CreateDonationCommand
+        {
+            DonorId = recentDonationDonorId,
+            Amount = 180,
+            Type = "OneTime",
+            Status = "Confirmed",
+            PaymentMethod = "Pix",
+            PaidAtUtc = DateTimeOffset.UtcNow.AddDays(-10),
+        });
+        var planId = await TestApp.SendAsync(new CreateDonationPlanCommand
+        {
+            DonorId = interruptedRecurringDonorId,
+            ExpectedAmount = 75,
+            BillingDay = 10,
+            PreferredPaymentMethod = "Pix",
+            StartDateUtc = DateTimeOffset.UtcNow.AddMonths(-2),
+        });
+        await TestApp.SendAsync(new PauseDonationPlanCommand(planId));
+
+        var segments = await TestApp.SendAsync(new GetDonorOperationalSegmentsQuery());
+        var staleDonationSegment = segments.Single(segment => segment.Code == "NoDonation90Days");
+        var interruptedRecurringSegment = segments.Single(segment => segment.Code == "InterruptedRecurring");
+        var staleDonationDonors = await TestApp.SendAsync(new GetDonorsQuery
+        {
+            Segment = "NoDonation90Days",
+            PageSize = 10,
+        });
+        var interruptedRecurringDonors = await TestApp.SendAsync(new GetDonorsQuery
+        {
+            Segment = "InterruptedRecurring",
+            PageSize = 10,
+        });
+
+        staleDonationSegment.Count.ShouldBeGreaterThanOrEqualTo(1);
+        interruptedRecurringSegment.Count.ShouldBeGreaterThanOrEqualTo(1);
+        staleDonationDonors.Items.ShouldContain(donor => donor.Id == staleDonationDonorId);
+        staleDonationDonors.Items.ShouldNotContain(donor => donor.Id == recentDonationDonorId);
+        interruptedRecurringDonors.Items.ShouldContain(donor => donor.Id == interruptedRecurringDonorId);
     }
 
     [Test]

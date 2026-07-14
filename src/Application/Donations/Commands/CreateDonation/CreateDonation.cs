@@ -29,12 +29,18 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CreateDonationCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CreateDonationCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(CreateDonationCommand request, CancellationToken cancellationToken)
@@ -129,7 +135,7 @@ public sealed class CreateDonationCommandHandler : IRequestHandler<CreateDonatio
                 ? "Contribuição registrada como confirmada"
                 : "Contribuição registrada",
             Description = DonationTimelineDescription(donation.Amount, campaignName, projectName, request.DonationPlanId is not null),
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(Donation),
             RelatedEntityId = donation.Id,

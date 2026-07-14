@@ -27,12 +27,18 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CreateRelationshipTaskCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CreateRelationshipTaskCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(CreateRelationshipTaskCommand request, CancellationToken cancellationToken)
@@ -100,7 +106,7 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             Type = TimelineEntryType.Task,
             Title = "Tarefa criada",
             Description = task.Title,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(RelationshipTask),
             RelatedEntityId = task.Id,

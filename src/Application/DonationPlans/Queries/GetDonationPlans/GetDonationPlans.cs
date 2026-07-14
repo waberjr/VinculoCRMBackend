@@ -17,11 +17,16 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public GetDonationPlansQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetDonationPlansQueryHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<PaginatedResult<DonationPlanListItemDto>> Handle(GetDonationPlansQuery request, CancellationToken cancellationToken)
@@ -41,6 +46,7 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
             query = query.Where(plan => plan.Status == status);
         }
 
+        var today = _timeProvider.GetUtcNow();
         var projected = query
             .OrderBy(plan => plan.BillingDay)
             .ThenBy(plan => plan.Donor.FullName)
@@ -58,7 +64,7 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
                 LastConfirmedAt = _context.Donations
                     .Where(donation => donation.DonationPlanId == plan.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)
                     .Max(donation => (DateTimeOffset?)donation.PaidAtUtc),
-                NextExpectedAt = NextExpectedAt(plan.BillingDay),
+                NextExpectedAt = NextExpectedAt(plan.BillingDay, today),
                 CampaignName = plan.Campaign == null ? null : plan.Campaign.Name,
                 Notes = plan.Notes,
             });
@@ -66,9 +72,8 @@ public sealed class GetDonationPlansQueryHandler : IRequestHandler<GetDonationPl
         return await PaginatedResult<DonationPlanListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);
     }
 
-    private static DateTimeOffset NextExpectedAt(int billingDay)
+    private static DateTimeOffset NextExpectedAt(int billingDay, DateTimeOffset today)
     {
-        var today = DateTimeOffset.UtcNow;
         var candidate = ExpectedAt(today.Year, today.Month, billingDay);
         return candidate.Date < today.Date ? ExpectedAt(today.AddMonths(1).Year, today.AddMonths(1).Month, billingDay) : candidate;
     }

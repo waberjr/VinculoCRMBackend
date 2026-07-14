@@ -12,11 +12,16 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public ConfirmDonationCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public ConfirmDonationCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(ConfirmDonationCommand request, CancellationToken cancellationToken)
@@ -46,7 +51,7 @@ public sealed class ConfirmDonationCommandHandler : IRequestHandler<ConfirmDonat
             Description = projectName is null
                 ? $"Pagamento confirmado no valor de {donation.Amount:C}."
                 : $"Pagamento confirmado no valor de {donation.Amount:C}. Projeto/destinacao: {projectName}.",
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             RelatedEntityType = nameof(Donation),
             RelatedEntityId = donation.Id,
         });

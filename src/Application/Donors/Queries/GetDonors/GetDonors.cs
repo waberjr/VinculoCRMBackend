@@ -203,6 +203,7 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
         var now = _timeProvider.GetUtcNow();
         var newDonorsStartUtc = now.AddDays(-30);
         var staleContactStartUtc = now.AddDays(-30);
+        var staleDonationStartUtc = now.AddDays(-90);
 
         return segment switch
         {
@@ -215,6 +216,19 @@ public sealed class GetDonorsQueryHandler : IRequestHandler<GetDonorsQuery, Pagi
             "LeadsWithoutDonation" => query.Where(donor =>
                 donor.Status == DonorStatus.Lead &&
                 !_context.Donations.Any(donation => donation.DonorId == donor.Id && donation.Status == DonationStatus.Confirmed && donation.PaidAtUtc != null)),
+            "NoDonation90Days" => query.Where(donor =>
+                _context.Donations.Any(donation =>
+                    donation.DonorId == donor.Id &&
+                    donation.Status == DonationStatus.Confirmed &&
+                    donation.PaidAtUtc != null) &&
+                !_context.Donations.Any(donation =>
+                    donation.DonorId == donor.Id &&
+                    donation.Status == DonationStatus.Confirmed &&
+                    donation.PaidAtUtc != null &&
+                    donation.PaidAtUtc >= staleDonationStartUtc)),
+            "InterruptedRecurring" => query.Where(donor => _context.DonationPlans.Any(plan =>
+                plan.DonorId == donor.Id &&
+                (plan.Status == DonationPlanStatus.Paused || plan.Status == DonationPlanStatus.Cancelled))),
             "NewDonors" => query.Where(donor => donor.Created >= newDonorsStartUtc),
             "NoRecentContact" => query.Where(donor =>
                 !_context.DonorTimelineEntries.Any(entry =>
