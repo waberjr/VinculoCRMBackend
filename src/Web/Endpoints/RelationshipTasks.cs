@@ -2,6 +2,7 @@ using VinculoBackend.Application.RelationshipTasks.Commands.CancelRelationshipTa
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelationshipTask;
 using VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTask;
+using VinculoBackend.Application.RelationshipTasks.Commands.CreateTasksFromSegment;
 using VinculoBackend.Application.RelationshipTasks.Models;
 using VinculoBackend.Application.RelationshipTasks.Queries.GetRelationshipTasks;
 using VinculoBackend.Application.RelationshipTasks.Commands.StartRelationshipTask;
@@ -20,6 +21,7 @@ public sealed class RelationshipTasks : IEndpointGroup
 
         groupBuilder.MapGet(GetTasks);
         groupBuilder.MapPost(CreateTask);
+        groupBuilder.MapPost(CreateTasksFromSegment, "BulkCreateFromSegment");
         groupBuilder.MapPut(UpdateTask, "{id}");
         groupBuilder.MapPost(StartTask, "{id}/Start");
         groupBuilder.MapPost(CompleteTask, "{id}/Complete");
@@ -64,6 +66,15 @@ public sealed class RelationshipTasks : IEndpointGroup
     {
         var id = await sender.Send(command);
         return TypedResults.Created($"/api/Tasks/{id}", id);
+    }
+
+    public static async Task<Ok<CreateTasksFromSegmentResultDto>> CreateTasksFromSegment(
+        ISender sender,
+        CreateTasksFromSegmentCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<NoContent> UpdateTask(ISender sender, Guid id, UpdateRelationshipTaskCommand command)

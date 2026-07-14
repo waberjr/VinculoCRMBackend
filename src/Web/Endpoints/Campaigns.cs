@@ -4,6 +4,8 @@ using VinculoBackend.Application.Campaigns.Commands.CompleteCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.UpdateCampaign;
 using VinculoBackend.Application.Campaigns.Models;
+using VinculoBackend.Application.Campaigns.Queries.GetCampaignReport;
+using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -16,11 +18,33 @@ public sealed class Campaigns : IEndpointGroup
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetCampaigns);
+        groupBuilder.MapGet(GetCampaignReport, "Report");
         groupBuilder.MapPost(CreateCampaign);
         groupBuilder.MapPut(UpdateCampaign, "{id}");
         groupBuilder.MapPost(ActivateCampaign, "{id}/Activate");
         groupBuilder.MapPost(CompleteCampaign, "{id}/Complete");
         groupBuilder.MapPost(CancelCampaign, "{id}/Cancel");
+    }
+
+    public static async Task<Ok<CampaignReportDto>> GetCampaignReport(
+        ISender sender,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        string? status,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetCampaignReportQuery(startDateUtc, endDateUtc, status), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Results<Ok<PublicLandingPageDto>, NotFound>> Landing(
+        ISender sender,
+        string kind,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetPublicLandingPageQuery(kind, id), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
     public static async Task<Ok<PaginatedResult<CampaignListItemDto>>> GetCampaigns(

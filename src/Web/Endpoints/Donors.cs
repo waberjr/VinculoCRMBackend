@@ -5,6 +5,7 @@ using VinculoBackend.Application.Donors.Commands.UpdateDonor;
 using VinculoBackend.Application.Donors.Models;
 using VinculoBackend.Application.Donors.Queries.FindDonorDuplicates;
 using VinculoBackend.Application.Donors.Queries.GetDonorById;
+using VinculoBackend.Application.Donors.Queries.GetDonorNextBestAction;
 using VinculoBackend.Application.Donors.Queries.GetDonorOperationalRisks;
 using VinculoBackend.Application.Donors.Queries.GetDonors;
 using VinculoBackend.Application.Donors.Queries.GetDonorTimeline;
@@ -24,6 +25,7 @@ public sealed class Donors : IEndpointGroup
         groupBuilder.MapGet(GetOperationalSegments, "Segments");
         groupBuilder.MapGet(GetDonorById, "{id}");
         groupBuilder.MapGet(GetOperationalRisks, "{id}/Risks");
+        groupBuilder.MapGet(GetNextBestAction, "{id}/NextBestAction");
         groupBuilder.MapGet(GetDonorTimeline, "{id}/Timeline");
         groupBuilder.MapPost(AddTimelineEntry, "{id}/Timeline");
         groupBuilder.MapPost(CreateDonor);
@@ -94,6 +96,15 @@ public sealed class Donors : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetDonorOperationalRisksQuery(id), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
+    }
+
+    public static async Task<Results<Ok<DonorNextBestActionDto>, NotFound>> GetNextBestAction(
+        ISender sender,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetDonorNextBestActionQuery(id), cancellationToken);
         return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
