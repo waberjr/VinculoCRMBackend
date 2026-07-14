@@ -14,12 +14,18 @@ public sealed class ReissueReceiptCommandHandler : IRequestHandler<ReissueReceip
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public ReissueReceiptCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public ReissueReceiptCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(ReissueReceiptCommand request, CancellationToken cancellationToken)
@@ -32,7 +38,7 @@ public sealed class ReissueReceiptCommandHandler : IRequestHandler<ReissueReceip
             throw new Common.Exceptions.NotFoundException(nameof(Receipt), request.Id.ToString());
         }
 
-        receipt.Reissue(_user.Id, DateTimeOffset.UtcNow);
+        receipt.Reissue(_user.Id, _timeProvider.GetUtcNow());
 
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {

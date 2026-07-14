@@ -13,17 +13,20 @@ public sealed class CreateDocumentAttachmentAccessUrlQueryHandler : IRequestHand
     private readonly IDocumentAttachmentAuditService _auditService;
     private readonly IFileStorageService _fileStorage;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
     public CreateDocumentAttachmentAccessUrlQueryHandler(
         IApplicationDbContext context,
         IDocumentAttachmentAuditService auditService,
         IFileStorageService fileStorage,
-        IOrganizationContext organizationContext)
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _auditService = auditService;
         _fileStorage = fileStorage;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<DocumentAttachmentAccessUrlDto?> Handle(CreateDocumentAttachmentAccessUrlQuery request, CancellationToken cancellationToken)
@@ -41,7 +44,7 @@ public sealed class CreateDocumentAttachmentAccessUrlQueryHandler : IRequestHand
         {
             await _auditService.RecordAsync(document, "AccessUrlGenerated", "Link temporario de documento gerado", cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
-            return new DocumentAttachmentAccessUrlDto(document.Url, DateTimeOffset.UtcNow.AddMinutes(ClampMinutes(request.Minutes)));
+            return new DocumentAttachmentAccessUrlDto(document.Url, _timeProvider.GetUtcNow().AddMinutes(ClampMinutes(request.Minutes)));
         }
 
         var ttl = TimeSpan.FromMinutes(ClampMinutes(request.Minutes));

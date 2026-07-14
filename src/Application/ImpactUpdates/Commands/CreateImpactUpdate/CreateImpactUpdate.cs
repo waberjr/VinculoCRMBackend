@@ -12,12 +12,18 @@ public sealed class CreateImpactUpdateCommandHandler : IRequestHandler<CreateImp
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CreateImpactUpdateCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CreateImpactUpdateCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(CreateImpactUpdateCommand request, CancellationToken cancellationToken)
@@ -35,7 +41,7 @@ public sealed class CreateImpactUpdateCommandHandler : IRequestHandler<CreateImp
             ProjectId = request.ProjectId,
             Title = request.Title.Trim(),
             Content = request.Content.Trim(),
-            PublishedAtUtc = DateTimeOffset.UtcNow,
+            PublishedAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
         };
 

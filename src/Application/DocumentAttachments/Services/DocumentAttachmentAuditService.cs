@@ -13,15 +13,18 @@ public sealed class DocumentAttachmentAuditService : IDocumentAttachmentAuditSer
 {
     private readonly IApplicationDbContext _context;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public DocumentAttachmentAuditService(IApplicationDbContext context, IUser user)
+    public DocumentAttachmentAuditService(IApplicationDbContext context, IUser user, TimeProvider timeProvider)
     {
         _context = context;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task RecordAsync(DocumentAttachment document, string action, string timelineTitle, CancellationToken cancellationToken)
     {
+        var now = _timeProvider.GetUtcNow();
         _context.DocumentAttachmentAuditEntries.Add(new DocumentAttachmentAuditEntry
         {
             OrganizationId = document.OrganizationId,
@@ -31,7 +34,7 @@ public sealed class DocumentAttachmentAuditService : IDocumentAttachmentAuditSer
             Action = action,
             Title = document.Title,
             CreatedByUserId = _user.Id,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = now,
         });
 
         var donorId = await DocumentAttachmentEntityLookup.ResolveDonorIdAsync(_context, document.EntityType, document.EntityId, cancellationToken);
@@ -47,7 +50,7 @@ public sealed class DocumentAttachmentAuditService : IDocumentAttachmentAuditSer
             Type = TimelineEntryType.Note,
             Title = timelineTitle,
             Description = document.Title,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = now,
             CreatedByUserId = _user.Id,
             RelatedEntityType = document.EntityType,
             RelatedEntityId = document.EntityId,

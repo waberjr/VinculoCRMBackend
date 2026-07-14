@@ -9,8 +9,10 @@ public record GetRelationshipTasksQuery : IRequest<PaginatedResult<RelationshipT
 {
     public string? Search { get; init; }
     public Guid? DonorId { get; init; }
+    public string? DonorName { get; init; }
     public Guid? CampaignId { get; init; }
     public string? Status { get; init; }
+    public string? Type { get; init; }
     public string? Priority { get; init; }
     public string? AssignedUserId { get; init; }
     public DateTimeOffset? DueFromUtc { get; init; }
@@ -43,6 +45,12 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
         }
 
         if (request.DonorId is not null) query = query.Where(task => task.DonorId == request.DonorId);
+        if (!string.IsNullOrWhiteSpace(request.DonorName))
+        {
+            var donorName = request.DonorName.Trim().ToLower();
+            query = query.Where(task => task.Donor.FullName.ToLower() == donorName);
+        }
+
         if (request.CampaignId is not null) query = query.Where(task => task.CampaignId == request.CampaignId);
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
@@ -54,6 +62,12 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
         {
             var priority = SystemOptionMapper.Parse<TaskPriority>(request.Priority);
             query = query.Where(task => task.Priority == priority);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Type))
+        {
+            var type = SystemOptionMapper.Parse<TaskType>(request.Type);
+            query = query.Where(task => task.Type == type);
         }
         if (!string.IsNullOrWhiteSpace(request.AssignedUserId)) query = query.Where(task => task.AssignedUserId == request.AssignedUserId);
         if (request.DueFromUtc is not null) query = query.Where(task => task.DueAtUtc >= request.DueFromUtc);

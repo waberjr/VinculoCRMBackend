@@ -14,12 +14,18 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public IssueReceiptCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public IssueReceiptCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(IssueReceiptCommand request, CancellationToken cancellationToken)
@@ -57,7 +63,7 @@ public sealed class IssueReceiptCommandHandler : IRequestHandler<IssueReceiptCom
         var receiptNumber = $"{organization.ReceiptNumberPrefix}-{organization.ReceiptNumberNextSequence:00000}";
         organization.ReceiptNumberNextSequence += 1;
 
-        var receipt = Receipt.Issue(organizationId, donation, receiptNumber, _user.Id, DateTimeOffset.UtcNow);
+        var receipt = Receipt.Issue(organizationId, donation, receiptNumber, _user.Id, _timeProvider.GetUtcNow());
 
         _context.Receipts.Add(receipt);
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry

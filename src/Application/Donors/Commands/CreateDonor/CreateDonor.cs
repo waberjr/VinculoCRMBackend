@@ -46,15 +46,18 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
     private readonly IApplicationDbContext _context;
     private readonly IBrazilianDocumentValidator _documentValidator;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
     public CreateDonorCommandHandler(
         IApplicationDbContext context,
         IBrazilianDocumentValidator documentValidator,
-        IOrganizationContext organizationContext)
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _documentValidator = documentValidator;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(CreateDonorCommand request, CancellationToken cancellationToken)
@@ -126,7 +129,7 @@ public sealed class CreateDonorCommandHandler : IRequestHandler<CreateDonorComma
             Type = TimelineEntryType.Note,
             Title = "Doador criado",
             Description = donor.FullName,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             RelatedEntityType = nameof(Donor),
             RelatedEntityId = donor.Id,
         });

@@ -18,11 +18,16 @@ public sealed class UpdateCommunicationCampaignCommandHandler : IRequestHandler<
 {
     private readonly IApplicationDbContext _context;
     private readonly ICommunicationCampaignRecipientPlanner _recipientPlanner;
+    private readonly TimeProvider _timeProvider;
 
-    public UpdateCommunicationCampaignCommandHandler(IApplicationDbContext context, ICommunicationCampaignRecipientPlanner recipientPlanner)
+    public UpdateCommunicationCampaignCommandHandler(
+        IApplicationDbContext context,
+        ICommunicationCampaignRecipientPlanner recipientPlanner,
+        TimeProvider timeProvider)
     {
         _context = context;
         _recipientPlanner = recipientPlanner;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(UpdateCommunicationCampaignCommand request, CancellationToken cancellationToken)
@@ -56,7 +61,7 @@ public sealed class UpdateCommunicationCampaignCommandHandler : IRequestHandler<
         var recipients = await _context.CommunicationCampaignRecipients
             .Where(recipient => recipient.CommunicationCampaignId == campaign.Id)
             .ToListAsync(cancellationToken);
-        var deletedAtUtc = DateTimeOffset.UtcNow;
+        var deletedAtUtc = _timeProvider.GetUtcNow();
         foreach (var recipient in recipients)
         {
             recipient.SoftDelete(deletedAtUtc);

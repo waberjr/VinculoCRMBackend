@@ -9,10 +9,16 @@ public record GetDonationsQuery : IRequest<PaginatedResult<DonationListItemDto>>
 {
     public string? Search { get; init; }
     public Guid? DonorId { get; init; }
+    public string? DonorName { get; init; }
     public Guid? CampaignId { get; init; }
+    public string? CampaignName { get; init; }
     public Guid? ProjectId { get; init; }
+    public string? ProjectName { get; init; }
     public string? Status { get; init; }
+    public string? Type { get; init; }
     public string? PaymentMethod { get; init; }
+    public string? AmountRange { get; init; }
+    public string? DateReference { get; init; }
     public DateTimeOffset? FromUtc { get; init; }
     public DateTimeOffset? ToUtc { get; init; }
     public int PageNumber { get; init; } = 1;
@@ -48,13 +54,33 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
         }
 
         if (request.DonorId is not null) query = query.Where(donation => donation.DonorId == request.DonorId);
+        if (!string.IsNullOrWhiteSpace(request.DonorName))
+        {
+            var donorName = request.DonorName.Trim().ToLower();
+            query = query.Where(donation => donation.Donor.FullName.ToLower() == donorName);
+        }
+
         if (request.CampaignId is not null) query = query.Where(donation => donation.CampaignId == request.CampaignId);
+        if (!string.IsNullOrWhiteSpace(request.CampaignName))
+        {
+            var campaignName = request.CampaignName.Trim().ToLower();
+            query = query.Where(donation => donation.Campaign != null && donation.Campaign.Name.ToLower() == campaignName);
+        }
+
         if (request.ProjectId is not null)
         {
             query = query.Where(donation =>
                 _context.DonationProjects.Any(projectLink =>
                     projectLink.DonationId == donation.Id &&
                     projectLink.ProjectId == request.ProjectId));
+        }
+        if (!string.IsNullOrWhiteSpace(request.ProjectName))
+        {
+            var projectName = request.ProjectName.Trim().ToLower();
+            query = query.Where(donation =>
+                _context.DonationProjects.Any(projectLink =>
+                    projectLink.DonationId == donation.Id &&
+                    projectLink.Project.Name.ToLower() == projectName));
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status))
@@ -63,13 +89,20 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
             query = query.Where(donation => donation.Status == status);
         }
 
+        if (!string.IsNullOrWhiteSpace(request.Type))
+        {
+            var type = SystemOptionMapper.Parse<DonationType>(request.Type);
+            query = query.Where(donation => donation.Type == type);
+        }
+
         if (!string.IsNullOrWhiteSpace(request.PaymentMethod))
         {
             var paymentMethod = SystemOptionMapper.Parse<PaymentMethod>(request.PaymentMethod);
             query = query.Where(donation => donation.PaymentMethod == paymentMethod);
         }
-        if (request.FromUtc is not null) query = query.Where(donation => donation.ExpectedAtUtc >= request.FromUtc || donation.PaidAtUtc >= request.FromUtc);
-        if (request.ToUtc is not null) query = query.Where(donation => donation.ExpectedAtUtc <= request.ToUtc || donation.PaidAtUtc <= request.ToUtc);
+
+        query = ApplyAmountRangeFilter(query, request.AmountRange);
+        query = ApplyDateFilters(query, request.DateReference, request.FromUtc, request.ToUtc);
 
         var projected = query
             .OrderByDescending(donation => donation.PaidAtUtc ?? donation.ExpectedAtUtc ?? donation.Created)
@@ -106,5 +139,84 @@ public sealed class GetDonationsQueryHandler : IRequestHandler<GetDonationsQuery
             });
 
         return await PaginatedResult<DonationListItemDto>.CreateAsync(projected, request.PageNumber, request.PageSize, cancellationToken);
+    }
+
+    private static IQueryable<Domain.Entities.Donation> ApplyAmountRangeFilter(IQueryable<Domain.Entities.Donation> query, string? amountRange)
+    {
+        return amountRange switch
+        {
+            "UpTo100" => query.Where(donation => donation.Amount <= 100),
+            "From100To1000" => query.Where(donation => donation.Amount > 100 && donation.Amount <= 1000),
+            "Above1000" => query.Where(donation => donation.Amount > 1000),
+            _ => query,
+        };
+    }
+
+    private static IQueryable<Domain.Entities.Donation> ApplyDateFilters(
+        IQueryable<Domain.Entities.Donation> query,
+        string? dateReference,
+        DateTimeOffset? fromUtc,
+        DateTimeOffset? toUtc)
+    {
+        return dateReference switch
+        {
+            "Expected" => ApplyExpectedDateRange(query, fromUtc, toUtc),
+            "Paid" => ApplyPaidDateRange(query, fromUtc, toUtc),
+            _ => ApplyAnyDateRange(query, fromUtc, toUtc),
+        };
+    }
+
+    private static IQueryable<Domain.Entities.Donation> ApplyAnyDateRange(
+        IQueryable<Domain.Entities.Donation> query,
+        DateTimeOffset? fromUtc,
+        DateTimeOffset? toUtc)
+    {
+        if (fromUtc is not null)
+        {
+            query = query.Where(donation => donation.ExpectedAtUtc >= fromUtc || donation.PaidAtUtc >= fromUtc);
+        }
+
+        if (toUtc is not null)
+        {
+            query = query.Where(donation => donation.ExpectedAtUtc <= toUtc || donation.PaidAtUtc <= toUtc);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<Domain.Entities.Donation> ApplyExpectedDateRange(
+        IQueryable<Domain.Entities.Donation> query,
+        DateTimeOffset? fromUtc,
+        DateTimeOffset? toUtc)
+    {
+        if (fromUtc is not null)
+        {
+            query = query.Where(donation => donation.ExpectedAtUtc >= fromUtc);
+        }
+
+        if (toUtc is not null)
+        {
+            query = query.Where(donation => donation.ExpectedAtUtc <= toUtc);
+        }
+
+        return query;
+    }
+
+    private static IQueryable<Domain.Entities.Donation> ApplyPaidDateRange(
+        IQueryable<Domain.Entities.Donation> query,
+        DateTimeOffset? fromUtc,
+        DateTimeOffset? toUtc)
+    {
+        if (fromUtc is not null)
+        {
+            query = query.Where(donation => donation.PaidAtUtc >= fromUtc);
+        }
+
+        if (toUtc is not null)
+        {
+            query = query.Where(donation => donation.PaidAtUtc <= toUtc);
+        }
+
+        return query;
     }
 }

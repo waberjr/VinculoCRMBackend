@@ -43,15 +43,18 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
     private readonly IApplicationDbContext _context;
     private readonly IBrazilianDocumentValidator _documentValidator;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
     public UpdateDonorCommandHandler(
         IApplicationDbContext context,
         IBrazilianDocumentValidator documentValidator,
-        IOrganizationContext organizationContext)
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _documentValidator = documentValidator;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(UpdateDonorCommand request, CancellationToken cancellationToken)
@@ -143,6 +146,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             });
         }
 
+        var now = _timeProvider.GetUtcNow();
         _context.DonorTimelineEntries.Add(new DonorTimelineEntry
         {
             OrganizationId = organizationId,
@@ -150,7 +154,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
             Type = TimelineEntryType.Note,
             Title = "Doador atualizado",
             Description = donor.FullName,
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = now,
             RelatedEntityType = nameof(Donor),
             RelatedEntityId = donor.Id,
         });
@@ -164,7 +168,7 @@ public sealed class UpdateDonorCommandHandler : IRequestHandler<UpdateDonorComma
                 Type = TimelineEntryType.Contact,
                 Title = "Consentimento de comunicação atualizado",
                 Description = donor.DoNotContact ? donor.DoNotContactReason : null,
-                OccurredAtUtc = DateTimeOffset.UtcNow,
+                OccurredAtUtc = now,
                 RelatedEntityType = nameof(Donor),
                 RelatedEntityId = donor.Id,
             });

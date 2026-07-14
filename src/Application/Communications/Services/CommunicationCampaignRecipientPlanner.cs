@@ -15,12 +15,18 @@ public sealed class CommunicationCampaignRecipientPlanner : ICommunicationCampai
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CommunicationCampaignRecipientPlanner(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CommunicationCampaignRecipientPlanner(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task PlanRecipientsAsync(CommunicationCampaign campaign, IReadOnlyCollection<Guid> donorIds, CancellationToken cancellationToken)
@@ -56,7 +62,7 @@ public sealed class CommunicationCampaignRecipientPlanner : ICommunicationCampai
                     Type = TimelineEntryType.Contact,
                     Title = $"Comunicacao planejada: {campaign.Name}",
                     Description = $"Canal: {campaign.Channel}. Publico: {campaign.Audience}. Sem envio real.",
-                    OccurredAtUtc = DateTimeOffset.UtcNow,
+                    OccurredAtUtc = _timeProvider.GetUtcNow(),
                     CreatedByUserId = _user.Id,
                     RelatedEntityType = nameof(CommunicationCampaign),
                     RelatedEntityId = campaign.Id,

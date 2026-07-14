@@ -14,12 +14,18 @@ public sealed class CancelReceiptCommandHandler : IRequestHandler<CancelReceiptC
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public CancelReceiptCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public CancelReceiptCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(CancelReceiptCommand request, CancellationToken cancellationToken)
@@ -41,7 +47,7 @@ public sealed class CancelReceiptCommandHandler : IRequestHandler<CancelReceiptC
             Type = TimelineEntryType.Donation,
             Title = "Recibo cancelado",
             Description = $"Recibo {receipt.Number} cancelado. Motivo: {receipt.CancelReason}",
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
             RelatedEntityType = nameof(Receipt),
             RelatedEntityId = receipt.Id,

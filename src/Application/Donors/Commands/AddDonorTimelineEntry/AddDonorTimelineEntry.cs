@@ -12,12 +12,18 @@ public sealed class AddDonorTimelineEntryCommandHandler : IRequestHandler<AddDon
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public AddDonorTimelineEntryCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user)
+    public AddDonorTimelineEntryCommandHandler(
+        IApplicationDbContext context,
+        IOrganizationContext organizationContext,
+        IUser user,
+        TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task<Guid> Handle(AddDonorTimelineEntryCommand request, CancellationToken cancellationToken)
@@ -37,7 +43,7 @@ public sealed class AddDonorTimelineEntryCommandHandler : IRequestHandler<AddDon
             Type = SystemOptionMapper.Parse<TimelineEntryType>(request.Type),
             Title = request.Title.Trim(),
             Description = request.Description?.Trim(),
-            OccurredAtUtc = DateTimeOffset.UtcNow,
+            OccurredAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
         };
 
