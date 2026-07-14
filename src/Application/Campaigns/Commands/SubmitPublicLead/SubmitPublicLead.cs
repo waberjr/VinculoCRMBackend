@@ -20,6 +20,7 @@ public sealed record SubmitPublicLeadCommand : IRequest<PublicLeadSubmissionDto>
     public string? UtmCampaign { get; init; }
     public string? UtmContent { get; init; }
     public string? UtmTerm { get; init; }
+    public IReadOnlyDictionary<string, string> CustomFields { get; init; } = new Dictionary<string, string>();
 }
 
 public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPublicLeadCommand, PublicLeadSubmissionDto>
@@ -93,7 +94,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             DonorId = donor.Id,
             Type = TimelineEntryType.Note,
             Title = "Interesse pela landing page",
-            Description = LandingTimelineDescription(targetName, request.DonationAmount, sourceDescription),
+            Description = LandingTimelineDescription(targetName, request.DonationAmount, sourceDescription, request.CustomFields),
             OccurredAtUtc = _timeProvider.GetUtcNow(),
             RelatedEntityType = targetType,
             RelatedEntityId = request.TargetId,
@@ -180,7 +181,11 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
-    private static string LandingTimelineDescription(string targetName, decimal? amount, string sourceDescription)
+    private static string LandingTimelineDescription(
+        string targetName,
+        decimal? amount,
+        string sourceDescription,
+        IReadOnlyDictionary<string, string> customFields)
     {
         var parts = new List<string> { targetName };
         if (amount is > 0)
@@ -191,6 +196,11 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
         if (!string.IsNullOrWhiteSpace(sourceDescription))
         {
             parts.Add(sourceDescription);
+        }
+
+        foreach (var field in customFields.Where(field => !string.IsNullOrWhiteSpace(field.Value)))
+        {
+            parts.Add($"{field.Key}: {field.Value.Trim()}");
         }
 
         return string.Join(" ", parts);

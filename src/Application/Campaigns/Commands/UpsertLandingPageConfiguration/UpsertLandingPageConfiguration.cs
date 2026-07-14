@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Campaigns.Models;
+using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
@@ -16,6 +17,8 @@ public sealed record UpsertLandingPageConfigurationCommand : IRequest<LandingPag
     public string? HeroImageUrl { get; init; }
     public decimal? GoalAmount { get; init; }
     public bool IsActive { get; init; } = true;
+    public bool IsPublished { get; init; }
+    public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
     public FileUpload? HeroImage { get; init; }
 }
 
@@ -24,15 +27,18 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
     private readonly IApplicationDbContext _context;
     private readonly IFileStorageService _fileStorage;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
     public UpsertLandingPageConfigurationCommandHandler(
         IApplicationDbContext context,
         IFileStorageService fileStorage,
-        IOrganizationContext organizationContext)
+        IOrganizationContext organizationContext,
+        TimeProvider timeProvider)
     {
         _context = context;
         _fileStorage = fileStorage;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<LandingPageConfigurationDto> Handle(UpsertLandingPageConfigurationCommand request, CancellationToken cancellationToken)
@@ -41,6 +47,8 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
         var targetType = request.TargetType.Trim().ToLowerInvariant();
         await EnsureTargetExists(targetType, request.TargetId, cancellationToken);
         var heroImageUrl = await ResolveHeroImageUrl(organizationId, targetType, request, cancellationToken);
+        var customFieldsJson = LandingPageContent.SerializeFields(request.CustomFields);
+        var publishedAtUtc = request.IsPublished ? _timeProvider.GetUtcNow() : (DateTimeOffset?)null;
 
         var page = await _context.LandingPages
             .FirstOrDefaultAsync(entity => entity.TargetType == targetType && entity.TargetId == request.TargetId, cancellationToken);
@@ -54,7 +62,10 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 request.Subtitle,
                 heroImageUrl,
                 request.GoalAmount,
-                request.IsActive);
+                request.IsActive,
+                request.IsPublished,
+                customFieldsJson,
+                publishedAtUtc);
             _context.LandingPages.Add(page);
         }
         else
@@ -66,7 +77,15 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 await _fileStorage.DeleteAsync(page.HeroImageUrl, cancellationToken);
             }
 
-            page.Update(request.Title, request.Subtitle, heroImageUrl, request.GoalAmount, request.IsActive);
+            page.Update(
+                request.Title,
+                request.Subtitle,
+                heroImageUrl,
+                request.GoalAmount,
+                request.IsActive,
+                request.IsPublished,
+                customFieldsJson,
+                request.IsPublished && page.PublishedAtUtc is not null ? page.PublishedAtUtc : publishedAtUtc);
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -79,6 +98,11 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
             HeroImageUrl = page.HeroImageUrl,
             GoalAmount = page.GoalAmount,
             IsActive = page.IsActive,
+            IsPublished = page.IsPublished,
+            PublishedAtUtc = page.PublishedAtUtc,
+            CustomFields = LandingPageContent.ParseFields(page.CustomFieldsJson),
+            PublicUrl = LandingPageContent.PublicUrl(page.TargetType, page.TargetId),
+            TrackableUrl = LandingPageContent.TrackableUrl(page.TargetType, page.TargetId),
         };
     }
 

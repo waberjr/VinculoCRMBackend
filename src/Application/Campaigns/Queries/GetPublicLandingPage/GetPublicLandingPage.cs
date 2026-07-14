@@ -1,10 +1,11 @@
 using VinculoBackend.Application.Campaigns.Models;
+using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 
-public sealed record GetPublicLandingPageQuery(string Kind, Guid Id) : IRequest<PublicLandingPageDto?>;
+public sealed record GetPublicLandingPageQuery(string Kind, Guid Id, bool IncludeDraft = false) : IRequest<PublicLandingPageDto?>;
 
 public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublicLandingPageQuery, PublicLandingPageDto?>
 {
@@ -20,42 +21,49 @@ public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublic
     public async Task<PublicLandingPageDto?> Handle(GetPublicLandingPageQuery request, CancellationToken cancellationToken)
     {
         var page = request.Kind.Equals("campaign", StringComparison.OrdinalIgnoreCase)
-            ? await CampaignLanding(request.Id, cancellationToken)
-            : await ProjectLanding(request.Id, cancellationToken);
+            ? await CampaignLanding(request.Id, request.IncludeDraft, cancellationToken)
+            : await ProjectLanding(request.Id, request.IncludeDraft, cancellationToken);
 
         return page is null ? null : await ResolveHeroImageUrl(page, cancellationToken);
     }
 
-    private async Task<PublicLandingPageDto?> CampaignLanding(Guid id, CancellationToken cancellationToken)
+    private async Task<PublicLandingPageDto?> CampaignLanding(Guid id, bool includeDraft, CancellationToken cancellationToken)
     {
         return await _context.Campaigns
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(campaign => !campaign.IsDeleted && campaign.Id == id)
+            .Where(campaign => !campaign.IsDeleted && campaign.Id == id &&
+                (includeDraft || _context.LandingPages.IgnoreQueryFilters().Any(page =>
+                    !page.IsDeleted && page.IsActive && page.IsPublished && page.TargetType == "campaign" && page.TargetId == campaign.Id)))
             .Select(campaign => new PublicLandingPageDto
             {
                 Kind = "campaign",
                 Id = campaign.Id,
                 Title = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "campaign" && page.TargetId == campaign.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
                     .Select(page => page.Title)
                     .FirstOrDefault() ?? campaign.Name,
                 Description = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "campaign" && page.TargetId == campaign.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
                     .Select(page => page.Subtitle)
                     .FirstOrDefault() ?? campaign.Description,
                 HeroImageUrl = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "campaign" && page.TargetId == campaign.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
                     .Select(page => page.HeroImageUrl)
                     .FirstOrDefault(),
                 GoalAmount = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "campaign" && page.TargetId == campaign.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
                     .Select(page => page.GoalAmount)
                     .FirstOrDefault() ?? campaign.GoalAmount ?? 0,
+                CustomFields = LandingPageContent.ParseFields(_context.LandingPages
+                    .IgnoreQueryFilters()
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
+                    .Select(page => page.CustomFieldsJson)
+                    .FirstOrDefault()),
                 ConfirmedAmount = _context.Donations
                     .Where(donation =>
                         donation.CampaignId == campaign.Id &&
@@ -76,36 +84,43 @@ public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublic
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task<PublicLandingPageDto?> ProjectLanding(Guid id, CancellationToken cancellationToken)
+    private async Task<PublicLandingPageDto?> ProjectLanding(Guid id, bool includeDraft, CancellationToken cancellationToken)
     {
         return await _context.Projects
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(project => !project.IsDeleted && project.Id == id)
+            .Where(project => !project.IsDeleted && project.Id == id &&
+                (includeDraft || _context.LandingPages.IgnoreQueryFilters().Any(page =>
+                    !page.IsDeleted && page.IsActive && page.IsPublished && page.TargetType == "project" && page.TargetId == project.Id)))
             .Select(project => new PublicLandingPageDto
             {
                 Kind = "project",
                 Id = project.Id,
                 Title = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "project" && page.TargetId == project.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
                     .Select(page => page.Title)
                     .FirstOrDefault() ?? project.Name,
                 Description = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "project" && page.TargetId == project.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
                     .Select(page => page.Subtitle)
                     .FirstOrDefault() ?? project.Description,
                 HeroImageUrl = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "project" && page.TargetId == project.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
                     .Select(page => page.HeroImageUrl)
                     .FirstOrDefault(),
                 GoalAmount = _context.LandingPages
                     .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && page.IsActive && page.TargetType == "project" && page.TargetId == project.Id)
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
                     .Select(page => page.GoalAmount)
                     .FirstOrDefault() ?? project.GoalAmount ?? 0,
+                CustomFields = LandingPageContent.ParseFields(_context.LandingPages
+                    .IgnoreQueryFilters()
+                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
+                    .Select(page => page.CustomFieldsJson)
+                    .FirstOrDefault()),
                 ConfirmedAmount = _context.DonationProjects
                     .Where(link =>
                         link.ProjectId == project.Id &&
@@ -147,6 +162,7 @@ public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublic
             DonorsCount = page.DonorsCount,
             StartDateUtc = page.StartDateUtc,
             EndDateUtc = page.EndDateUtc,
+            CustomFields = page.CustomFields,
         };
     }
 }

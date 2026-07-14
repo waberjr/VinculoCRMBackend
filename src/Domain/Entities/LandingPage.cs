@@ -11,6 +11,9 @@ public class LandingPage : OrganizationEntity
     public string? HeroImageUrl { get; private set; }
     public decimal? GoalAmount { get; private set; }
     public bool IsActive { get; private set; } = true;
+    public bool IsPublished { get; private set; }
+    public DateTimeOffset? PublishedAtUtc { get; private set; }
+    public string? CustomFieldsJson { get; private set; }
 
     public static LandingPage Create(
         Guid organizationId,
@@ -20,7 +23,10 @@ public class LandingPage : OrganizationEntity
         string? subtitle,
         string? heroImageUrl,
         decimal? goalAmount,
-        bool isActive)
+        bool isActive,
+        bool isPublished = false,
+        string? customFieldsJson = null,
+        DateTimeOffset? publishedAtUtc = null)
     {
         var page = new LandingPage
         {
@@ -28,11 +34,19 @@ public class LandingPage : OrganizationEntity
             TargetType = NormalizeTargetType(targetType),
             TargetId = targetId,
         };
-        page.Update(title, subtitle, heroImageUrl, goalAmount, isActive);
+        page.Update(title, subtitle, heroImageUrl, goalAmount, isActive, isPublished, customFieldsJson, publishedAtUtc);
         return page;
     }
 
-    public void Update(string title, string? subtitle, string? heroImageUrl, decimal? goalAmount, bool isActive)
+    public void Update(
+        string title,
+        string? subtitle,
+        string? heroImageUrl,
+        decimal? goalAmount,
+        bool isActive,
+        bool isPublished,
+        string? customFieldsJson,
+        DateTimeOffset? publishedAtUtc)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -49,6 +63,9 @@ public class LandingPage : OrganizationEntity
         HeroImageUrl = TrimToNull(heroImageUrl);
         GoalAmount = goalAmount;
         IsActive = isActive;
+        IsPublished = isPublished;
+        PublishedAtUtc = isPublished ? publishedAtUtc : null;
+        CustomFieldsJson = TrimToNull(customFieldsJson);
     }
 
     private static string NormalizeTargetType(string targetType)

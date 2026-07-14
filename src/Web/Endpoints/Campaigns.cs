@@ -10,9 +10,12 @@ using VinculoBackend.Application.Campaigns.Queries.ExportCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageLeads;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageMetrics;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace VinculoBackend.Web.Endpoints;
 
@@ -30,6 +33,10 @@ public sealed class Campaigns : IEndpointGroup
 
         public bool IsActive { get; init; } = true;
 
+        public bool IsPublished { get; init; }
+
+        public string? CustomFieldsJson { get; init; }
+
         public IFormFile? HeroImage { get; init; }
     }
 
@@ -40,6 +47,9 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetCampaignReport, "Report");
         groupBuilder.MapGet(ExportCampaignReport, "Report/Export");
         groupBuilder.MapGet(GetLandingConfiguration, "Landing/{targetType}/{targetId}");
+        groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
+        groupBuilder.MapGet(GetLandingMetrics, "Landing/{targetType}/{targetId}/Metrics");
+        groupBuilder.MapGet(GetLandingLeads, "Landing/{targetType}/{targetId}/Leads");
         groupBuilder.MapPost(CreateCampaign);
         groupBuilder.MapPut(UpsertLandingConfiguration, "Landing/{targetType}/{targetId}").DisableAntiforgery();
         groupBuilder.MapPut(UpdateCampaign, "{id}");
@@ -81,6 +91,38 @@ public sealed class Campaigns : IEndpointGroup
         return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
+    public static async Task<Results<Ok<PublicLandingPageDto>, NotFound>> PreviewLanding(
+        ISender sender,
+        string targetType,
+        Guid targetId,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetPublicLandingPageQuery(targetType, targetId, IncludeDraft: true), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<LandingPageMetricsDto>> GetLandingMetrics(
+        ISender sender,
+        string targetType,
+        Guid targetId,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageMetricsQuery(targetType, targetId), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<PaginatedResult<LandingPageLeadDto>>> GetLandingLeads(
+        ISender sender,
+        string targetType,
+        Guid targetId,
+        int pageNumber,
+        int pageSize,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageLeadsQuery(targetType, targetId, pageNumber <= 0 ? 1 : pageNumber, pageSize <= 0 ? 20 : pageSize), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
     public static async Task<Ok<LandingPageConfigurationDto>> UpsertLandingConfiguration(
         ISender sender,
         string targetType,
@@ -99,6 +141,8 @@ public sealed class Campaigns : IEndpointGroup
                 HeroImageUrl = form.HeroImageUrl,
                 GoalAmount = form.GoalAmount,
                 IsActive = form.IsActive,
+                IsPublished = form.IsPublished,
+                CustomFields = ParseCustomFields(form.CustomFieldsJson),
                 HeroImage = ToFileUpload(form.HeroImage, content),
             },
             cancellationToken);
@@ -168,5 +212,22 @@ public sealed class Campaigns : IEndpointGroup
         return file is null || content is null
             ? null
             : new FileUpload(file.FileName, file.ContentType, content, file.Length);
+    }
+
+    private static IReadOnlyCollection<LandingPageCustomFieldDto> ParseCustomFields(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<IReadOnlyCollection<LandingPageCustomFieldDto>>(value, new JsonSerializerOptions(JsonSerializerDefaults.Web)) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
     }
 }

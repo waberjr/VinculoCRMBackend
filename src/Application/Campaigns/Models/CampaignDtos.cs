@@ -62,6 +62,7 @@ public sealed class PublicLandingPageDto
     public int DonorsCount { get; init; }
     public DateTimeOffset? StartDateUtc { get; init; }
     public DateTimeOffset? EndDateUtc { get; init; }
+    public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
 }
 
 public sealed class LandingPageConfigurationDto
@@ -73,6 +74,18 @@ public sealed class LandingPageConfigurationDto
     public string? HeroImageUrl { get; init; }
     public decimal? GoalAmount { get; init; }
     public bool IsActive { get; init; }
+    public bool IsPublished { get; init; }
+    public DateTimeOffset? PublishedAtUtc { get; init; }
+    public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
+    public string PublicUrl { get; init; } = string.Empty;
+    public string TrackableUrl { get; init; } = string.Empty;
+}
+
+public sealed class LandingPageCustomFieldDto
+{
+    public string Key { get; init; } = string.Empty;
+    public string Label { get; init; } = string.Empty;
+    public bool Required { get; init; }
 }
 
 public sealed class PublicLeadSubmissionDto
@@ -80,4 +93,37 @@ public sealed class PublicLeadSubmissionDto
     public Guid DonorId { get; init; }
     public Guid? DonationId { get; init; }
     public bool Created { get; init; }
+}
+
+public sealed class LandingPageMetricsDto
+{
+    public string TargetType { get; init; } = string.Empty;
+    public Guid TargetId { get; init; }
+    public int LeadsCount { get; init; }
+    public int PromisesCount { get; init; }
+    public int ConfirmedDonationsCount { get; init; }
+    public decimal PromisedAmount { get; init; }
+    public decimal ConfirmedAmount { get; init; }
+    public decimal ConversionRate { get; init; }
+    public IReadOnlyCollection<LandingPageSourceMetricDto> Sources { get; init; } = [];
+}
+
+public sealed class LandingPageSourceMetricDto
+{
+    public string Source { get; init; } = string.Empty;
+    public int LeadsCount { get; init; }
+}
+
+public sealed class LandingPageLeadDto
+{
+    public Guid DonorId { get; init; }
+    public string DonorName { get; init; } = string.Empty;
+    public string? Email { get; init; }
+    public string? Phone { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; init; }
+    public string Source { get; init; } = string.Empty;
+    public string? UtmSource { get; init; }
+    public Guid? DonationId { get; init; }
+    public decimal? PromisedAmount { get; init; }
+    public string? DonationStatus { get; init; }
 }

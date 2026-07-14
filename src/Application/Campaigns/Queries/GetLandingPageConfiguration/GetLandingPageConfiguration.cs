@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Campaigns.Models;
+using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 
@@ -22,7 +23,7 @@ public sealed class GetLandingPageConfigurationQueryHandler : IRequestHandler<Ge
         _ = RequiredOrganization.From(_organizationContext);
         var targetType = request.TargetType.Trim().ToLowerInvariant();
 
-        return await _context.LandingPages
+        var page = await _context.LandingPages
             .AsNoTracking()
             .Where(page => page.TargetType == targetType && page.TargetId == request.TargetId)
             .Select(page => new LandingPageConfigurationDto
@@ -34,7 +35,14 @@ public sealed class GetLandingPageConfigurationQueryHandler : IRequestHandler<Ge
                 HeroImageUrl = page.HeroImageUrl,
                 GoalAmount = page.GoalAmount,
                 IsActive = page.IsActive,
+                IsPublished = page.IsPublished,
+                PublishedAtUtc = page.PublishedAtUtc,
+                CustomFields = LandingPageContent.ParseFields(page.CustomFieldsJson),
+                PublicUrl = LandingPageContent.PublicUrl(page.TargetType, page.TargetId),
+                TrackableUrl = LandingPageContent.TrackableUrl(page.TargetType, page.TargetId),
             })
             .FirstOrDefaultAsync(cancellationToken);
+
+        return page;
     }
 }
