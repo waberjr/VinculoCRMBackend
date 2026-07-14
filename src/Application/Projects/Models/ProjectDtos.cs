@@ -39,6 +39,7 @@ public sealed class ProjectAccountabilityDto
     public DateTimeOffset? EndDateUtc { get; init; }
     public IReadOnlyCollection<ProjectCampaignDto> AvailableCampaigns { get; init; } = [];
     public IReadOnlyCollection<ProjectCampaignAccountabilityDto> Campaigns { get; init; } = [];
+    public IReadOnlyCollection<ProjectPeriodAccountabilityDto> Periods { get; init; } = [];
     public IReadOnlyCollection<ProjectDonationAccountabilityDto> Donations { get; init; } = [];
     public IReadOnlyCollection<ProjectImpactUpdateAccountabilityDto> ImpactUpdates { get; init; } = [];
 }
@@ -66,6 +67,14 @@ public sealed class ProjectDonationAccountabilityDto
     public decimal Amount { get; init; }
     public DateTimeOffset? PaidAtUtc { get; init; }
     public string? Reference { get; init; }
+}
+
+public sealed class ProjectPeriodAccountabilityDto
+{
+    public string Period { get; init; } = string.Empty;
+    public decimal RaisedAmount { get; init; }
+    public int DonationsCount { get; init; }
+    public int DonorsCount { get; init; }
 }
 
 public sealed class ProjectImpactUpdateAccountabilityDto

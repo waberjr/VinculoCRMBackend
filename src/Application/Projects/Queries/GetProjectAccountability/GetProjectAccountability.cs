@@ -96,6 +96,18 @@ public sealed class GetProjectAccountabilityQueryHandler : IRequestHandler<GetPr
             .ToListAsync(cancellationToken);
 
         var raisedAmount = donations.Sum(donation => donation.Amount);
+        var periods = donations
+            .Where(donation => donation.PaidAtUtc is not null)
+            .GroupBy(donation => donation.PaidAtUtc!.Value.ToString("yyyy-MM"))
+            .OrderBy(group => group.Key)
+            .Select(group => new ProjectPeriodAccountabilityDto
+            {
+                Period = group.Key,
+                RaisedAmount = group.Sum(donation => donation.Amount),
+                DonationsCount = group.Count(),
+                DonorsCount = group.Select(donation => donation.DonorId).Distinct().Count(),
+            })
+            .ToList();
         var campaigns = projectCampaigns
             .Where(campaign => request.CampaignId is null || campaign.CampaignId == request.CampaignId)
             .Select(campaign =>
@@ -175,6 +187,7 @@ public sealed class GetProjectAccountabilityQueryHandler : IRequestHandler<GetPr
             EndDateUtc = project.EndDateUtc,
             AvailableCampaigns = availableCampaigns,
             Campaigns = campaigns,
+            Periods = periods,
             Donations = donations,
             ImpactUpdates = impactUpdates,
         };

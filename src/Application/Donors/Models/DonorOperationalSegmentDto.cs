@@ -8,3 +8,14 @@ public sealed class DonorOperationalSegmentDto
     public int Count { get; init; }
     public string Tone { get; init; } = "neutral";
 }
+
+public sealed class DonorOperationalRiskDto
+{
+    public string Code { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string Description { get; init; } = string.Empty;
+    public string Tone { get; init; } = "neutral";
+    public string ActionLabel { get; init; } = string.Empty;
+    public string Route { get; init; } = string.Empty;
+    public IReadOnlyDictionary<string, string> QueryParams { get; init; } = new Dictionary<string, string>();
+}
