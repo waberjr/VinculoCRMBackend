@@ -100,6 +100,7 @@ public sealed class GetLandingPageLeadsQueryHandler : IRequestHandler<GetLanding
         {
             Items = items,
             PageNumber = pageNumber,
+            PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(filteredItems.Length / (double)pageSize),
             TotalCount = filteredItems.Length,
         };

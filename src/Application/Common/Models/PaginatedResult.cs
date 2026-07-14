@@ -4,6 +4,7 @@ public sealed class PaginatedResult<T>
 {
     public IReadOnlyCollection<T> Items { get; init; } = [];
     public int PageNumber { get; init; }
+    public int PageSize { get; init; }
     public int TotalPages { get; init; }
     public int TotalCount { get; init; }
     public bool HasPreviousPage => PageNumber > 1;
@@ -28,6 +29,7 @@ public sealed class PaginatedResult<T>
         {
             Items = items,
             PageNumber = pageNumber,
+            PageSize = pageSize,
             TotalPages = (int)Math.Ceiling(count / (double)pageSize),
             TotalCount = count,
         };

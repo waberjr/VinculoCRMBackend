@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Entities;
 
@@ -9,7 +11,9 @@ public sealed record RecordLandingPageViewCommand(
     string? Source,
     string? UtmSource,
     string? UtmMedium,
-    string? UtmCampaign) : IRequest;
+    string? UtmCampaign,
+    string? IpAddress,
+    string? UserAgent) : IRequest;
 
 public sealed class RecordLandingPageViewCommandHandler : IRequestHandler<RecordLandingPageViewCommand>
 {
@@ -31,19 +35,53 @@ public sealed class RecordLandingPageViewCommandHandler : IRequestHandler<Record
             return;
         }
 
+        var viewedAtUtc = _timeProvider.GetUtcNow();
+        var windowStartedAtUtc = DeduplicationWindow(viewedAtUtc);
+        var fingerprintHash = Fingerprint(
+            targetType,
+            request.TargetId,
+            TrimToNull(request.Source) ?? TrimToNull(request.UtmSource) ?? "landing",
+            TrimToNull(request.IpAddress) ?? "unknown-ip",
+            TrimToNull(request.UserAgent) ?? "unknown-agent");
+
+        var alreadyRecorded = await _context.LandingPageViews
+            .IgnoreQueryFilters()
+            .AnyAsync(view =>
+                !view.IsDeleted &&
+                view.OrganizationId == organizationId.Value &&
+                view.TargetType == targetType &&
+                view.TargetId == request.TargetId &&
+                view.FingerprintHash == fingerprintHash &&
+                view.WindowStartedAtUtc == windowStartedAtUtc,
+                cancellationToken);
+
+        if (alreadyRecorded)
+        {
+            return;
+        }
+
         _context.LandingPageViews.Add(new LandingPageView
         {
             OrganizationId = organizationId.Value,
             TargetType = targetType,
             TargetId = request.TargetId,
+            FingerprintHash = fingerprintHash,
             Source = TrimToNull(request.Source),
             UtmSource = TrimToNull(request.UtmSource),
             UtmMedium = TrimToNull(request.UtmMedium),
             UtmCampaign = TrimToNull(request.UtmCampaign),
-            ViewedAtUtc = _timeProvider.GetUtcNow(),
+            WindowStartedAtUtc = windowStartedAtUtc,
+            ViewedAtUtc = viewedAtUtc,
         });
 
-        await _context.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Public landing metrics should be idempotent when the same visitor is recorded twice in the same window.
+        }
     }
 
     private async Task<Guid?> TargetOrganization(string targetType, Guid targetId, CancellationToken cancellationToken)
@@ -67,6 +105,18 @@ public sealed class RecordLandingPageViewCommandHandler : IRequestHandler<Record
         }
 
         return null;
+    }
+
+    private static DateTimeOffset DeduplicationWindow(DateTimeOffset viewedAtUtc)
+    {
+        var utc = viewedAtUtc.UtcDateTime;
+        return new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, 0, 0, TimeSpan.Zero);
+    }
+
+    private static string Fingerprint(string targetType, Guid targetId, string source, string ipAddress, string userAgent)
+    {
+        var input = $"{targetType}|{targetId:N}|{source}|{ipAddress}|{userAgent}";
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
     }
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

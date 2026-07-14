@@ -22,12 +22,23 @@ public sealed class PublicLandingPages : IEndpointGroup
         string? utm_source,
         string? utm_medium,
         string? utm_campaign,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetPublicLandingPageQuery(kind, id), cancellationToken);
         if (result is not null)
         {
-            await sender.Send(new RecordLandingPageViewCommand(kind, id, source, utm_source, utm_medium, utm_campaign), cancellationToken);
+            await sender.Send(
+                new RecordLandingPageViewCommand(
+                    kind,
+                    id,
+                    source,
+                    utm_source,
+                    utm_medium,
+                    utm_campaign,
+                    httpContext.Connection.RemoteIpAddress?.ToString(),
+                    httpContext.Request.Headers.UserAgent.ToString()),
+                cancellationToken);
         }
 
         return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);

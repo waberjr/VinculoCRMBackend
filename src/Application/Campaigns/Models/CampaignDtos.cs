@@ -107,12 +107,33 @@ public sealed class LandingPageMetricsDto
     public decimal ConfirmedAmount { get; init; }
     public decimal ConversionRate { get; init; }
     public IReadOnlyCollection<LandingPageSourceMetricDto> Sources { get; init; } = [];
+    public IReadOnlyCollection<LandingPageDailyMetricDto> Daily { get; init; } = [];
 }
 
 public sealed class LandingPageSourceMetricDto
 {
     public string Source { get; init; } = string.Empty;
+    public int ViewsCount { get; init; }
     public int LeadsCount { get; init; }
+}
+
+public sealed class LandingPageDailyMetricDto
+{
+    public string Date { get; init; } = string.Empty;
+    public int ViewsCount { get; init; }
+    public int LeadsCount { get; init; }
+}
+
+public sealed class LandingPageTemplateDto
+{
+    public Guid Id { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string? Subtitle { get; init; }
+    public string? HeroImageUrl { get; init; }
+    public decimal? GoalAmount { get; init; }
+    public bool IsActive { get; init; }
+    public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
 }
 
 public sealed class LandingPageLeadDto

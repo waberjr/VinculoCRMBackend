@@ -9,10 +9,12 @@ public sealed class LandingPageViewConfiguration : IEntityTypeConfiguration<Land
     public void Configure(EntityTypeBuilder<LandingPageView> builder)
     {
         builder.Property(entity => entity.TargetType).HasMaxLength(40).IsRequired();
+        builder.Property(entity => entity.FingerprintHash).HasMaxLength(128).IsRequired();
         builder.Property(entity => entity.Source).HasMaxLength(120);
         builder.Property(entity => entity.UtmSource).HasMaxLength(120);
         builder.Property(entity => entity.UtmMedium).HasMaxLength(120);
         builder.Property(entity => entity.UtmCampaign).HasMaxLength(120);
         builder.HasIndex(entity => new { entity.OrganizationId, entity.TargetType, entity.TargetId, entity.ViewedAtUtc });
+        builder.HasIndex(entity => new { entity.OrganizationId, entity.TargetType, entity.TargetId, entity.FingerprintHash, entity.WindowStartedAtUtc }).IsUnique();
     }
 }

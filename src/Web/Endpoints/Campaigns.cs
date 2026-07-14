@@ -2,16 +2,19 @@ using VinculoBackend.Application.Campaigns.Commands.ActivateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CancelCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CompleteCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
+using VinculoBackend.Application.Campaigns.Commands.CreateLandingPageTemplate;
 using VinculoBackend.Application.Campaigns.Commands.UpdateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.UpsertLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.ExportCampaignReport;
+using VinculoBackend.Application.Campaigns.Queries.ExportLandingPageLeads;
 using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageLeads;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageMetrics;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageTemplates;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -47,15 +50,26 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetCampaignReport, "Report");
         groupBuilder.MapGet(ExportCampaignReport, "Report/Export");
         groupBuilder.MapGet(GetLandingConfiguration, "Landing/{targetType}/{targetId}");
+        groupBuilder.MapGet(GetLandingTemplates, "Landing/Templates");
         groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
         groupBuilder.MapGet(GetLandingMetrics, "Landing/{targetType}/{targetId}/Metrics");
         groupBuilder.MapGet(GetLandingLeads, "Landing/{targetType}/{targetId}/Leads");
+        groupBuilder.MapGet(ExportLandingLeads, "Landing/{targetType}/{targetId}/Leads/Export");
         groupBuilder.MapPost(CreateCampaign);
+        groupBuilder.MapPost(CreateLandingTemplate, "Landing/Templates");
         groupBuilder.MapPut(UpsertLandingConfiguration, "Landing/{targetType}/{targetId}").DisableAntiforgery();
         groupBuilder.MapPut(UpdateCampaign, "{id}");
         groupBuilder.MapPost(ActivateCampaign, "{id}/Activate");
         groupBuilder.MapPost(CompleteCampaign, "{id}/Complete");
         groupBuilder.MapPost(CancelCampaign, "{id}/Cancel");
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<LandingPageTemplateDto>>> GetLandingTemplates(
+        ISender sender,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageTemplatesQuery(), cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Ok<CampaignReportDto>> GetCampaignReport(
@@ -131,6 +145,20 @@ public sealed class Campaigns : IEndpointGroup
         return TypedResults.Ok(result);
     }
 
+    public static async Task<FileContentHttpResult> ExportLandingLeads(
+        ISender sender,
+        string targetType,
+        Guid targetId,
+        string? source,
+        string? status,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportLandingPageLeadsQuery(targetType, targetId, source, status, startDateUtc, endDateUtc), cancellationToken);
+        return TypedResults.File(result.Content, result.ContentType, result.FileName);
+    }
+
     public static async Task<Ok<LandingPageConfigurationDto>> UpsertLandingConfiguration(
         ISender sender,
         string targetType,
@@ -155,6 +183,15 @@ public sealed class Campaigns : IEndpointGroup
             },
             cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<Created<Guid>> CreateLandingTemplate(
+        ISender sender,
+        CreateLandingPageTemplateCommand command,
+        CancellationToken cancellationToken)
+    {
+        var id = await sender.Send(command, cancellationToken);
+        return TypedResults.Created($"/api/Campaigns/Landing/Templates/{id}", id);
     }
 
     public static async Task<Results<Ok<PublicLandingPageDto>, NotFound>> Landing(
