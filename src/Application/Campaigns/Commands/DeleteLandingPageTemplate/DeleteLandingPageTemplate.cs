@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.Campaigns.Commands.DeleteLandingPageTemplate;
@@ -28,6 +29,14 @@ public sealed class DeleteLandingPageTemplateCommandHandler : IRequestHandler<De
 
         template.IsDeleted = true;
         template.Deleted = _timeProvider.GetUtcNow();
+        _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
+            template.OrganizationId,
+            nameof(LandingPageTemplate),
+            template.Id,
+            "Deleted",
+            "Template de landing excluido",
+            template.Name,
+            _timeProvider.GetUtcNow()));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

@@ -44,6 +44,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<LandingPageTemplate> LandingPageTemplates => Set<LandingPageTemplate>();
 
+    public DbSet<LandingPageAuditEntry> LandingPageAuditEntries => Set<LandingPageAuditEntry>();
+
     public DbSet<LandingPageView> LandingPageViews => Set<LandingPageView>();
 
     public DbSet<Donation> Donations => Set<Donation>();
@@ -87,6 +89,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<ProjectCampaign>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPage>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageTemplate>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<LandingPageAuditEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageView>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Donation>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonationProject>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));

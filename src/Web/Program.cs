@@ -39,6 +39,7 @@ app.MapScalarApiReference();
 app.UseExceptionHandler(options => { });
 app.UseRouting();
 app.UseCors("FrontendCorsPolicy");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<VinculoBackend.Web.Infrastructure.OrganizationAccessMiddleware>();

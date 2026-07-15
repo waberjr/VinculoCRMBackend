@@ -18,10 +18,12 @@ public sealed record UpdateLandingPageTemplateCommand(
 public sealed class UpdateLandingPageTemplateCommandHandler : IRequestHandler<UpdateLandingPageTemplateCommand>
 {
     private readonly IApplicationDbContext _context;
+    private readonly TimeProvider _timeProvider;
 
-    public UpdateLandingPageTemplateCommandHandler(IApplicationDbContext context)
+    public UpdateLandingPageTemplateCommandHandler(IApplicationDbContext context, TimeProvider timeProvider)
     {
         _context = context;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(UpdateLandingPageTemplateCommand request, CancellationToken cancellationToken)
@@ -43,6 +45,14 @@ public sealed class UpdateLandingPageTemplateCommandHandler : IRequestHandler<Up
             LandingPageContent.SerializeFields(request.CustomFields),
             request.IsActive);
 
+        _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
+            template.OrganizationId,
+            nameof(LandingPageTemplate),
+            template.Id,
+            "Updated",
+            "Template de landing atualizado",
+            template.Name,
+            _timeProvider.GetUtcNow()));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

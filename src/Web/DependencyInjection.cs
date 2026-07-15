@@ -4,6 +4,7 @@ using VinculoBackend.Infrastructure.Data;
 using VinculoBackend.Web.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.RateLimiting;
 using System.Text.Json.Serialization;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -30,6 +31,18 @@ public static class DependencyInjection
             options.SuppressModelStateInvalidFilter = true);
 
         builder.Services.AddEndpointsApiExplorer();
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.AddPolicy("PublicLandingLead", httpContext =>
+                RateLimitPartition.GetFixedWindowLimiter(
+                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = 5,
+                        QueueLimit = 0,
+                        Window = TimeSpan.FromMinutes(10),
+                    }));
+        });
 
         builder.Services.AddOpenApi(options =>
         {

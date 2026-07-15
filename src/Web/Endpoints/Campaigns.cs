@@ -11,6 +11,7 @@ using VinculoBackend.Application.Campaigns.Commands.UpsertLandingPageConfigurati
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.ExportCampaignReport;
+using VinculoBackend.Application.Campaigns.Queries.ExportLandingPagePerformance;
 using VinculoBackend.Application.Campaigns.Queries.ExportLandingPageLeads;
 using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
@@ -56,6 +57,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetLandingConfiguration, "Landing/{targetType}/{targetId}");
         groupBuilder.MapGet(GetLandingTemplates, "Landing/Templates");
         groupBuilder.MapGet(GetLandingPerformance, "Landing/Performance");
+        groupBuilder.MapGet(ExportLandingPerformance, "Landing/Performance/Export");
         groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
         groupBuilder.MapGet(GetLandingMetrics, "Landing/{targetType}/{targetId}/Metrics");
         groupBuilder.MapGet(GetLandingLeads, "Landing/{targetType}/{targetId}/Leads");
@@ -92,6 +94,19 @@ public sealed class Campaigns : IEndpointGroup
     {
         var result = await sender.Send(new GetLandingPagePerformanceQuery(startDateUtc, endDateUtc, targetType, source), cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<FileContentHttpResult> ExportLandingPerformance(
+        ISender sender,
+        string? format,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        string? targetType,
+        string? source,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportLandingPagePerformanceQuery(format ?? "csv", startDateUtc, endDateUtc, targetType, source), cancellationToken);
+        return TypedResults.File(result.Content, result.ContentType, result.FileName);
     }
 
     public static async Task<Ok<CampaignReportDto>> GetCampaignReport(

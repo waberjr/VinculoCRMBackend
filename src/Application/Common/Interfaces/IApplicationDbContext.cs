@@ -32,6 +32,8 @@ public interface IApplicationDbContext
 
     DbSet<LandingPageTemplate> LandingPageTemplates { get; }
 
+    DbSet<LandingPageAuditEntry> LandingPageAuditEntries { get; }
+
     DbSet<LandingPageView> LandingPageViews { get; }
 
     DbSet<Donation> Donations { get; }

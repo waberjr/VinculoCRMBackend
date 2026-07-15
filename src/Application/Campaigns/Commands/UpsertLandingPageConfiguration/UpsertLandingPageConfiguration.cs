@@ -52,6 +52,7 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
 
         var page = await _context.LandingPages
             .FirstOrDefaultAsync(entity => entity.TargetType == targetType && entity.TargetId == request.TargetId, cancellationToken);
+        var wasPublished = page?.IsPublished ?? false;
         if (page is null)
         {
             page = LandingPage.Create(
@@ -86,6 +87,29 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 request.IsPublished,
                 customFieldsJson,
                 request.IsPublished && page.PublishedAtUtc is not null ? page.PublishedAtUtc : publishedAtUtc);
+        }
+
+        if (!wasPublished && request.IsPublished)
+        {
+            _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
+                organizationId,
+                nameof(LandingPage),
+                page.Id,
+                "Published",
+                "Landing publicada",
+                $"{page.TargetType}/{page.TargetId}",
+                _timeProvider.GetUtcNow()));
+        }
+        else if (wasPublished && !request.IsPublished)
+        {
+            _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
+                organizationId,
+                nameof(LandingPage),
+                page.Id,
+                "Unpublished",
+                "Landing removida da publicacao",
+                $"{page.TargetType}/{page.TargetId}",
+                _timeProvider.GetUtcNow()));
         }
 
         await _context.SaveChangesAsync(cancellationToken);

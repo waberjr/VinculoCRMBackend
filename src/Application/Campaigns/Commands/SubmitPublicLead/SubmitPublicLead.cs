@@ -20,6 +20,7 @@ public sealed record SubmitPublicLeadCommand : IRequest<PublicLeadSubmissionDto>
     public string? UtmCampaign { get; init; }
     public string? UtmContent { get; init; }
     public string? UtmTerm { get; init; }
+    public string? Website { get; init; }
     public IReadOnlyDictionary<string, string> CustomFields { get; init; } = new Dictionary<string, string>();
 }
 
@@ -36,6 +37,11 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
 
     public async Task<PublicLeadSubmissionDto> Handle(SubmitPublicLeadCommand request, CancellationToken cancellationToken)
     {
+        if (!string.IsNullOrWhiteSpace(request.Website))
+        {
+            throw new Common.Exceptions.ValidationException([new FluentValidation.Results.ValidationFailure(nameof(SubmitPublicLeadCommand.Website), "Solicitacao rejeitada.")]);
+        }
+
         var targetType = request.TargetType.Trim().ToLowerInvariant();
         var target = await TargetOrganization(targetType, request.TargetId, cancellationToken);
         if (target is null)

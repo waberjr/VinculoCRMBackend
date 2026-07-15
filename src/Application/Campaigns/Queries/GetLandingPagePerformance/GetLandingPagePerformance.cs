@@ -78,6 +78,7 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
             Items = items,
             Sources = SourceMetrics(views, leads),
             Utms = UtmMetrics(views, leads),
+            Daily = DailyMetrics(views, leads),
         };
     }
 
@@ -118,6 +119,7 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
         return query
             .Select(view => new ViewProjection(
                 view.TargetType + ":" + view.TargetId.ToString("N"),
+                view.ViewedAtUtc,
                 view.Source ?? view.UtmSource ?? "landing",
                 view.UtmSource,
                 view.UtmMedium,
@@ -144,6 +146,7 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
         return query
             .Select(entry => new LeadProjection(
                 entry.RelatedEntityType + ":" + entry.RelatedEntityId!.Value.ToString("N"),
+                entry.OccurredAtUtc,
                 entry.Description ?? string.Empty))
             .Where(lead => targetKeys.Contains(lead.TargetKey));
     }
@@ -226,11 +229,35 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
             .ToArray();
     }
 
+    private static IReadOnlyCollection<LandingDailyPerformanceDto> DailyMetrics(
+        IReadOnlyCollection<ViewProjection> views,
+        IReadOnlyCollection<LeadProjection> leads)
+    {
+        var viewGroups = views
+            .GroupBy(view => view.OccurredAtUtc.UtcDateTime.Date.ToString("yyyy-MM-dd"))
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+        var leadGroups = leads
+            .GroupBy(lead => lead.OccurredAtUtc.UtcDateTime.Date.ToString("yyyy-MM-dd"))
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+
+        return viewGroups.Keys
+            .Concat(leadGroups.Keys)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(date => date)
+            .Select(date => new LandingDailyPerformanceDto
+            {
+                Date = date,
+                ViewsCount = viewGroups.GetValueOrDefault(date),
+                LeadsCount = leadGroups.GetValueOrDefault(date),
+            })
+            .ToArray();
+    }
+
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "nao informado" : value.Trim();
 
     private sealed record LandingPageProjection(string TargetType, Guid TargetId, string TargetName, string Title, bool IsActive, bool IsPublished);
-    private sealed record ViewProjection(string TargetKey, string Source, string? UtmSource, string? UtmMedium, string? UtmCampaign);
-    private sealed record LeadProjection(string TargetKey, string Description);
+    private sealed record ViewProjection(string TargetKey, DateTimeOffset OccurredAtUtc, string Source, string? UtmSource, string? UtmMedium, string? UtmCampaign);
+    private sealed record LeadProjection(string TargetKey, DateTimeOffset OccurredAtUtc, string Description);
     private sealed record DonationProjection(string TargetKey, Guid DonorId, decimal Amount, DonationStatus Status);
     private sealed record UtmKey(string Source, string Medium, string Campaign);
 }
@@ -246,6 +273,7 @@ public sealed class LandingPagePerformanceDto
     public IReadOnlyCollection<LandingPagePerformanceItemDto> Items { get; init; } = [];
     public IReadOnlyCollection<LandingSourcePerformanceDto> Sources { get; init; } = [];
     public IReadOnlyCollection<LandingUtmPerformanceDto> Utms { get; init; } = [];
+    public IReadOnlyCollection<LandingDailyPerformanceDto> Daily { get; init; } = [];
 }
 
 public sealed class LandingPagePerformanceItemDto
@@ -277,6 +305,13 @@ public sealed class LandingUtmPerformanceDto
     public string UtmSource { get; init; } = string.Empty;
     public string UtmMedium { get; init; } = string.Empty;
     public string UtmCampaign { get; init; } = string.Empty;
+    public int ViewsCount { get; init; }
+    public int LeadsCount { get; init; }
+}
+
+public sealed class LandingDailyPerformanceDto
+{
+    public string Date { get; init; } = string.Empty;
     public int ViewsCount { get; init; }
     public int LeadsCount { get; init; }
 }

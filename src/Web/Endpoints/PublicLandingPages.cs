@@ -11,7 +11,7 @@ public sealed class PublicLandingPages : IEndpointGroup
     public static void Map(RouteGroupBuilder groupBuilder)
     {
         groupBuilder.MapGet(GetLanding, "{kind}/{id}");
-        groupBuilder.MapPost(SubmitLead, "{kind}/{id}/Lead");
+        groupBuilder.MapPost(SubmitLead, "{kind}/{id}/Lead").RequireRateLimiting("PublicLandingLead");
     }
 
     public static async Task<Results<Ok<PublicLandingPageDto>, NotFound>> GetLanding(
