@@ -5,6 +5,7 @@ namespace VinculoBackend.Domain.Entities;
 public class LandingPageTemplate : OrganizationEntity
 {
     public string Name { get; private set; } = string.Empty;
+    public string? Category { get; private set; }
     public string Title { get; private set; } = string.Empty;
     public string? Subtitle { get; private set; }
     public string? HeroImageUrl { get; private set; }
@@ -19,10 +20,11 @@ public class LandingPageTemplate : OrganizationEntity
         string? subtitle,
         string? heroImageUrl,
         decimal? goalAmount,
-        string? customFieldsJson)
+        string? customFieldsJson,
+        string? category = null)
     {
         var template = new LandingPageTemplate { OrganizationId = organizationId };
-        template.Update(name, title, subtitle, heroImageUrl, goalAmount, customFieldsJson, true);
+        template.Update(name, title, subtitle, heroImageUrl, goalAmount, customFieldsJson, true, category);
         return template;
     }
 
@@ -33,7 +35,8 @@ public class LandingPageTemplate : OrganizationEntity
         string? heroImageUrl,
         decimal? goalAmount,
         string? customFieldsJson,
-        bool isActive)
+        bool isActive,
+        string? category = null)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -51,6 +54,7 @@ public class LandingPageTemplate : OrganizationEntity
         }
 
         Name = name.Trim();
+        Category = TrimToNull(category);
         Title = title.Trim();
         Subtitle = TrimToNull(subtitle);
         HeroImageUrl = TrimToNull(heroImageUrl);

@@ -9,6 +9,7 @@ public sealed class LandingPageTemplateConfiguration : IEntityTypeConfiguration<
     public void Configure(EntityTypeBuilder<LandingPageTemplate> builder)
     {
         builder.Property(entity => entity.Name).HasMaxLength(160).IsRequired();
+        builder.Property(entity => entity.Category).HasMaxLength(80);
         builder.Property(entity => entity.Title).HasMaxLength(180).IsRequired();
         builder.Property(entity => entity.Subtitle).HasMaxLength(600);
         builder.Property(entity => entity.HeroImageUrl).HasMaxLength(1000);

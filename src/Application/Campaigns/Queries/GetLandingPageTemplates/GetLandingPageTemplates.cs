@@ -34,6 +34,7 @@ public sealed class GetLandingPageTemplatesQueryHandler : IRequestHandler<GetLan
             {
                 Id = template.Id,
                 Name = template.Name,
+                Category = template.Category,
                 Title = template.Title,
                 Subtitle = template.Subtitle,
                 HeroImageUrl = template.HeroImageUrl,

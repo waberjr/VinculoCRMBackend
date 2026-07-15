@@ -8,6 +8,9 @@ public sealed class UpdateLandingPageTemplateCommandValidator : AbstractValidato
             .NotEmpty()
             .MaximumLength(160);
 
+        RuleFor(command => command.Category)
+            .MaximumLength(80);
+
         RuleFor(command => command.Title)
             .NotEmpty()
             .MaximumLength(180);

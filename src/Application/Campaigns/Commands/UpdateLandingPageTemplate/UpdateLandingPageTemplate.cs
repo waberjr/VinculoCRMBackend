@@ -8,6 +8,7 @@ namespace VinculoBackend.Application.Campaigns.Commands.UpdateLandingPageTemplat
 public sealed record UpdateLandingPageTemplateCommand(
     Guid Id,
     string Name,
+    string? Category,
     string Title,
     string? Subtitle,
     string? HeroImageUrl,
@@ -43,7 +44,8 @@ public sealed class UpdateLandingPageTemplateCommandHandler : IRequestHandler<Up
             request.HeroImageUrl,
             request.GoalAmount,
             LandingPageContent.SerializeFields(request.CustomFields),
-            request.IsActive);
+            request.IsActive,
+            request.Category);
 
         _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
             template.OrganizationId,

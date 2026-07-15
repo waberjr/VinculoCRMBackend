@@ -34,14 +34,20 @@ public static class DependencyInjection
         builder.Services.AddRateLimiter(options =>
         {
             options.AddPolicy("PublicLandingLead", httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            {
+                var kind = httpContext.Request.RouteValues["kind"]?.ToString() ?? "unknown";
+                var id = httpContext.Request.RouteValues["id"]?.ToString() ?? "unknown";
+                var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    $"{kind}:{id}:{ip}",
                     _ => new FixedWindowRateLimiterOptions
                     {
                         PermitLimit = 5,
                         QueueLimit = 0,
                         Window = TimeSpan.FromMinutes(10),
-                    }));
+                    });
+            });
         });
 
         builder.Services.AddOpenApi(options =>

@@ -128,12 +128,24 @@ public sealed class LandingPageTemplateDto
 {
     public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;
+    public string? Category { get; init; }
     public string Title { get; init; } = string.Empty;
     public string? Subtitle { get; init; }
     public string? HeroImageUrl { get; init; }
     public decimal? GoalAmount { get; init; }
     public bool IsActive { get; init; }
     public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
+}
+
+public sealed class LandingPageAuditEntryDto
+{
+    public Guid Id { get; init; }
+    public string EntityType { get; init; } = string.Empty;
+    public Guid EntityId { get; init; }
+    public string Action { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public DateTimeOffset OccurredAtUtc { get; init; }
 }
 
 public sealed class LandingPageLeadDto

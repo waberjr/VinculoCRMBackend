@@ -17,9 +17,11 @@ public class LandingPageTemplateTests
             "  Apoie este projeto  ",
             "  https://example.com/image.png  ",
             1000,
-            null);
+            null,
+            "  Emergencia  ");
 
         template.Name.ShouldBe("Modelo principal");
+        template.Category.ShouldBe("Emergencia");
         template.Title.ShouldBe("Doe agora");
         template.Subtitle.ShouldBe("Apoie este projeto");
         template.HeroImageUrl.ShouldBe("https://example.com/image.png");

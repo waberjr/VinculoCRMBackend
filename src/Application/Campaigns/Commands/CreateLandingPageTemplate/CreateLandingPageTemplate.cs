@@ -8,6 +8,7 @@ namespace VinculoBackend.Application.Campaigns.Commands.CreateLandingPageTemplat
 
 public sealed record CreateLandingPageTemplateCommand(
     string Name,
+    string? Category,
     string Title,
     string? Subtitle,
     string? HeroImageUrl,
@@ -37,7 +38,8 @@ public sealed class CreateLandingPageTemplateCommandHandler : IRequestHandler<Cr
             request.Subtitle,
             request.HeroImageUrl,
             request.GoalAmount,
-            LandingPageContent.SerializeFields(request.CustomFields));
+            LandingPageContent.SerializeFields(request.CustomFields),
+            request.Category);
 
         _context.LandingPageTemplates.Add(template);
         _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
