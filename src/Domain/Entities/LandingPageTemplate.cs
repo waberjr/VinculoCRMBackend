@@ -59,5 +59,15 @@ public class LandingPageTemplate : OrganizationEntity
         IsActive = isActive;
     }
 
+    public void Activate()
+    {
+        IsActive = true;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
+    }
+
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

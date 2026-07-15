@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Entities;
 
@@ -36,8 +35,8 @@ public sealed class RecordLandingPageViewCommandHandler : IRequestHandler<Record
         }
 
         var viewedAtUtc = _timeProvider.GetUtcNow();
-        var windowStartedAtUtc = DeduplicationWindow(viewedAtUtc);
-        var fingerprintHash = Fingerprint(
+        var windowStartedAtUtc = LandingPageViewDeduplication.Window(viewedAtUtc);
+        var fingerprintHash = LandingPageViewDeduplication.Fingerprint(
             targetType,
             request.TargetId,
             TrimToNull(request.Source) ?? TrimToNull(request.UtmSource) ?? "landing",
@@ -105,18 +104,6 @@ public sealed class RecordLandingPageViewCommandHandler : IRequestHandler<Record
         }
 
         return null;
-    }
-
-    private static DateTimeOffset DeduplicationWindow(DateTimeOffset viewedAtUtc)
-    {
-        var utc = viewedAtUtc.UtcDateTime;
-        return new DateTimeOffset(utc.Year, utc.Month, utc.Day, utc.Hour, 0, 0, TimeSpan.Zero);
-    }
-
-    private static string Fingerprint(string targetType, Guid targetId, string source, string ipAddress, string userAgent)
-    {
-        var input = $"{targetType}|{targetId:N}|{source}|{ipAddress}|{userAgent}";
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(input)));
     }
 
     private static string? TrimToNull(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
