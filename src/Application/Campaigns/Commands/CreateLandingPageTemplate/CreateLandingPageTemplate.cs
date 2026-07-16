@@ -44,6 +44,7 @@ public sealed class CreateLandingPageTemplateCommandHandler : IRequestHandler<Cr
             request.Category);
 
         _context.LandingPageTemplates.Add(template);
+        _context.LandingPageTemplateVersions.Add(LandingPageTemplateSnapshots.FromTemplate(template, _timeProvider.GetUtcNow(), _user.Id));
         _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
             organizationId,
             nameof(LandingPageTemplate),

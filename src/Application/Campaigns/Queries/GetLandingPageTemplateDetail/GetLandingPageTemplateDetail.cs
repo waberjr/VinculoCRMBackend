@@ -90,6 +90,27 @@ public sealed class GetLandingPageTemplateDetailQueryHandler : IRequestHandler<G
             })
             .ToArrayAsync(cancellationToken);
 
+        var versions = await _context.LandingPageTemplateVersions
+            .AsNoTracking()
+            .Where(version => version.TemplateId == request.Id)
+            .OrderByDescending(version => version.Version)
+            .Select(version => new LandingPageTemplateVersionDto
+            {
+                Id = version.Id,
+                Version = version.Version,
+                Name = version.Name,
+                Category = version.Category,
+                Title = version.Title,
+                Subtitle = version.Subtitle,
+                HeroImageUrl = version.HeroImageUrl,
+                GoalAmount = version.GoalAmount,
+                IsActive = version.IsActive,
+                CustomFields = LandingPageContent.ParseFields(version.CustomFieldsJson),
+                CreatedByUserId = version.CreatedByUserId,
+                CreatedAtUtc = version.CreatedAtUtc,
+            })
+            .ToArrayAsync(cancellationToken);
+
         return new LandingPageTemplateDetailDto
         {
             Template = template,
@@ -102,6 +123,7 @@ public sealed class GetLandingPageTemplateDetailQueryHandler : IRequestHandler<G
                 IsPublished = page.IsPublished,
                 PublishedAtUtc = page.PublishedAtUtc,
             }).ToArray(),
+            Versions = versions,
             AuditEntries = await EnrichUsersAsync(auditEntries, organizationId, cancellationToken),
         };
     }

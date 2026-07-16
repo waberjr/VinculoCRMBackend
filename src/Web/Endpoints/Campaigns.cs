@@ -3,9 +3,12 @@ using VinculoBackend.Application.Campaigns.Commands.ApplyLandingPageTemplateToTy
 using VinculoBackend.Application.Campaigns.Commands.CancelCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CloneLandingPageTemplate;
 using VinculoBackend.Application.Campaigns.Commands.CompleteCampaign;
+using VinculoBackend.Application.Campaigns.Commands.CreateLandingPageBlockRule;
 using VinculoBackend.Application.Campaigns.Commands.CreateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CreateLandingPageTemplate;
+using VinculoBackend.Application.Campaigns.Commands.DeactivateLandingPageBlockRule;
 using VinculoBackend.Application.Campaigns.Commands.DeleteLandingPageTemplate;
+using VinculoBackend.Application.Campaigns.Commands.RollbackLandingPageTemplate;
 using VinculoBackend.Application.Campaigns.Commands.SetLandingPageTemplateActive;
 using VinculoBackend.Application.Campaigns.Commands.UpdateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.UpdateLandingPageTemplate;
@@ -82,6 +85,9 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapPost(CreateLandingTemplate, "Landing/Templates");
         groupBuilder.MapPost(CloneLandingTemplate, "Landing/Templates/{id}/Clone");
         groupBuilder.MapPost(ApplyLandingTemplateToType, "Landing/Templates/{id}/Apply");
+        groupBuilder.MapPost(RollbackLandingTemplate, "Landing/Templates/{id}/Rollback/{version:int}");
+        groupBuilder.MapPost(CreateLandingBlockRule, "Landing/BlockRules");
+        groupBuilder.MapPost(DeactivateLandingBlockRule, "Landing/BlockRules/{id}/Deactivate");
         groupBuilder.MapPut(UpdateLandingTemplate, "Landing/Templates/{id}");
         groupBuilder.MapPost(ActivateLandingTemplate, "Landing/Templates/{id}/Activate");
         groupBuilder.MapPost(DeactivateLandingTemplate, "Landing/Templates/{id}/Deactivate");
@@ -321,6 +327,34 @@ public sealed class Campaigns : IEndpointGroup
     {
         var result = await sender.Send(command with { TemplateId = id }, cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<NoContent> RollbackLandingTemplate(
+        ISender sender,
+        Guid id,
+        int version,
+        CancellationToken cancellationToken)
+    {
+        await sender.Send(new RollbackLandingPageTemplateCommand(id, version), cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    public static async Task<Created<Guid>> CreateLandingBlockRule(
+        ISender sender,
+        CreateLandingPageBlockRuleCommand command,
+        CancellationToken cancellationToken)
+    {
+        var id = await sender.Send(command, cancellationToken);
+        return TypedResults.Created($"/api/Campaigns/Landing/BlockRules/{id}", id);
+    }
+
+    public static async Task<NoContent> DeactivateLandingBlockRule(
+        ISender sender,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        await sender.Send(new DeactivateLandingPageBlockRuleCommand(id), cancellationToken);
+        return TypedResults.NoContent();
     }
 
     public static async Task<NoContent> UpdateLandingTemplate(

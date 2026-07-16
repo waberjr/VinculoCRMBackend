@@ -49,6 +49,7 @@ public sealed class UpdateLandingPageTemplateCommandHandler : IRequestHandler<Up
             request.IsActive,
             request.Category);
 
+        _context.LandingPageTemplateVersions.Add(LandingPageTemplateSnapshots.FromTemplate(template, _timeProvider.GetUtcNow(), _user.Id));
         _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
             template.OrganizationId,
             nameof(LandingPageTemplate),

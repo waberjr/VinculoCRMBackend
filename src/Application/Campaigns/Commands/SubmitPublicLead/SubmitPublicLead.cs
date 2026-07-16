@@ -141,6 +141,23 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             return "honeypot";
         }
 
+        var source = TrimToNull(request.Source) ?? TrimToNull(request.UtmSource) ?? "landing";
+        var manuallyBlocked = await _context.LandingPageBlockRules
+            .IgnoreQueryFilters()
+            .AnyAsync(rule =>
+                !rule.IsDeleted &&
+                rule.OrganizationId == organizationId &&
+                rule.IsActive &&
+                rule.TargetType == targetType &&
+                rule.TargetId == request.TargetId &&
+                ((rule.FingerprintHash != null && rule.FingerprintHash == fingerprintHash) ||
+                 (rule.Source != null && rule.Source == source)),
+                cancellationToken);
+        if (manuallyBlocked)
+        {
+            return "manual-block-rule";
+        }
+
         var windowStart = now.AddMinutes(-rateLimit.WindowMinutes);
         var attempts = await _context.LandingPageSubmissionAttempts
             .IgnoreQueryFilters()

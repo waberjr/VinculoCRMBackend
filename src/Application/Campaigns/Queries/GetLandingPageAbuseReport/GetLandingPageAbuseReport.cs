@@ -72,6 +72,7 @@ public sealed class GetLandingPageAbuseReportQueryHandler : IRequestHandler<GetL
                 attempt.Id,
                 attempt.TargetType,
                 attempt.TargetId,
+                attempt.FingerprintHash,
                 attempt.Source,
                 attempt.Blocked,
                 attempt.Reason,
@@ -101,6 +102,19 @@ public sealed class GetLandingPageAbuseReportQueryHandler : IRequestHandler<GetL
             .Select(project => new { project.Id, project.Name })
             .ToDictionaryAsync(project => project.Id, project => project.Name, cancellationToken);
 
+        var activeRules = await _context.LandingPageBlockRules
+            .AsNoTracking()
+            .Where(rule => rule.IsActive)
+            .Select(rule => new
+            {
+                rule.Id,
+                rule.TargetType,
+                rule.TargetId,
+                rule.FingerprintHash,
+                rule.Source,
+            })
+            .ToArrayAsync(cancellationToken);
+
         return new LandingPageAbuseReportDto
         {
             AttemptsCount = attemptsCount,
@@ -112,6 +126,13 @@ public sealed class GetLandingPageAbuseReportQueryHandler : IRequestHandler<GetL
                 TargetId = attempt.TargetId,
                 TargetName = TargetName(attempt.TargetType, attempt.TargetId, campaignNames, projectNames),
                 Source = attempt.Source,
+                FingerprintHash = attempt.FingerprintHash,
+                ActiveBlockRuleId = activeRules
+                    .FirstOrDefault(rule =>
+                        rule.TargetType == attempt.TargetType &&
+                        rule.TargetId == attempt.TargetId &&
+                        ((rule.FingerprintHash != null && rule.FingerprintHash == attempt.FingerprintHash) ||
+                         (rule.Source != null && rule.Source == attempt.Source)))?.Id,
                 Blocked = attempt.Blocked,
                 Reason = attempt.Reason,
                 AttemptedAtUtc = attempt.AttemptedAtUtc,

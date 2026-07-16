@@ -159,7 +159,24 @@ public sealed class LandingPageTemplateDetailDto
 {
     public LandingPageTemplateDto Template { get; init; } = new();
     public IReadOnlyCollection<LandingPageTemplateUsageDto> Uses { get; init; } = [];
+    public IReadOnlyCollection<LandingPageTemplateVersionDto> Versions { get; init; } = [];
     public IReadOnlyCollection<LandingPageAuditEntryDto> AuditEntries { get; init; } = [];
+}
+
+public sealed class LandingPageTemplateVersionDto
+{
+    public Guid Id { get; init; }
+    public int Version { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string? Category { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? Subtitle { get; init; }
+    public string? HeroImageUrl { get; init; }
+    public decimal? GoalAmount { get; init; }
+    public bool IsActive { get; init; }
+    public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
+    public string? CreatedByUserId { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; init; }
 }
 
 public sealed class LandingPageTemplateUsageDto
@@ -191,6 +208,8 @@ public sealed class LandingPageAbuseReportItemDto
     public Guid TargetId { get; init; }
     public string TargetName { get; init; } = string.Empty;
     public string? Source { get; init; }
+    public string? FingerprintHash { get; init; }
+    public Guid? ActiveBlockRuleId { get; init; }
     public bool Blocked { get; init; }
     public string? Reason { get; init; }
     public DateTimeOffset AttemptedAtUtc { get; init; }

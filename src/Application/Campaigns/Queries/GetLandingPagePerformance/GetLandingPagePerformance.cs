@@ -40,6 +40,9 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
         var donations = (await LandingDonations(pages.Select(page => page.TargetId).ToArray(), cancellationToken))
             .Where(donation => targetKeys.Contains(donation.TargetKey))
             .ToArray();
+        var attempts = (await LandingAttempts(request).ToListAsync(cancellationToken))
+            .Where(attempt => targetKeys.Contains(attempt.TargetKey))
+            .ToArray();
         var confirmedDonations = donations.Where(donation => donation.Status == DonationStatus.Confirmed).ToArray();
 
         var items = pages
@@ -49,6 +52,7 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
                 var pageViews = views.Where(view => view.TargetKey == key).ToArray();
                 var pageLeads = leads.Where(lead => lead.TargetKey == key).ToArray();
                 var pageDonations = donations.Where(donation => donation.TargetKey == key).ToArray();
+                var pageAttempts = attempts.Where(attempt => attempt.TargetKey == key).ToArray();
                 var pageConfirmed = pageDonations.Where(donation => donation.Status == DonationStatus.Confirmed).ToArray();
 
                 return new LandingPagePerformanceItemDto
@@ -64,6 +68,7 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
                     PromisesCount = pageDonations.Count(donation => donation.Status is DonationStatus.Pending or DonationStatus.Overdue),
                     ConfirmedDonationsCount = pageConfirmed.Length,
                     ConfirmedAmount = pageConfirmed.Sum(donation => donation.Amount),
+                    BlockedSubmissionsCount = pageAttempts.Count(attempt => attempt.Blocked),
                     ConversionRate = pageLeads.Length == 0 ? 0 : Math.Round(pageConfirmed.Select(donation => donation.DonorId).Distinct().Count() * 100m / pageLeads.Length, 2),
                     TopSource = TopSource(pageViews, pageLeads),
                 };
@@ -79,6 +84,10 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
             PromisesCount = donations.Count(donation => donation.Status is DonationStatus.Pending or DonationStatus.Overdue),
             ConfirmedDonationsCount = confirmedDonations.Length,
             ConfirmedAmount = confirmedDonations.Sum(donation => donation.Amount),
+            SubmissionAttemptsCount = attempts.Length,
+            BlockedSubmissionsCount = attempts.Count(attempt => attempt.Blocked),
+            BlockRate = attempts.Length == 0 ? 0 : Math.Round(attempts.Count(attempt => attempt.Blocked) * 100m / attempts.Length, 2),
+            ProtectionAlerts = ProtectionAlerts(items),
             ConversionRate = leads.Length == 0 ? 0 : Math.Round(confirmedDonations.Select(donation => donation.DonorId).Distinct().Count() * 100m / leads.Length, 2),
             Items = items,
             Sources = SourceMetrics(views, leads),
@@ -175,6 +184,27 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
                 entry.RelatedEntityId!.Value,
                 entry.OccurredAtUtc,
                 entry.Description ?? string.Empty));
+    }
+
+    private IQueryable<AttemptProjection> LandingAttempts(GetLandingPagePerformanceQuery request)
+    {
+        var query = _context.LandingPageSubmissionAttempts.AsNoTracking();
+        if (request.StartDateUtc is not null)
+        {
+            query = query.Where(attempt => attempt.AttemptedAtUtc >= request.StartDateUtc);
+        }
+
+        if (request.EndDateUtc is not null)
+        {
+            query = query.Where(attempt => attempt.AttemptedAtUtc <= request.EndDateUtc);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Source))
+        {
+            query = query.Where(attempt => attempt.Source == request.Source);
+        }
+
+        return query.Select(attempt => new AttemptProjection(attempt.TargetType, attempt.TargetId, attempt.Blocked));
     }
 
     private async Task<IReadOnlyCollection<DonationProjection>> LandingDonations(Guid[] targetIds, CancellationToken cancellationToken)
@@ -290,6 +320,23 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
             .ToArray();
     }
 
+    private static IReadOnlyCollection<LandingProtectionAlertDto> ProtectionAlerts(IReadOnlyCollection<LandingPagePerformanceItemDto> items)
+    {
+        return items
+            .Where(item => item.BlockedSubmissionsCount >= 5)
+            .OrderByDescending(item => item.BlockedSubmissionsCount)
+            .Take(10)
+            .Select(item => new LandingProtectionAlertDto
+            {
+                TargetType = item.TargetType,
+                TargetId = item.TargetId,
+                TargetName = item.TargetName,
+                BlockedSubmissionsCount = item.BlockedSubmissionsCount,
+                Severity = item.BlockedSubmissionsCount >= 20 ? "high" : "medium",
+            })
+            .ToArray();
+    }
+
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "nao informado" : value.Trim();
 
     private sealed record LandingPageProjection(string TargetType, Guid TargetId, string TargetName, string Title, bool IsActive, bool IsPublished);
@@ -307,6 +354,10 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
     {
         public string TargetKey => $"{TargetType}:{TargetId:N}";
     }
+    private sealed record AttemptProjection(string TargetType, Guid TargetId, bool Blocked)
+    {
+        public string TargetKey => $"{TargetType}:{TargetId:N}";
+    }
     private sealed record UtmKey(string Source, string Medium, string Campaign);
 }
 
@@ -317,7 +368,11 @@ public sealed class LandingPagePerformanceDto
     public int PromisesCount { get; init; }
     public int ConfirmedDonationsCount { get; init; }
     public decimal ConfirmedAmount { get; init; }
+    public int SubmissionAttemptsCount { get; init; }
+    public int BlockedSubmissionsCount { get; init; }
+    public decimal BlockRate { get; init; }
     public decimal ConversionRate { get; init; }
+    public IReadOnlyCollection<LandingProtectionAlertDto> ProtectionAlerts { get; init; } = [];
     public IReadOnlyCollection<LandingPagePerformanceItemDto> Items { get; init; } = [];
     public IReadOnlyCollection<LandingSourcePerformanceDto> Sources { get; init; } = [];
     public IReadOnlyCollection<LandingUtmPerformanceDto> Utms { get; init; } = [];
@@ -337,8 +392,18 @@ public sealed class LandingPagePerformanceItemDto
     public int PromisesCount { get; init; }
     public int ConfirmedDonationsCount { get; init; }
     public decimal ConfirmedAmount { get; init; }
+    public int BlockedSubmissionsCount { get; init; }
     public decimal ConversionRate { get; init; }
     public string TopSource { get; init; } = string.Empty;
+}
+
+public sealed class LandingProtectionAlertDto
+{
+    public string TargetType { get; init; } = string.Empty;
+    public Guid TargetId { get; init; }
+    public string TargetName { get; init; } = string.Empty;
+    public int BlockedSubmissionsCount { get; init; }
+    public string Severity { get; init; } = "medium";
 }
 
 public sealed class LandingSourcePerformanceDto

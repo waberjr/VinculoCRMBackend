@@ -44,6 +44,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<LandingPageTemplate> LandingPageTemplates => Set<LandingPageTemplate>();
 
+    public DbSet<LandingPageTemplateVersion> LandingPageTemplateVersions => Set<LandingPageTemplateVersion>();
+
+    public DbSet<LandingPageBlockRule> LandingPageBlockRules => Set<LandingPageBlockRule>();
+
     public DbSet<LandingPageAuditEntry> LandingPageAuditEntries => Set<LandingPageAuditEntry>();
 
     public DbSet<LandingPageView> LandingPageViews => Set<LandingPageView>();
@@ -91,6 +95,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<ProjectCampaign>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPage>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageTemplate>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<LandingPageTemplateVersion>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<LandingPageBlockRule>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageAuditEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageView>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageSubmissionAttempt>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
