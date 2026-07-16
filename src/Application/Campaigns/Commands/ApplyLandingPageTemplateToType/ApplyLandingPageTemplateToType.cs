@@ -6,7 +6,11 @@ using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.Campaigns.Commands.ApplyLandingPageTemplateToType;
 
-public sealed record ApplyLandingPageTemplateToTypeCommand(Guid TemplateId, string TargetType) : IRequest<ApplyLandingPageTemplateResultDto>;
+public sealed record ApplyLandingPageTemplateToTypeCommand(
+    Guid TemplateId,
+    string TargetType,
+    bool OnlyActive = false,
+    bool OnlyPublished = false) : IRequest<ApplyLandingPageTemplateResultDto>;
 
 public sealed class ApplyLandingPageTemplateToTypeCommandHandler : IRequestHandler<ApplyLandingPageTemplateToTypeCommand, ApplyLandingPageTemplateResultDto>
 {
@@ -36,9 +40,18 @@ public sealed class ApplyLandingPageTemplateToTypeCommandHandler : IRequestHandl
             throw new global::VinculoBackend.Application.Common.Exceptions.NotFoundException(nameof(LandingPageTemplate), request.TemplateId.ToString());
         }
 
-        var pages = await _context.LandingPages
-            .Where(page => page.TargetType == targetType)
-            .ToArrayAsync(cancellationToken);
+        var pagesQuery = _context.LandingPages.Where(page => page.TargetType == targetType);
+        if (request.OnlyActive)
+        {
+            pagesQuery = pagesQuery.Where(page => page.IsActive);
+        }
+
+        if (request.OnlyPublished)
+        {
+            pagesQuery = pagesQuery.Where(page => page.IsPublished);
+        }
+
+        var pages = await pagesQuery.ToArrayAsync(cancellationToken);
 
         foreach (var page in pages)
         {
@@ -60,7 +73,7 @@ public sealed class ApplyLandingPageTemplateToTypeCommandHandler : IRequestHandl
             template.Id,
             "BulkApplied",
             "Template aplicado em massa",
-            $"{template.Name} aplicado em {pages.Length} landing(s) do tipo {targetType}.",
+            Description(template.Name, pages.Length, targetType, request.OnlyActive, request.OnlyPublished),
             _timeProvider.GetUtcNow(),
             _user.Id));
 
@@ -77,5 +90,22 @@ public sealed class ApplyLandingPageTemplateToTypeCommandHandler : IRequestHandl
             _ => throw new global::VinculoBackend.Application.Common.Exceptions.ValidationException(
                 [new FluentValidation.Results.ValidationFailure(nameof(ApplyLandingPageTemplateToTypeCommand.TargetType), "Tipo de landing invalido.")]),
         };
+    }
+
+    private static string Description(string templateName, int updatedCount, string targetType, bool onlyActive, bool onlyPublished)
+    {
+        var filters = new List<string>();
+        if (onlyActive)
+        {
+            filters.Add("ativas");
+        }
+
+        if (onlyPublished)
+        {
+            filters.Add("publicadas");
+        }
+
+        var filterText = filters.Count == 0 ? "sem filtros" : $"filtrando {string.Join(" e ", filters)}";
+        return $"{templateName} aplicado em {updatedCount} landing(s) do tipo {targetType}, {filterText}.";
     }
 }

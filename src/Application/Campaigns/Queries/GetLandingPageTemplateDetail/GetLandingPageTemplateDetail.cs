@@ -11,17 +11,25 @@ public sealed record GetLandingPageTemplateDetailQuery(Guid Id) : IRequest<Landi
 public sealed class GetLandingPageTemplateDetailQueryHandler : IRequestHandler<GetLandingPageTemplateDetailQuery, LandingPageTemplateDetailDto?>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IIdentityService _identityService;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IUser _user;
 
-    public GetLandingPageTemplateDetailQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetLandingPageTemplateDetailQueryHandler(
+        IApplicationDbContext context,
+        IIdentityService identityService,
+        IOrganizationContext organizationContext,
+        IUser user)
     {
         _context = context;
+        _identityService = identityService;
         _organizationContext = organizationContext;
+        _user = user;
     }
 
     public async Task<LandingPageTemplateDetailDto?> Handle(GetLandingPageTemplateDetailQuery request, CancellationToken cancellationToken)
     {
-        _ = RequiredOrganization.From(_organizationContext);
+        var organizationId = RequiredOrganization.From(_organizationContext);
         var template = await _context.LandingPageTemplates
             .AsNoTracking()
             .Where(entity => entity.Id == request.Id)
@@ -93,7 +101,44 @@ public sealed class GetLandingPageTemplateDetailQueryHandler : IRequestHandler<G
                 IsPublished = page.IsPublished,
                 PublishedAtUtc = page.PublishedAtUtc,
             }).ToArray(),
-            AuditEntries = auditEntries,
+            AuditEntries = await EnrichUsersAsync(auditEntries, organizationId, cancellationToken),
         };
+    }
+
+    private async Task<IReadOnlyCollection<LandingPageAuditEntryDto>> EnrichUsersAsync(
+        IReadOnlyCollection<LandingPageAuditEntryDto> entries,
+        Guid organizationId,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_user.Id) || entries.All(entry => string.IsNullOrWhiteSpace(entry.CreatedByUserId)))
+        {
+            return entries;
+        }
+
+        var users = await _identityService.GetAttendantsAsync(_user.Id, organizationId, cancellationToken);
+        var usersById = users.ToDictionary(user => user.Id, StringComparer.OrdinalIgnoreCase);
+        return entries
+            .Select(entry =>
+            {
+                if (entry.CreatedByUserId is null || !usersById.TryGetValue(entry.CreatedByUserId, out var user))
+                {
+                    return entry;
+                }
+
+                return new LandingPageAuditEntryDto
+                {
+                    Id = entry.Id,
+                    EntityType = entry.EntityType,
+                    EntityId = entry.EntityId,
+                    Action = entry.Action,
+                    Title = entry.Title,
+                    Description = entry.Description,
+                    CreatedByUserId = entry.CreatedByUserId,
+                    CreatedByUserName = user.DisplayName,
+                    CreatedByUserEmail = user.Email,
+                    OccurredAtUtc = entry.OccurredAtUtc,
+                };
+            })
+            .ToArray();
     }
 }

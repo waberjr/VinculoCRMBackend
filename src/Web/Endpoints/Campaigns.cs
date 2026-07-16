@@ -17,6 +17,7 @@ using VinculoBackend.Application.Campaigns.Queries.ExportLandingPagePerformance;
 using VinculoBackend.Application.Campaigns.Queries.ExportLandingPageLeads;
 using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageAbuseReport;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageAudit;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageLeads;
@@ -64,6 +65,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetLandingTemplates, "Landing/Templates");
         groupBuilder.MapGet(GetLandingTemplateDetail, "Landing/Templates/{id}");
         groupBuilder.MapGet(GetLandingAudit, "Landing/Audit");
+        groupBuilder.MapGet(GetLandingAbuseReport, "Landing/Abuse");
         groupBuilder.MapGet(GetLandingPerformance, "Landing/Performance");
         groupBuilder.MapGet(ExportLandingPerformance, "Landing/Performance/Export");
         groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
@@ -112,6 +114,21 @@ public sealed class Campaigns : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetLandingPageAuditQuery(entityType, entityId, action, limit), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<LandingPageAbuseReportDto>> GetLandingAbuseReport(
+        ISender sender,
+        string? targetType,
+        Guid? targetId,
+        string? source,
+        bool? blocked,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        int limit,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageAbuseReportQuery(targetType, targetId, source, blocked, startDateUtc, endDateUtc, limit), cancellationToken);
         return TypedResults.Ok(result);
     }
 

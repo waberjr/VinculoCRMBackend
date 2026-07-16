@@ -147,6 +147,8 @@ public sealed class LandingPageAuditEntryDto
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? CreatedByUserId { get; init; }
+    public string? CreatedByUserName { get; init; }
+    public string? CreatedByUserEmail { get; init; }
     public DateTimeOffset OccurredAtUtc { get; init; }
 }
 
@@ -170,6 +172,25 @@ public sealed class LandingPageTemplateUsageDto
 public sealed class ApplyLandingPageTemplateResultDto
 {
     public int UpdatedCount { get; init; }
+}
+
+public sealed class LandingPageAbuseReportDto
+{
+    public int AttemptsCount { get; init; }
+    public int BlockedCount { get; init; }
+    public IReadOnlyCollection<LandingPageAbuseReportItemDto> Items { get; init; } = [];
+}
+
+public sealed class LandingPageAbuseReportItemDto
+{
+    public Guid Id { get; init; }
+    public string TargetType { get; init; } = string.Empty;
+    public Guid TargetId { get; init; }
+    public string TargetName { get; init; } = string.Empty;
+    public string? Source { get; init; }
+    public bool Blocked { get; init; }
+    public string? Reason { get; init; }
+    public DateTimeOffset AttemptedAtUtc { get; init; }
 }
 
 public sealed class LandingPageLeadDto
