@@ -18,6 +18,7 @@ public sealed record UpsertLandingPageConfigurationCommand : IRequest<LandingPag
     public decimal? GoalAmount { get; init; }
     public bool IsActive { get; init; } = true;
     public bool IsPublished { get; init; }
+    public Guid? AppliedTemplateId { get; init; }
     public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
     public FileUpload? HeroImage { get; init; }
 }
@@ -27,17 +28,20 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
     private readonly IApplicationDbContext _context;
     private readonly IFileStorageService _fileStorage;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IUser _user;
     private readonly TimeProvider _timeProvider;
 
     public UpsertLandingPageConfigurationCommandHandler(
         IApplicationDbContext context,
         IFileStorageService fileStorage,
         IOrganizationContext organizationContext,
+        IUser user,
         TimeProvider timeProvider)
     {
         _context = context;
         _fileStorage = fileStorage;
         _organizationContext = organizationContext;
+        _user = user;
         _timeProvider = timeProvider;
     }
 
@@ -46,6 +50,7 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
         var organizationId = RequiredOrganization.From(_organizationContext);
         var targetType = request.TargetType.Trim().ToLowerInvariant();
         await EnsureTargetExists(targetType, request.TargetId, cancellationToken);
+        await EnsureTemplateExists(organizationId, request.AppliedTemplateId, cancellationToken);
         var heroImageUrl = await ResolveHeroImageUrl(organizationId, targetType, request, cancellationToken);
         var customFieldsJson = LandingPageContent.SerializeFields(request.CustomFields);
         var publishedAtUtc = request.IsPublished ? _timeProvider.GetUtcNow() : (DateTimeOffset?)null;
@@ -66,7 +71,8 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 request.IsActive,
                 request.IsPublished,
                 customFieldsJson,
-                publishedAtUtc);
+                publishedAtUtc,
+                request.AppliedTemplateId);
             _context.LandingPages.Add(page);
         }
         else
@@ -86,30 +92,33 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 request.IsActive,
                 request.IsPublished,
                 customFieldsJson,
-                request.IsPublished && page.PublishedAtUtc is not null ? page.PublishedAtUtc : publishedAtUtc);
+                request.IsPublished && page.PublishedAtUtc is not null ? page.PublishedAtUtc : publishedAtUtc,
+                request.AppliedTemplateId);
         }
 
         if (!wasPublished && request.IsPublished)
         {
             _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
                 organizationId,
-                nameof(LandingPage),
-                page.Id,
+                page.TargetType,
+                page.TargetId,
                 "Published",
                 "Landing publicada",
                 $"{page.TargetType}/{page.TargetId}",
-                _timeProvider.GetUtcNow()));
+                _timeProvider.GetUtcNow(),
+                _user.Id));
         }
         else if (wasPublished && !request.IsPublished)
         {
             _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
                 organizationId,
-                nameof(LandingPage),
-                page.Id,
+                page.TargetType,
+                page.TargetId,
                 "Unpublished",
                 "Landing removida da publicacao",
                 $"{page.TargetType}/{page.TargetId}",
-                _timeProvider.GetUtcNow()));
+                _timeProvider.GetUtcNow(),
+                _user.Id));
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -124,10 +133,27 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
             IsActive = page.IsActive,
             IsPublished = page.IsPublished,
             PublishedAtUtc = page.PublishedAtUtc,
+            AppliedTemplateId = page.AppliedTemplateId,
             CustomFields = LandingPageContent.ParseFields(page.CustomFieldsJson),
             PublicUrl = LandingPageContent.PublicUrl(page.TargetType, page.TargetId),
             TrackableUrl = LandingPageContent.TrackableUrl(page.TargetType, page.TargetId),
         };
+    }
+
+    private async Task EnsureTemplateExists(Guid organizationId, Guid? appliedTemplateId, CancellationToken cancellationToken)
+    {
+        if (appliedTemplateId is null)
+        {
+            return;
+        }
+
+        var exists = await _context.LandingPageTemplates
+            .AsNoTracking()
+            .AnyAsync(template => template.OrganizationId == organizationId && template.Id == appliedTemplateId.Value, cancellationToken);
+        if (!exists)
+        {
+            throw new Common.Exceptions.NotFoundException(nameof(LandingPageTemplate), appliedTemplateId.Value.ToString());
+        }
     }
 
     private async Task EnsureTargetExists(string targetType, Guid targetId, CancellationToken cancellationToken)

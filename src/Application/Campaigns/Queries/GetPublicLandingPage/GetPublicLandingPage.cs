@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
@@ -29,115 +30,96 @@ public sealed class GetPublicLandingPageQueryHandler : IRequestHandler<GetPublic
 
     private async Task<PublicLandingPageDto?> CampaignLanding(Guid id, bool includeDraft, CancellationToken cancellationToken)
     {
-        return await _context.Campaigns
+        var campaign = await _context.Campaigns
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(campaign => !campaign.IsDeleted && campaign.Id == id &&
-                (includeDraft || _context.LandingPages.IgnoreQueryFilters().Any(page =>
-                    !page.IsDeleted && page.IsActive && page.IsPublished && page.TargetType == "campaign" && page.TargetId == campaign.Id)))
-            .Select(campaign => new PublicLandingPageDto
-            {
-                Kind = "campaign",
-                Id = campaign.Id,
-                Title = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
-                    .Select(page => page.Title)
-                    .FirstOrDefault() ?? campaign.Name,
-                Description = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
-                    .Select(page => page.Subtitle)
-                    .FirstOrDefault() ?? campaign.Description,
-                HeroImageUrl = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
-                    .Select(page => page.HeroImageUrl)
-                    .FirstOrDefault(),
-                GoalAmount = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
-                    .Select(page => page.GoalAmount)
-                    .FirstOrDefault() ?? campaign.GoalAmount ?? 0,
-                CustomFields = LandingPageContent.ParseFields(_context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "campaign" && page.TargetId == campaign.Id)
-                    .Select(page => page.CustomFieldsJson)
-                    .FirstOrDefault()),
-                ConfirmedAmount = _context.Donations
-                    .Where(donation =>
-                        donation.CampaignId == campaign.Id &&
-                        donation.Status == DonationStatus.Confirmed &&
-                        donation.PaidAtUtc != null)
-                    .Sum(donation => (decimal?)donation.Amount) ?? 0,
-                DonorsCount = _context.Donations
-                    .Where(donation =>
-                        donation.CampaignId == campaign.Id &&
-                        donation.Status == DonationStatus.Confirmed &&
-                        donation.PaidAtUtc != null)
-                    .Select(donation => donation.DonorId)
-                    .Distinct()
-                    .Count(),
-                StartDateUtc = campaign.StartDateUtc,
-                EndDateUtc = campaign.EndDateUtc,
-            })
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (campaign is null || campaign.IsDeleted)
+        {
+            return null;
+        }
+
+        var landing = await LandingPage("campaign", id, includeDraft, cancellationToken);
+        if (!includeDraft && landing is null)
+        {
+            return null;
+        }
+
+        var confirmedDonations = _context.Donations
+            .AsNoTracking()
+            .Where(donation =>
+                donation.CampaignId == campaign.Id &&
+                donation.Status == DonationStatus.Confirmed &&
+                donation.PaidAtUtc != null);
+
+        return new PublicLandingPageDto
+        {
+            Kind = "campaign",
+            Id = campaign.Id,
+            Title = landing?.Title ?? campaign.Name,
+            Description = landing?.Subtitle ?? campaign.Description,
+            HeroImageUrl = landing?.HeroImageUrl,
+            GoalAmount = landing?.GoalAmount ?? campaign.GoalAmount ?? 0,
+            CustomFields = LandingPageContent.ParseFields(landing?.CustomFieldsJson),
+            ConfirmedAmount = await confirmedDonations.SumAsync(donation => (decimal?)donation.Amount, cancellationToken) ?? 0,
+            DonorsCount = await confirmedDonations.Select(donation => donation.DonorId).Distinct().CountAsync(cancellationToken),
+            StartDateUtc = campaign.StartDateUtc,
+            EndDateUtc = campaign.EndDateUtc,
+        };
     }
 
     private async Task<PublicLandingPageDto?> ProjectLanding(Guid id, bool includeDraft, CancellationToken cancellationToken)
     {
-        return await _context.Projects
+        var project = await _context.Projects
             .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(project => !project.IsDeleted && project.Id == id &&
-                (includeDraft || _context.LandingPages.IgnoreQueryFilters().Any(page =>
-                    !page.IsDeleted && page.IsActive && page.IsPublished && page.TargetType == "project" && page.TargetId == project.Id)))
-            .Select(project => new PublicLandingPageDto
-            {
-                Kind = "project",
-                Id = project.Id,
-                Title = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
-                    .Select(page => page.Title)
-                    .FirstOrDefault() ?? project.Name,
-                Description = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
-                    .Select(page => page.Subtitle)
-                    .FirstOrDefault() ?? project.Description,
-                HeroImageUrl = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
-                    .Select(page => page.HeroImageUrl)
-                    .FirstOrDefault(),
-                GoalAmount = _context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
-                    .Select(page => page.GoalAmount)
-                    .FirstOrDefault() ?? project.GoalAmount ?? 0,
-                CustomFields = LandingPageContent.ParseFields(_context.LandingPages
-                    .IgnoreQueryFilters()
-                    .Where(page => !page.IsDeleted && (includeDraft || (page.IsActive && page.IsPublished)) && page.TargetType == "project" && page.TargetId == project.Id)
-                    .Select(page => page.CustomFieldsJson)
-                    .FirstOrDefault()),
-                ConfirmedAmount = _context.DonationProjects
-                    .Where(link =>
-                        link.ProjectId == project.Id &&
-                        link.Donation.Status == DonationStatus.Confirmed &&
-                        link.Donation.PaidAtUtc != null)
-                    .Sum(link => (decimal?)link.Donation.Amount) ?? 0,
-                DonorsCount = _context.DonationProjects
-                    .Where(link =>
-                        link.ProjectId == project.Id &&
-                        link.Donation.Status == DonationStatus.Confirmed &&
-                        link.Donation.PaidAtUtc != null)
-                    .Select(link => link.Donation.DonorId)
-                    .Distinct()
-                    .Count(),
-                StartDateUtc = project.StartDateUtc,
-                EndDateUtc = project.EndDateUtc,
-            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (project is null || project.IsDeleted)
+        {
+            return null;
+        }
+
+        var landing = await LandingPage("project", id, includeDraft, cancellationToken);
+        if (!includeDraft && landing is null)
+        {
+            return null;
+        }
+
+        var confirmedDonations = _context.DonationProjects
+            .AsNoTracking()
+            .Where(link =>
+                link.ProjectId == project.Id &&
+                link.Donation.Status == DonationStatus.Confirmed &&
+                link.Donation.PaidAtUtc != null);
+
+        return new PublicLandingPageDto
+        {
+            Kind = "project",
+            Id = project.Id,
+            Title = landing?.Title ?? project.Name,
+            Description = landing?.Subtitle ?? project.Description,
+            HeroImageUrl = landing?.HeroImageUrl,
+            GoalAmount = landing?.GoalAmount ?? project.GoalAmount ?? 0,
+            CustomFields = LandingPageContent.ParseFields(landing?.CustomFieldsJson),
+            ConfirmedAmount = await confirmedDonations.SumAsync(link => (decimal?)link.Donation.Amount, cancellationToken) ?? 0,
+            DonorsCount = await confirmedDonations.Select(link => link.Donation.DonorId).Distinct().CountAsync(cancellationToken),
+            StartDateUtc = project.StartDateUtc,
+            EndDateUtc = project.EndDateUtc,
+        };
+    }
+
+    private async Task<LandingPage?> LandingPage(string targetType, Guid targetId, bool includeDraft, CancellationToken cancellationToken)
+    {
+        return await _context.LandingPages
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(page =>
+                !page.IsDeleted &&
+                page.TargetType == targetType &&
+                page.TargetId == targetId &&
+                (includeDraft || (page.IsActive && page.IsPublished)))
             .FirstOrDefaultAsync(cancellationToken);
     }
 

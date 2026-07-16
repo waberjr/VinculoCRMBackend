@@ -65,11 +65,12 @@ public sealed class GetLandingPageLeadsQueryHandler : IRequestHandler<GetLanding
         var rows = await query.ToListAsync(cancellationToken);
 
         var donorIds = rows.Select(row => row.DonorId).Distinct().ToArray();
-        var donationLookup = await LandingDonations(targetType, request.TargetId)
+        var donations = await LandingDonations(targetType, request.TargetId).ToListAsync(cancellationToken);
+        var donationLookup = donations
             .Where(donation => donorIds.Contains(donation.DonorId))
             .GroupBy(donation => donation.DonorId)
             .Select(group => group.OrderByDescending(donation => donation.Created).First())
-            .ToDictionaryAsync(donation => donation.DonorId, cancellationToken);
+            .ToDictionary(donation => donation.DonorId);
 
         var filteredItems = rows.Select(row =>
         {

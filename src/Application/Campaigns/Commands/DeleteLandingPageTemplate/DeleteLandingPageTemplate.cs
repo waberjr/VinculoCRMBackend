@@ -9,11 +9,13 @@ public sealed record DeleteLandingPageTemplateCommand(Guid Id) : IRequest;
 public sealed class DeleteLandingPageTemplateCommandHandler : IRequestHandler<DeleteLandingPageTemplateCommand>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IUser _user;
     private readonly TimeProvider _timeProvider;
 
-    public DeleteLandingPageTemplateCommandHandler(IApplicationDbContext context, TimeProvider timeProvider)
+    public DeleteLandingPageTemplateCommandHandler(IApplicationDbContext context, IUser user, TimeProvider timeProvider)
     {
         _context = context;
+        _user = user;
         _timeProvider = timeProvider;
     }
 
@@ -36,7 +38,8 @@ public sealed class DeleteLandingPageTemplateCommandHandler : IRequestHandler<De
             "Deleted",
             "Template de landing excluido",
             template.Name,
-            _timeProvider.GetUtcNow()));
+            _timeProvider.GetUtcNow(),
+            _user.Id));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

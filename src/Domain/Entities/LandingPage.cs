@@ -13,6 +13,7 @@ public class LandingPage : OrganizationEntity
     public bool IsActive { get; private set; } = true;
     public bool IsPublished { get; private set; }
     public DateTimeOffset? PublishedAtUtc { get; private set; }
+    public Guid? AppliedTemplateId { get; private set; }
     public string? CustomFieldsJson { get; private set; }
 
     public static LandingPage Create(
@@ -26,7 +27,8 @@ public class LandingPage : OrganizationEntity
         bool isActive,
         bool isPublished = false,
         string? customFieldsJson = null,
-        DateTimeOffset? publishedAtUtc = null)
+        DateTimeOffset? publishedAtUtc = null,
+        Guid? appliedTemplateId = null)
     {
         var page = new LandingPage
         {
@@ -34,7 +36,7 @@ public class LandingPage : OrganizationEntity
             TargetType = NormalizeTargetType(targetType),
             TargetId = targetId,
         };
-        page.Update(title, subtitle, heroImageUrl, goalAmount, isActive, isPublished, customFieldsJson, publishedAtUtc);
+        page.Update(title, subtitle, heroImageUrl, goalAmount, isActive, isPublished, customFieldsJson, publishedAtUtc, appliedTemplateId);
         return page;
     }
 
@@ -46,7 +48,8 @@ public class LandingPage : OrganizationEntity
         bool isActive,
         bool isPublished,
         string? customFieldsJson,
-        DateTimeOffset? publishedAtUtc)
+        DateTimeOffset? publishedAtUtc,
+        Guid? appliedTemplateId = null)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -65,6 +68,7 @@ public class LandingPage : OrganizationEntity
         IsActive = isActive;
         IsPublished = isPublished;
         PublishedAtUtc = isPublished ? publishedAtUtc : null;
+        AppliedTemplateId = appliedTemplateId;
         CustomFieldsJson = TrimToNull(customFieldsJson);
     }
 

@@ -12,6 +12,8 @@ public sealed class LandingPageAuditEntryConfiguration : IEntityTypeConfiguratio
         builder.Property(entity => entity.Action).HasMaxLength(80).IsRequired();
         builder.Property(entity => entity.Title).HasMaxLength(180).IsRequired();
         builder.Property(entity => entity.Description).HasMaxLength(1000);
+        builder.Property(entity => entity.CreatedByUserId).HasMaxLength(450);
         builder.HasIndex(entity => new { entity.OrganizationId, entity.EntityType, entity.EntityId, entity.OccurredAtUtc });
+        builder.HasIndex(entity => new { entity.OrganizationId, entity.CreatedByUserId, entity.OccurredAtUtc });
     }
 }

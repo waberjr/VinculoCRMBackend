@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Campaigns.Models;
+using VinculoBackend.Application.Campaigns.Services;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
@@ -21,6 +22,8 @@ public sealed record SubmitPublicLeadCommand : IRequest<PublicLeadSubmissionDto>
     public string? UtmContent { get; init; }
     public string? UtmTerm { get; init; }
     public string? Website { get; init; }
+    public string? IpAddress { get; init; }
+    public string? UserAgent { get; init; }
     public IReadOnlyDictionary<string, string> CustomFields { get; init; } = new Dictionary<string, string>();
 }
 
@@ -37,17 +40,30 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
 
     public async Task<PublicLeadSubmissionDto> Handle(SubmitPublicLeadCommand request, CancellationToken cancellationToken)
     {
-        if (!string.IsNullOrWhiteSpace(request.Website))
-        {
-            throw new Common.Exceptions.ValidationException([new FluentValidation.Results.ValidationFailure(nameof(SubmitPublicLeadCommand.Website), "Solicitacao rejeitada.")]);
-        }
-
         var targetType = request.TargetType.Trim().ToLowerInvariant();
         var target = await TargetOrganization(targetType, request.TargetId, cancellationToken);
         if (target is null)
         {
             throw new Common.Exceptions.NotFoundException(targetType, request.TargetId.ToString());
         }
+
+        var now = _timeProvider.GetUtcNow();
+        var source = TrimToNull(request.Source) ?? TrimToNull(request.UtmSource) ?? "landing";
+        var fingerprintHash = LandingPageViewDeduplication.Fingerprint(
+            targetType,
+            request.TargetId,
+            source,
+            TrimToNull(request.IpAddress) ?? "unknown-ip",
+            TrimToNull(request.UserAgent) ?? "unknown-agent");
+        var blockedReason = await BlockedReason(request, target.Value.OrganizationId, targetType, fingerprintHash, now, cancellationToken);
+        if (blockedReason is not null)
+        {
+            _context.LandingPageSubmissionAttempts.Add(SubmissionAttempt(target.Value.OrganizationId, targetType, request.TargetId, fingerprintHash, source, true, blockedReason, now));
+            await _context.SaveChangesAsync(cancellationToken);
+            throw new Common.Exceptions.ValidationException([new FluentValidation.Results.ValidationFailure(nameof(SubmitPublicLeadCommand.Website), "Solicitacao rejeitada.")]);
+        }
+
+        _context.LandingPageSubmissionAttempts.Add(SubmissionAttempt(target.Value.OrganizationId, targetType, request.TargetId, fingerprintHash, source, false, null, now));
 
         var email = TrimToNull(request.Email);
         var phone = TrimToNull(request.Phone);
@@ -108,6 +124,57 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
 
         await _context.SaveChangesAsync(cancellationToken);
         return new PublicLeadSubmissionDto { DonorId = donor.Id, DonationId = donationId, Created = created };
+    }
+
+    private async Task<string?> BlockedReason(
+        SubmitPublicLeadCommand request,
+        Guid organizationId,
+        string targetType,
+        string fingerprintHash,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(request.Website))
+        {
+            return "honeypot";
+        }
+
+        var windowStart = now.AddMinutes(-15);
+        var attempts = await _context.LandingPageSubmissionAttempts
+            .IgnoreQueryFilters()
+            .CountAsync(attempt =>
+                !attempt.IsDeleted &&
+                attempt.OrganizationId == organizationId &&
+                attempt.TargetType == targetType &&
+                attempt.TargetId == request.TargetId &&
+                attempt.FingerprintHash == fingerprintHash &&
+                attempt.AttemptedAtUtc >= windowStart,
+                cancellationToken);
+
+        return attempts >= 5 ? "fingerprint-rate-limit" : null;
+    }
+
+    private static LandingPageSubmissionAttempt SubmissionAttempt(
+        Guid organizationId,
+        string targetType,
+        Guid targetId,
+        string fingerprintHash,
+        string source,
+        bool blocked,
+        string? reason,
+        DateTimeOffset attemptedAtUtc)
+    {
+        return new LandingPageSubmissionAttempt
+        {
+            OrganizationId = organizationId,
+            TargetType = targetType,
+            TargetId = targetId,
+            FingerprintHash = fingerprintHash,
+            Source = source,
+            Blocked = blocked,
+            Reason = reason,
+            AttemptedAtUtc = attemptedAtUtc,
+        };
     }
 
     private Guid? CreatePendingDonationIfRequested(SubmitPublicLeadCommand request, string targetType, Guid organizationId, Guid donorId)

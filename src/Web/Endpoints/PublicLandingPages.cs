@@ -49,9 +49,16 @@ public sealed class PublicLandingPages : IEndpointGroup
         string kind,
         Guid id,
         SubmitPublicLeadCommand command,
+        HttpContext httpContext,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(command with { TargetType = kind, TargetId = id }, cancellationToken);
+        var result = await sender.Send(command with
+        {
+            TargetType = kind,
+            TargetId = id,
+            IpAddress = httpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = httpContext.Request.Headers.UserAgent.ToString(),
+        }, cancellationToken);
         return TypedResults.Ok(result);
     }
 }

@@ -53,6 +53,7 @@ public sealed class GetLandingPageAuditQueryHandler : IRequestHandler<GetLanding
                 Action = entry.Action,
                 Title = entry.Title,
                 Description = entry.Description,
+                CreatedByUserId = entry.CreatedByUserId,
                 OccurredAtUtc = entry.OccurredAtUtc,
             })
             .ToArrayAsync(cancellationToken);

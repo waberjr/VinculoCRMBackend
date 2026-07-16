@@ -37,6 +37,7 @@ public sealed class GetLandingPageConfigurationQueryHandler : IRequestHandler<Ge
                 IsActive = page.IsActive,
                 IsPublished = page.IsPublished,
                 PublishedAtUtc = page.PublishedAtUtc,
+                AppliedTemplateId = page.AppliedTemplateId,
                 CustomFields = LandingPageContent.ParseFields(page.CustomFieldsJson),
                 PublicUrl = LandingPageContent.PublicUrl(page.TargetType, page.TargetId),
                 TrackableUrl = LandingPageContent.TrackableUrl(page.TargetType, page.TargetId),

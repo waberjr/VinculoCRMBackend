@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Campaigns.Commands.ActivateCampaign;
+using VinculoBackend.Application.Campaigns.Commands.ApplyLandingPageTemplateToType;
 using VinculoBackend.Application.Campaigns.Commands.CancelCampaign;
 using VinculoBackend.Application.Campaigns.Commands.CloneLandingPageTemplate;
 using VinculoBackend.Application.Campaigns.Commands.CompleteCampaign;
@@ -21,6 +22,7 @@ using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageLeads;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageMetrics;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPagePerformance;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageTemplateDetail;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageTemplates;
 using VinculoBackend.Application.Common.Models;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -45,6 +47,8 @@ public sealed class Campaigns : IEndpointGroup
 
         public bool IsPublished { get; init; }
 
+        public Guid? AppliedTemplateId { get; init; }
+
         public string? CustomFieldsJson { get; init; }
 
         public IFormFile? HeroImage { get; init; }
@@ -58,6 +62,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(ExportCampaignReport, "Report/Export");
         groupBuilder.MapGet(GetLandingConfiguration, "Landing/{targetType}/{targetId}");
         groupBuilder.MapGet(GetLandingTemplates, "Landing/Templates");
+        groupBuilder.MapGet(GetLandingTemplateDetail, "Landing/Templates/{id}");
         groupBuilder.MapGet(GetLandingAudit, "Landing/Audit");
         groupBuilder.MapGet(GetLandingPerformance, "Landing/Performance");
         groupBuilder.MapGet(ExportLandingPerformance, "Landing/Performance/Export");
@@ -68,6 +73,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapPost(CreateCampaign);
         groupBuilder.MapPost(CreateLandingTemplate, "Landing/Templates");
         groupBuilder.MapPost(CloneLandingTemplate, "Landing/Templates/{id}/Clone");
+        groupBuilder.MapPost(ApplyLandingTemplateToType, "Landing/Templates/{id}/Apply");
         groupBuilder.MapPut(UpdateLandingTemplate, "Landing/Templates/{id}");
         groupBuilder.MapPost(ActivateLandingTemplate, "Landing/Templates/{id}/Activate");
         groupBuilder.MapPost(DeactivateLandingTemplate, "Landing/Templates/{id}/Deactivate");
@@ -86,6 +92,15 @@ public sealed class Campaigns : IEndpointGroup
     {
         var result = await sender.Send(new GetLandingPageTemplatesQuery(includeInactive), cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<Results<Ok<LandingPageTemplateDetailDto>, NotFound>> GetLandingTemplateDetail(
+        ISender sender,
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageTemplateDetailQuery(id), cancellationToken);
+        return result is null ? TypedResults.NotFound() : TypedResults.Ok(result);
     }
 
     public static async Task<Ok<IReadOnlyCollection<LandingPageAuditEntryDto>>> GetLandingAudit(
@@ -231,6 +246,7 @@ public sealed class Campaigns : IEndpointGroup
                 GoalAmount = form.GoalAmount,
                 IsActive = form.IsActive,
                 IsPublished = form.IsPublished,
+                AppliedTemplateId = form.AppliedTemplateId,
                 CustomFields = ParseCustomFields(form.CustomFieldsJson),
                 HeroImage = ToFileUpload(form.HeroImage, content),
             },
@@ -255,6 +271,16 @@ public sealed class Campaigns : IEndpointGroup
     {
         var cloneId = await sender.Send(command with { Id = id }, cancellationToken);
         return TypedResults.Created($"/api/Campaigns/Landing/Templates/{cloneId}", cloneId);
+    }
+
+    public static async Task<Ok<ApplyLandingPageTemplateResultDto>> ApplyLandingTemplateToType(
+        ISender sender,
+        Guid id,
+        ApplyLandingPageTemplateToTypeCommand command,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command with { TemplateId = id }, cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<NoContent> UpdateLandingTemplate(

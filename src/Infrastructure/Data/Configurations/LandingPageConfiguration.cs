@@ -15,5 +15,6 @@ public sealed class LandingPageConfiguration : IEntityTypeConfiguration<LandingP
         builder.Property(entity => entity.CustomFieldsJson).HasMaxLength(4000);
         builder.Property(entity => entity.GoalAmount).HasPrecision(12, 2);
         builder.HasIndex(entity => new { entity.OrganizationId, entity.TargetType, entity.TargetId }).IsUnique();
+        builder.HasIndex(entity => new { entity.OrganizationId, entity.AppliedTemplateId });
     }
 }

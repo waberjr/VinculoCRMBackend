@@ -76,6 +76,7 @@ public sealed class LandingPageConfigurationDto
     public bool IsActive { get; init; }
     public bool IsPublished { get; init; }
     public DateTimeOffset? PublishedAtUtc { get; init; }
+    public Guid? AppliedTemplateId { get; init; }
     public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
     public string PublicUrl { get; init; } = string.Empty;
     public string TrackableUrl { get; init; } = string.Empty;
@@ -145,7 +146,30 @@ public sealed class LandingPageAuditEntryDto
     public string Action { get; init; } = string.Empty;
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
+    public string? CreatedByUserId { get; init; }
     public DateTimeOffset OccurredAtUtc { get; init; }
+}
+
+public sealed class LandingPageTemplateDetailDto
+{
+    public LandingPageTemplateDto Template { get; init; } = new();
+    public IReadOnlyCollection<LandingPageTemplateUsageDto> Uses { get; init; } = [];
+    public IReadOnlyCollection<LandingPageAuditEntryDto> AuditEntries { get; init; } = [];
+}
+
+public sealed class LandingPageTemplateUsageDto
+{
+    public string TargetType { get; init; } = string.Empty;
+    public Guid TargetId { get; init; }
+    public string TargetName { get; init; } = string.Empty;
+    public bool IsActive { get; init; }
+    public bool IsPublished { get; init; }
+    public DateTimeOffset? PublishedAtUtc { get; init; }
+}
+
+public sealed class ApplyLandingPageTemplateResultDto
+{
+    public int UpdatedCount { get; init; }
 }
 
 public sealed class LandingPageLeadDto

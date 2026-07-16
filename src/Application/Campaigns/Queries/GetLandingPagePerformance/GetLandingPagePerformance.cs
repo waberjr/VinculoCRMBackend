@@ -28,13 +28,18 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
         _ = RequiredOrganization.From(_organizationContext);
         var targetType = string.IsNullOrWhiteSpace(request.TargetType) ? null : request.TargetType.Trim().ToLowerInvariant();
 
-        var pages = await LandingPages(targetType).ToListAsync(cancellationToken);
+        var pages = await LandingPages(targetType, cancellationToken);
         var targetKeys = pages.Select(page => $"{page.TargetType}:{page.TargetId:N}").ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var views = await LandingViews(request, targetKeys).ToListAsync(cancellationToken);
-        var leads = (await LandingLeads(request, targetKeys).ToListAsync(cancellationToken))
+        var views = (await LandingViews(request).ToListAsync(cancellationToken))
+            .Where(view => targetKeys.Contains(view.TargetKey))
+            .ToArray();
+        var leads = (await LandingLeads(request).ToListAsync(cancellationToken))
+            .Where(lead => targetKeys.Contains(lead.TargetKey))
             .Where(lead => string.IsNullOrWhiteSpace(request.Source) || LandingPageContent.SourceFromTimeline(lead.Description).Equals(request.Source.Trim(), StringComparison.OrdinalIgnoreCase))
             .ToArray();
-        var donations = await LandingDonations(pages.Select(page => page.TargetId).ToArray()).ToListAsync(cancellationToken);
+        var donations = (await LandingDonations(pages.Select(page => page.TargetId).ToArray(), cancellationToken))
+            .Where(donation => targetKeys.Contains(donation.TargetKey))
+            .ToArray();
         var confirmedDonations = donations.Where(donation => donation.Status == DonationStatus.Confirmed).ToArray();
 
         var items = pages
@@ -69,7 +74,7 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
 
         return new LandingPagePerformanceDto
         {
-            ViewsCount = views.Count,
+            ViewsCount = views.Length,
             LeadsCount = leads.Length,
             PromisesCount = donations.Count(donation => donation.Status is DonationStatus.Pending or DonationStatus.Overdue),
             ConfirmedDonationsCount = confirmedDonations.Length,
@@ -82,22 +87,43 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
         };
     }
 
-    private IQueryable<LandingPageProjection> LandingPages(string? targetType)
+    private async Task<IReadOnlyCollection<LandingPageProjection>> LandingPages(string? targetType, CancellationToken cancellationToken)
     {
-        var campaigns = _context.LandingPages
+        var campaigns = await _context.LandingPages
             .AsNoTracking()
             .Where(page => page.TargetType == "campaign" && (targetType == null || page.TargetType == targetType))
-            .Join(_context.Campaigns.AsNoTracking(), page => page.TargetId, campaign => campaign.Id, (page, campaign) => new LandingPageProjection(page.TargetType, page.TargetId, campaign.Name, page.Title, page.IsActive, page.IsPublished));
+            .Join(_context.Campaigns.AsNoTracking(), page => page.TargetId, campaign => campaign.Id, (page, campaign) => new
+            {
+                page.TargetType,
+                page.TargetId,
+                TargetName = campaign.Name,
+                page.Title,
+                page.IsActive,
+                page.IsPublished,
+            })
+            .ToListAsync(cancellationToken);
 
-        var projects = _context.LandingPages
+        var projects = await _context.LandingPages
             .AsNoTracking()
             .Where(page => page.TargetType == "project" && (targetType == null || page.TargetType == targetType))
-            .Join(_context.Projects.AsNoTracking(), page => page.TargetId, project => project.Id, (page, project) => new LandingPageProjection(page.TargetType, page.TargetId, project.Name, page.Title, page.IsActive, page.IsPublished));
+            .Join(_context.Projects.AsNoTracking(), page => page.TargetId, project => project.Id, (page, project) => new
+            {
+                page.TargetType,
+                page.TargetId,
+                TargetName = project.Name,
+                page.Title,
+                page.IsActive,
+                page.IsPublished,
+            })
+            .ToListAsync(cancellationToken);
 
-        return campaigns.Concat(projects);
+        return campaigns
+            .Concat(projects)
+            .Select(page => new LandingPageProjection(page.TargetType, page.TargetId, page.TargetName, page.Title, page.IsActive, page.IsPublished))
+            .ToArray();
     }
 
-    private IQueryable<ViewProjection> LandingViews(GetLandingPagePerformanceQuery request, HashSet<string> targetKeys)
+    private IQueryable<ViewProjection> LandingViews(GetLandingPagePerformanceQuery request)
     {
         var query = _context.LandingPageViews.AsNoTracking();
 
@@ -118,16 +144,16 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
 
         return query
             .Select(view => new ViewProjection(
-                view.TargetType + ":" + view.TargetId.ToString("N"),
+                view.TargetType,
+                view.TargetId,
                 view.ViewedAtUtc,
                 view.Source ?? view.UtmSource ?? "landing",
                 view.UtmSource,
                 view.UtmMedium,
-                view.UtmCampaign))
-            .Where(view => targetKeys.Contains(view.TargetKey));
+                view.UtmCampaign));
     }
 
-    private IQueryable<LeadProjection> LandingLeads(GetLandingPagePerformanceQuery request, HashSet<string> targetKeys)
+    private IQueryable<LeadProjection> LandingLeads(GetLandingPagePerformanceQuery request)
     {
         var query = _context.DonorTimelineEntries
             .AsNoTracking()
@@ -145,33 +171,44 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
 
         return query
             .Select(entry => new LeadProjection(
-                entry.RelatedEntityType + ":" + entry.RelatedEntityId!.Value.ToString("N"),
+                entry.RelatedEntityType ?? string.Empty,
+                entry.RelatedEntityId!.Value,
                 entry.OccurredAtUtc,
-                entry.Description ?? string.Empty))
-            .Where(lead => targetKeys.Contains(lead.TargetKey));
+                entry.Description ?? string.Empty));
     }
 
-    private IQueryable<DonationProjection> LandingDonations(Guid[] targetIds)
+    private async Task<IReadOnlyCollection<DonationProjection>> LandingDonations(Guid[] targetIds, CancellationToken cancellationToken)
     {
-        var campaignDonations = _context.Donations
+        var campaignDonations = await _context.Donations
             .AsNoTracking()
             .Where(donation => donation.CampaignId != null && targetIds.Contains(donation.CampaignId.Value))
-            .Select(donation => new DonationProjection(
-                "campaign:" + donation.CampaignId!.Value.ToString("N"),
+            .Select(donation => new
+            {
+                TargetType = "campaign",
+                TargetId = donation.CampaignId!.Value,
                 donation.DonorId,
                 donation.Amount,
-                donation.Status));
+                donation.Status,
+            })
+            .ToListAsync(cancellationToken);
 
-        var projectDonations = _context.DonationProjects
+        var projectDonations = await _context.DonationProjects
             .AsNoTracking()
             .Where(link => targetIds.Contains(link.ProjectId))
-            .Select(link => new DonationProjection(
-                "project:" + link.ProjectId.ToString("N"),
+            .Select(link => new
+            {
+                TargetType = "project",
+                TargetId = link.ProjectId,
                 link.Donation.DonorId,
                 link.Donation.Amount,
-                link.Donation.Status));
+                link.Donation.Status,
+            })
+            .ToListAsync(cancellationToken);
 
-        return campaignDonations.Concat(projectDonations);
+        return campaignDonations
+            .Concat(projectDonations)
+            .Select(donation => new DonationProjection(donation.TargetType, donation.TargetId, donation.DonorId, donation.Amount, donation.Status))
+            .ToArray();
     }
 
     private static string TopSource(IReadOnlyCollection<ViewProjection> views, IReadOnlyCollection<LeadProjection> leads)
@@ -256,9 +293,20 @@ public sealed class GetLandingPagePerformanceQueryHandler : IRequestHandler<GetL
     private static string Normalize(string? value) => string.IsNullOrWhiteSpace(value) ? "nao informado" : value.Trim();
 
     private sealed record LandingPageProjection(string TargetType, Guid TargetId, string TargetName, string Title, bool IsActive, bool IsPublished);
-    private sealed record ViewProjection(string TargetKey, DateTimeOffset OccurredAtUtc, string Source, string? UtmSource, string? UtmMedium, string? UtmCampaign);
-    private sealed record LeadProjection(string TargetKey, DateTimeOffset OccurredAtUtc, string Description);
-    private sealed record DonationProjection(string TargetKey, Guid DonorId, decimal Amount, DonationStatus Status);
+    private sealed record ViewProjection(string TargetType, Guid TargetId, DateTimeOffset OccurredAtUtc, string Source, string? UtmSource, string? UtmMedium, string? UtmCampaign)
+    {
+        public string TargetKey => $"{TargetType}:{TargetId:N}";
+    }
+
+    private sealed record LeadProjection(string TargetType, Guid TargetId, DateTimeOffset OccurredAtUtc, string Description)
+    {
+        public string TargetKey => $"{TargetType}:{TargetId:N}";
+    }
+
+    private sealed record DonationProjection(string TargetType, Guid TargetId, Guid DonorId, decimal Amount, DonationStatus Status)
+    {
+        public string TargetKey => $"{TargetType}:{TargetId:N}";
+    }
     private sealed record UtmKey(string Source, string Medium, string Campaign);
 }
 

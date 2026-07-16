@@ -19,11 +19,13 @@ public sealed record UpdateLandingPageTemplateCommand(
 public sealed class UpdateLandingPageTemplateCommandHandler : IRequestHandler<UpdateLandingPageTemplateCommand>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IUser _user;
     private readonly TimeProvider _timeProvider;
 
-    public UpdateLandingPageTemplateCommandHandler(IApplicationDbContext context, TimeProvider timeProvider)
+    public UpdateLandingPageTemplateCommandHandler(IApplicationDbContext context, IUser user, TimeProvider timeProvider)
     {
         _context = context;
+        _user = user;
         _timeProvider = timeProvider;
     }
 
@@ -54,7 +56,8 @@ public sealed class UpdateLandingPageTemplateCommandHandler : IRequestHandler<Up
             "Updated",
             "Template de landing atualizado",
             template.Name,
-            _timeProvider.GetUtcNow()));
+            _timeProvider.GetUtcNow(),
+            _user.Id));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

@@ -11,7 +11,8 @@ public static class LandingPageAudit
         string action,
         string title,
         string? description,
-        DateTimeOffset occurredAtUtc)
+        DateTimeOffset occurredAtUtc,
+        string? createdByUserId = null)
     {
         return new LandingPageAuditEntry
         {
@@ -21,6 +22,7 @@ public static class LandingPageAudit
             Action = action,
             Title = title,
             Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim(),
+            CreatedByUserId = string.IsNullOrWhiteSpace(createdByUserId) ? null : createdByUserId,
             OccurredAtUtc = occurredAtUtc,
         };
     }

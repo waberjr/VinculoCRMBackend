@@ -11,12 +11,14 @@ public sealed class CloneLandingPageTemplateCommandHandler : IRequestHandler<Clo
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IUser _user;
     private readonly TimeProvider _timeProvider;
 
-    public CloneLandingPageTemplateCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, TimeProvider timeProvider)
+    public CloneLandingPageTemplateCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _user = user;
         _timeProvider = timeProvider;
     }
 
@@ -50,7 +52,8 @@ public sealed class CloneLandingPageTemplateCommandHandler : IRequestHandler<Clo
             "Cloned",
             "Template de landing clonado",
             $"{source.Name} -> {clone.Name}",
-            _timeProvider.GetUtcNow()));
+            _timeProvider.GetUtcNow(),
+            _user.Id));
 
         await _context.SaveChangesAsync(cancellationToken);
         return clone.Id;

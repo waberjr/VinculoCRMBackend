@@ -9,11 +9,13 @@ public sealed record SetLandingPageTemplateActiveCommand(Guid Id, bool IsActive)
 public sealed class SetLandingPageTemplateActiveCommandHandler : IRequestHandler<SetLandingPageTemplateActiveCommand>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IUser _user;
     private readonly TimeProvider _timeProvider;
 
-    public SetLandingPageTemplateActiveCommandHandler(IApplicationDbContext context, TimeProvider timeProvider)
+    public SetLandingPageTemplateActiveCommandHandler(IApplicationDbContext context, IUser user, TimeProvider timeProvider)
     {
         _context = context;
+        _user = user;
         _timeProvider = timeProvider;
     }
 
@@ -43,7 +45,8 @@ public sealed class SetLandingPageTemplateActiveCommandHandler : IRequestHandler
             request.IsActive ? "Activated" : "Deactivated",
             request.IsActive ? "Template de landing ativado" : "Template de landing desativado",
             template.Name,
-            _timeProvider.GetUtcNow()));
+            _timeProvider.GetUtcNow(),
+            _user.Id));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

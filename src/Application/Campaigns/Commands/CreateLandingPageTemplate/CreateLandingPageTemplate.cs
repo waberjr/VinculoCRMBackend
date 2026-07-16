@@ -19,12 +19,14 @@ public sealed class CreateLandingPageTemplateCommandHandler : IRequestHandler<Cr
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IUser _user;
     private readonly TimeProvider _timeProvider;
 
-    public CreateLandingPageTemplateCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, TimeProvider timeProvider)
+    public CreateLandingPageTemplateCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _user = user;
         _timeProvider = timeProvider;
     }
 
@@ -49,7 +51,8 @@ public sealed class CreateLandingPageTemplateCommandHandler : IRequestHandler<Cr
             "Created",
             "Template de landing criado",
             template.Name,
-            _timeProvider.GetUtcNow()));
+            _timeProvider.GetUtcNow(),
+            _user.Id));
         await _context.SaveChangesAsync(cancellationToken);
         return template.Id;
     }
