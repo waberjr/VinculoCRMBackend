@@ -9,7 +9,8 @@ public sealed record CreateLandingPageBlockRuleCommand(
     Guid TargetId,
     string? FingerprintHash,
     string? Source,
-    string? Reason) : IRequest<Guid>;
+    string? Reason,
+    DateTimeOffset? ExpiresAtUtc = null) : IRequest<Guid>;
 
 public sealed class CreateLandingPageBlockRuleCommandHandler : IRequestHandler<CreateLandingPageBlockRuleCommand, Guid>
 {
@@ -50,6 +51,7 @@ public sealed class CreateLandingPageBlockRuleCommandHandler : IRequestHandler<C
         {
             existing.IsActive = true;
             existing.Reason = TrimToNull(request.Reason) ?? existing.Reason;
+            existing.ExpiresAtUtc = request.ExpiresAtUtc;
             await _context.SaveChangesAsync(cancellationToken);
             return existing.Id;
         }
@@ -62,6 +64,7 @@ public sealed class CreateLandingPageBlockRuleCommandHandler : IRequestHandler<C
             FingerprintHash = fingerprintHash,
             Source = source,
             Reason = TrimToNull(request.Reason),
+            ExpiresAtUtc = request.ExpiresAtUtc,
             CreatedAtUtc = _timeProvider.GetUtcNow(),
             CreatedByUserId = _user.Id,
         };

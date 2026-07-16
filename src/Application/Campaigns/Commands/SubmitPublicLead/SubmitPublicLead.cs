@@ -60,6 +60,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
         if (blockedReason is not null)
         {
             _context.LandingPageSubmissionAttempts.Add(SubmissionAttempt(target.Value.OrganizationId, targetType, request.TargetId, fingerprintHash, source, true, blockedReason, now));
+            await AddHighProtectionAlertIfNeeded(target.Value.OrganizationId, targetType, request.TargetId, target.Value.Name, now, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             throw new Common.Exceptions.ValidationException([new FluentValidation.Results.ValidationFailure(nameof(SubmitPublicLeadCommand.Website), "Solicitacao rejeitada.")]);
         }
@@ -148,6 +149,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
                 !rule.IsDeleted &&
                 rule.OrganizationId == organizationId &&
                 rule.IsActive &&
+                (rule.ExpiresAtUtc == null || rule.ExpiresAtUtc > now) &&
                 rule.TargetType == targetType &&
                 rule.TargetId == request.TargetId &&
                 ((rule.FingerprintHash != null && rule.FingerprintHash == fingerprintHash) ||
@@ -190,6 +192,56 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             .FirstOrDefaultAsync(cancellationToken);
 
         return page is null ? (15, 5) : (page.SubmissionLimitWindowMinutes, page.SubmissionLimitMaxAttempts);
+    }
+
+    private async Task AddHighProtectionAlertIfNeeded(
+        Guid organizationId,
+        string targetType,
+        Guid targetId,
+        string targetName,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var recentStart = now.AddHours(-1);
+        var recentBlocked = await _context.LandingPageSubmissionAttempts
+            .IgnoreQueryFilters()
+            .CountAsync(attempt =>
+                !attempt.IsDeleted &&
+                attempt.OrganizationId == organizationId &&
+                attempt.TargetType == targetType &&
+                attempt.TargetId == targetId &&
+                attempt.Blocked &&
+                attempt.AttemptedAtUtc >= recentStart,
+                cancellationToken);
+        if (recentBlocked + 1 < 20)
+        {
+            return;
+        }
+
+        var alreadyAlerted = await _context.LandingPageAuditEntries
+            .IgnoreQueryFilters()
+            .AnyAsync(entry =>
+                !entry.IsDeleted &&
+                entry.OrganizationId == organizationId &&
+                entry.EntityType == targetType &&
+                entry.EntityId == targetId &&
+                entry.Action == "HighProtectionAlert" &&
+                entry.OccurredAtUtc >= recentStart,
+                cancellationToken);
+        if (alreadyAlerted)
+        {
+            return;
+        }
+
+        _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(
+            organizationId,
+            targetType,
+            targetId,
+            "HighProtectionAlert",
+            "Alerta alto de protecao",
+            $"{targetName} recebeu {recentBlocked + 1} bloqueios na ultima hora.",
+            now,
+            null));
     }
 
     private static LandingPageSubmissionAttempt SubmissionAttempt(

@@ -17,16 +17,19 @@ public sealed class GetLandingPageAbuseReportQueryHandler : IRequestHandler<GetL
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public GetLandingPageAbuseReportQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetLandingPageAbuseReportQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<LandingPageAbuseReportDto> Handle(GetLandingPageAbuseReportQuery request, CancellationToken cancellationToken)
     {
         _ = RequiredOrganization.From(_organizationContext);
+        var now = _timeProvider.GetUtcNow();
 
         var query = _context.LandingPageSubmissionAttempts.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(request.TargetType))
@@ -104,7 +107,7 @@ public sealed class GetLandingPageAbuseReportQueryHandler : IRequestHandler<GetL
 
         var activeRules = await _context.LandingPageBlockRules
             .AsNoTracking()
-            .Where(rule => rule.IsActive)
+            .Where(rule => rule.IsActive && (rule.ExpiresAtUtc == null || rule.ExpiresAtUtc > now))
             .Select(rule => new
             {
                 rule.Id,

@@ -23,6 +23,7 @@ using VinculoBackend.Application.Campaigns.Queries.GetPublicLandingPage;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaigns;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageAbuseReport;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageAudit;
+using VinculoBackend.Application.Campaigns.Queries.GetLandingPageBlockRules;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageLeads;
 using VinculoBackend.Application.Campaigns.Queries.GetLandingPageMetrics;
@@ -75,6 +76,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetLandingAudit, "Landing/Audit");
         groupBuilder.MapGet(GetLandingAbuseReport, "Landing/Abuse");
         groupBuilder.MapGet(ExportLandingAbuseReport, "Landing/Abuse/Export");
+        groupBuilder.MapGet(GetLandingBlockRules, "Landing/BlockRules");
         groupBuilder.MapGet(GetLandingPerformance, "Landing/Performance");
         groupBuilder.MapGet(ExportLandingPerformance, "Landing/Performance/Export");
         groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
@@ -157,6 +159,18 @@ public sealed class Campaigns : IEndpointGroup
     {
         var result = await sender.Send(new ExportLandingPageAbuseReportQuery(format ?? "csv", targetType, targetId, source, blocked, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<LandingPageBlockRuleDto>>> GetLandingBlockRules(
+        ISender sender,
+        string? targetType,
+        Guid? targetId,
+        bool includeInactive,
+        bool includeExpired,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetLandingPageBlockRulesQuery(targetType, targetId, includeInactive, includeExpired), cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Ok<LandingPagePerformanceDto>> GetLandingPerformance(

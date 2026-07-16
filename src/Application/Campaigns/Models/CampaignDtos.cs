@@ -215,6 +215,21 @@ public sealed class LandingPageAbuseReportItemDto
     public DateTimeOffset AttemptedAtUtc { get; init; }
 }
 
+public sealed class LandingPageBlockRuleDto
+{
+    public Guid Id { get; init; }
+    public string TargetType { get; init; } = string.Empty;
+    public Guid TargetId { get; init; }
+    public string TargetName { get; init; } = string.Empty;
+    public string? FingerprintHash { get; init; }
+    public string? Source { get; init; }
+    public string? Reason { get; init; }
+    public bool IsActive { get; init; }
+    public bool IsExpired { get; init; }
+    public DateTimeOffset? ExpiresAtUtc { get; init; }
+    public DateTimeOffset CreatedAtUtc { get; init; }
+}
+
 public sealed class LandingPageLeadDto
 {
     public Guid DonorId { get; init; }

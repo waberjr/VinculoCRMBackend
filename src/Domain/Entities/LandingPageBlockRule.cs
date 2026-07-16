@@ -8,6 +8,7 @@ public class LandingPageBlockRule : OrganizationEntity
     public string? Source { get; set; }
     public string? Reason { get; set; }
     public bool IsActive { get; set; } = true;
+    public DateTimeOffset? ExpiresAtUtc { get; set; }
     public string? CreatedByUserId { get; set; }
     public DateTimeOffset CreatedAtUtc { get; set; }
 }
