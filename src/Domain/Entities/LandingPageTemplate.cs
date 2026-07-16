@@ -12,6 +12,7 @@ public class LandingPageTemplate : OrganizationEntity
     public decimal? GoalAmount { get; private set; }
     public string? CustomFieldsJson { get; private set; }
     public bool IsActive { get; private set; } = true;
+    public int Version { get; private set; } = 1;
 
     public static LandingPageTemplate Create(
         Guid organizationId,
@@ -24,7 +25,7 @@ public class LandingPageTemplate : OrganizationEntity
         string? category = null)
     {
         var template = new LandingPageTemplate { OrganizationId = organizationId };
-        template.Update(name, title, subtitle, heroImageUrl, goalAmount, customFieldsJson, true, category);
+        template.Update(name, title, subtitle, heroImageUrl, goalAmount, customFieldsJson, true, category, incrementVersion: false);
         return template;
     }
 
@@ -36,7 +37,8 @@ public class LandingPageTemplate : OrganizationEntity
         decimal? goalAmount,
         string? customFieldsJson,
         bool isActive,
-        string? category = null)
+        string? category = null,
+        bool incrementVersion = true)
     {
         if (string.IsNullOrWhiteSpace(name))
         {
@@ -61,6 +63,10 @@ public class LandingPageTemplate : OrganizationEntity
         GoalAmount = goalAmount;
         CustomFieldsJson = TrimToNull(customFieldsJson);
         IsActive = isActive;
+        if (incrementVersion)
+        {
+            Version++;
+        }
     }
 
     public void Activate()

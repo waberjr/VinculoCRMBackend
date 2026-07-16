@@ -40,6 +40,7 @@ public sealed class GetLandingPageTemplatesQueryHandler : IRequestHandler<GetLan
                 HeroImageUrl = template.HeroImageUrl,
                 GoalAmount = template.GoalAmount,
                 IsActive = template.IsActive,
+                Version = template.Version,
                 CustomFields = LandingPageContent.ParseFields(template.CustomFieldsJson),
             })
             .ToArrayAsync(cancellationToken);

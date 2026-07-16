@@ -64,7 +64,9 @@ public sealed class ApplyLandingPageTemplateToTypeCommandHandler : IRequestHandl
                 page.IsPublished,
                 template.CustomFieldsJson,
                 page.PublishedAtUtc,
-                template.Id);
+                template.Id,
+                page.SubmissionLimitWindowMinutes,
+                page.SubmissionLimitMaxAttempts);
         }
 
         _context.LandingPageAuditEntries.Add(LandingPageAudit.Create(

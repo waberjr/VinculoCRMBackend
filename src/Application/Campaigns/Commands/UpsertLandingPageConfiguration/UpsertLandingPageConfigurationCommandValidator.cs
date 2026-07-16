@@ -10,5 +10,7 @@ public sealed class UpsertLandingPageConfigurationCommandValidator : AbstractVal
         RuleFor(command => command.Subtitle).MaximumLength(1000);
         RuleFor(command => command.HeroImageUrl).MaximumLength(1000);
         RuleFor(command => command.GoalAmount).GreaterThan(0).When(command => command.GoalAmount is not null);
+        RuleFor(command => command.SubmissionLimitWindowMinutes).InclusiveBetween(1, 1440);
+        RuleFor(command => command.SubmissionLimitMaxAttempts).InclusiveBetween(1, 100);
     }
 }

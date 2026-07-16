@@ -48,6 +48,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
         }
 
         var now = _timeProvider.GetUtcNow();
+        var rateLimit = await RateLimit(target.Value.OrganizationId, targetType, request.TargetId, cancellationToken);
         var source = TrimToNull(request.Source) ?? TrimToNull(request.UtmSource) ?? "landing";
         var fingerprintHash = LandingPageViewDeduplication.Fingerprint(
             targetType,
@@ -55,7 +56,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             source,
             TrimToNull(request.IpAddress) ?? "unknown-ip",
             TrimToNull(request.UserAgent) ?? "unknown-agent");
-        var blockedReason = await BlockedReason(request, target.Value.OrganizationId, targetType, fingerprintHash, now, cancellationToken);
+        var blockedReason = await BlockedReason(request, target.Value.OrganizationId, targetType, fingerprintHash, rateLimit, now, cancellationToken);
         if (blockedReason is not null)
         {
             _context.LandingPageSubmissionAttempts.Add(SubmissionAttempt(target.Value.OrganizationId, targetType, request.TargetId, fingerprintHash, source, true, blockedReason, now));
@@ -131,6 +132,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
         Guid organizationId,
         string targetType,
         string fingerprintHash,
+        (int WindowMinutes, int MaxAttempts) rateLimit,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
@@ -139,7 +141,7 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             return "honeypot";
         }
 
-        var windowStart = now.AddMinutes(-15);
+        var windowStart = now.AddMinutes(-rateLimit.WindowMinutes);
         var attempts = await _context.LandingPageSubmissionAttempts
             .IgnoreQueryFilters()
             .CountAsync(attempt =>
@@ -151,7 +153,26 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
                 attempt.AttemptedAtUtc >= windowStart,
                 cancellationToken);
 
-        return attempts >= 5 ? "fingerprint-rate-limit" : null;
+        return attempts >= rateLimit.MaxAttempts ? "fingerprint-rate-limit" : null;
+    }
+
+    private async Task<(int WindowMinutes, int MaxAttempts)> RateLimit(Guid organizationId, string targetType, Guid targetId, CancellationToken cancellationToken)
+    {
+        var page = await _context.LandingPages
+            .IgnoreQueryFilters()
+            .Where(page =>
+                !page.IsDeleted &&
+                page.OrganizationId == organizationId &&
+                page.TargetType == targetType &&
+                page.TargetId == targetId)
+            .Select(page => new
+            {
+                page.SubmissionLimitWindowMinutes,
+                page.SubmissionLimitMaxAttempts,
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return page is null ? (15, 5) : (page.SubmissionLimitWindowMinutes, page.SubmissionLimitMaxAttempts);
     }
 
     private static LandingPageSubmissionAttempt SubmissionAttempt(

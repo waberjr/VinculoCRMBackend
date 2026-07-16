@@ -11,6 +11,7 @@ using VinculoBackend.Application.Campaigns.Commands.UpdateCampaign;
 using VinculoBackend.Application.Campaigns.Commands.UpdateLandingPageTemplate;
 using VinculoBackend.Application.Campaigns.Commands.UpsertLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Models;
+using VinculoBackend.Application.Campaigns.Queries.ExportLandingPageAbuseReport;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.ExportCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.ExportLandingPagePerformance;
@@ -50,6 +51,10 @@ public sealed class Campaigns : IEndpointGroup
 
         public Guid? AppliedTemplateId { get; init; }
 
+        public int SubmissionLimitWindowMinutes { get; init; } = 15;
+
+        public int SubmissionLimitMaxAttempts { get; init; } = 5;
+
         public string? CustomFieldsJson { get; init; }
 
         public IFormFile? HeroImage { get; init; }
@@ -66,6 +71,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetLandingTemplateDetail, "Landing/Templates/{id}");
         groupBuilder.MapGet(GetLandingAudit, "Landing/Audit");
         groupBuilder.MapGet(GetLandingAbuseReport, "Landing/Abuse");
+        groupBuilder.MapGet(ExportLandingAbuseReport, "Landing/Abuse/Export");
         groupBuilder.MapGet(GetLandingPerformance, "Landing/Performance");
         groupBuilder.MapGet(ExportLandingPerformance, "Landing/Performance/Export");
         groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
@@ -130,6 +136,21 @@ public sealed class Campaigns : IEndpointGroup
     {
         var result = await sender.Send(new GetLandingPageAbuseReportQuery(targetType, targetId, source, blocked, startDateUtc, endDateUtc, limit), cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<FileContentHttpResult> ExportLandingAbuseReport(
+        ISender sender,
+        string? format,
+        string? targetType,
+        Guid? targetId,
+        string? source,
+        bool? blocked,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportLandingPageAbuseReportQuery(format ?? "csv", targetType, targetId, source, blocked, startDateUtc, endDateUtc), cancellationToken);
+        return TypedResults.File(result.Content, result.ContentType, result.FileName);
     }
 
     public static async Task<Ok<LandingPagePerformanceDto>> GetLandingPerformance(
@@ -264,6 +285,8 @@ public sealed class Campaigns : IEndpointGroup
                 IsActive = form.IsActive,
                 IsPublished = form.IsPublished,
                 AppliedTemplateId = form.AppliedTemplateId,
+                SubmissionLimitWindowMinutes = form.SubmissionLimitWindowMinutes,
+                SubmissionLimitMaxAttempts = form.SubmissionLimitMaxAttempts,
                 CustomFields = ParseCustomFields(form.CustomFieldsJson),
                 HeroImage = ToFileUpload(form.HeroImage, content),
             },

@@ -15,6 +15,8 @@ public class LandingPage : OrganizationEntity
     public DateTimeOffset? PublishedAtUtc { get; private set; }
     public Guid? AppliedTemplateId { get; private set; }
     public string? CustomFieldsJson { get; private set; }
+    public int SubmissionLimitWindowMinutes { get; private set; } = 15;
+    public int SubmissionLimitMaxAttempts { get; private set; } = 5;
 
     public static LandingPage Create(
         Guid organizationId,
@@ -28,7 +30,9 @@ public class LandingPage : OrganizationEntity
         bool isPublished = false,
         string? customFieldsJson = null,
         DateTimeOffset? publishedAtUtc = null,
-        Guid? appliedTemplateId = null)
+        Guid? appliedTemplateId = null,
+        int submissionLimitWindowMinutes = 15,
+        int submissionLimitMaxAttempts = 5)
     {
         var page = new LandingPage
         {
@@ -36,7 +40,7 @@ public class LandingPage : OrganizationEntity
             TargetType = NormalizeTargetType(targetType),
             TargetId = targetId,
         };
-        page.Update(title, subtitle, heroImageUrl, goalAmount, isActive, isPublished, customFieldsJson, publishedAtUtc, appliedTemplateId);
+        page.Update(title, subtitle, heroImageUrl, goalAmount, isActive, isPublished, customFieldsJson, publishedAtUtc, appliedTemplateId, submissionLimitWindowMinutes, submissionLimitMaxAttempts);
         return page;
     }
 
@@ -49,7 +53,9 @@ public class LandingPage : OrganizationEntity
         bool isPublished,
         string? customFieldsJson,
         DateTimeOffset? publishedAtUtc,
-        Guid? appliedTemplateId = null)
+        Guid? appliedTemplateId = null,
+        int submissionLimitWindowMinutes = 15,
+        int submissionLimitMaxAttempts = 5)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -61,6 +67,16 @@ public class LandingPage : OrganizationEntity
             throw new DomainValidationException("A meta da landing page deve ser maior que zero.");
         }
 
+        if (submissionLimitWindowMinutes is < 1 or > 1440)
+        {
+            throw new DomainValidationException("A janela de bloqueio deve ter entre 1 e 1440 minutos.");
+        }
+
+        if (submissionLimitMaxAttempts is < 1 or > 100)
+        {
+            throw new DomainValidationException("O limite de tentativas deve estar entre 1 e 100.");
+        }
+
         Title = title.Trim();
         Subtitle = TrimToNull(subtitle);
         HeroImageUrl = TrimToNull(heroImageUrl);
@@ -70,6 +86,8 @@ public class LandingPage : OrganizationEntity
         PublishedAtUtc = isPublished ? publishedAtUtc : null;
         AppliedTemplateId = appliedTemplateId;
         CustomFieldsJson = TrimToNull(customFieldsJson);
+        SubmissionLimitWindowMinutes = submissionLimitWindowMinutes;
+        SubmissionLimitMaxAttempts = submissionLimitMaxAttempts;
     }
 
     private static string NormalizeTargetType(string targetType)

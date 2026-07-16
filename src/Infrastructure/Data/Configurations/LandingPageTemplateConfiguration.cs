@@ -15,6 +15,7 @@ public sealed class LandingPageTemplateConfiguration : IEntityTypeConfiguration<
         builder.Property(entity => entity.HeroImageUrl).HasMaxLength(1000);
         builder.Property(entity => entity.GoalAmount).HasPrecision(12, 2);
         builder.Property(entity => entity.CustomFieldsJson).HasColumnType("json");
+        builder.Property(entity => entity.Version).HasDefaultValue(1);
         builder.HasIndex(entity => new { entity.OrganizationId, entity.IsActive, entity.Name });
     }
 }

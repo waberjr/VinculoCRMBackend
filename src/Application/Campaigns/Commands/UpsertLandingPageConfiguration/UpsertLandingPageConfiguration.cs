@@ -19,6 +19,8 @@ public sealed record UpsertLandingPageConfigurationCommand : IRequest<LandingPag
     public bool IsActive { get; init; } = true;
     public bool IsPublished { get; init; }
     public Guid? AppliedTemplateId { get; init; }
+    public int SubmissionLimitWindowMinutes { get; init; } = 15;
+    public int SubmissionLimitMaxAttempts { get; init; } = 5;
     public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
     public FileUpload? HeroImage { get; init; }
 }
@@ -72,7 +74,9 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 request.IsPublished,
                 customFieldsJson,
                 publishedAtUtc,
-                request.AppliedTemplateId);
+                request.AppliedTemplateId,
+                request.SubmissionLimitWindowMinutes,
+                request.SubmissionLimitMaxAttempts);
             _context.LandingPages.Add(page);
         }
         else
@@ -93,7 +97,9 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
                 request.IsPublished,
                 customFieldsJson,
                 request.IsPublished && page.PublishedAtUtc is not null ? page.PublishedAtUtc : publishedAtUtc,
-                request.AppliedTemplateId);
+                request.AppliedTemplateId,
+                request.SubmissionLimitWindowMinutes,
+                request.SubmissionLimitMaxAttempts);
         }
 
         if (!wasPublished && request.IsPublished)
@@ -134,6 +140,8 @@ public sealed class UpsertLandingPageConfigurationCommandHandler : IRequestHandl
             IsPublished = page.IsPublished,
             PublishedAtUtc = page.PublishedAtUtc,
             AppliedTemplateId = page.AppliedTemplateId,
+            SubmissionLimitWindowMinutes = page.SubmissionLimitWindowMinutes,
+            SubmissionLimitMaxAttempts = page.SubmissionLimitMaxAttempts,
             CustomFields = LandingPageContent.ParseFields(page.CustomFieldsJson),
             PublicUrl = LandingPageContent.PublicUrl(page.TargetType, page.TargetId),
             TrackableUrl = LandingPageContent.TrackableUrl(page.TargetType, page.TargetId),

@@ -77,6 +77,8 @@ public sealed class LandingPageConfigurationDto
     public bool IsPublished { get; init; }
     public DateTimeOffset? PublishedAtUtc { get; init; }
     public Guid? AppliedTemplateId { get; init; }
+    public int SubmissionLimitWindowMinutes { get; init; } = 15;
+    public int SubmissionLimitMaxAttempts { get; init; } = 5;
     public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
     public string PublicUrl { get; init; } = string.Empty;
     public string TrackableUrl { get; init; } = string.Empty;
@@ -135,6 +137,7 @@ public sealed class LandingPageTemplateDto
     public string? HeroImageUrl { get; init; }
     public decimal? GoalAmount { get; init; }
     public bool IsActive { get; init; }
+    public int Version { get; init; }
     public IReadOnlyCollection<LandingPageCustomFieldDto> CustomFields { get; init; } = [];
 }
 
