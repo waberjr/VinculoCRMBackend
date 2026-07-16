@@ -8,7 +8,11 @@ public sealed record GetLandingPageBlockRulesQuery(
     string? TargetType = null,
     Guid? TargetId = null,
     bool IncludeInactive = false,
-    bool IncludeExpired = true) : IRequest<IReadOnlyCollection<LandingPageBlockRuleDto>>;
+    bool IncludeExpired = true,
+    string? Source = null,
+    string? FingerprintHash = null,
+    bool? Active = null,
+    bool? Expired = null) : IRequest<IReadOnlyCollection<LandingPageBlockRuleDto>>;
 
 public sealed class GetLandingPageBlockRulesQueryHandler : IRequestHandler<GetLandingPageBlockRulesQuery, IReadOnlyCollection<LandingPageBlockRuleDto>>
 {
@@ -37,6 +41,30 @@ public sealed class GetLandingPageBlockRulesQueryHandler : IRequestHandler<GetLa
         if (request.TargetId is not null)
         {
             query = query.Where(rule => rule.TargetId == request.TargetId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Source))
+        {
+            var source = request.Source.Trim();
+            query = query.Where(rule => rule.Source != null && rule.Source.Contains(source));
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.FingerprintHash))
+        {
+            var fingerprintHash = request.FingerprintHash.Trim();
+            query = query.Where(rule => rule.FingerprintHash != null && rule.FingerprintHash.Contains(fingerprintHash));
+        }
+
+        if (request.Active is not null)
+        {
+            query = query.Where(rule => rule.IsActive == request.Active);
+        }
+
+        if (request.Expired is not null)
+        {
+            query = request.Expired.Value
+                ? query.Where(rule => rule.ExpiresAtUtc != null && rule.ExpiresAtUtc <= now)
+                : query.Where(rule => rule.ExpiresAtUtc == null || rule.ExpiresAtUtc > now);
         }
 
         if (!request.IncludeInactive)

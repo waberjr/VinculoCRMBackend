@@ -15,6 +15,7 @@ using VinculoBackend.Application.Campaigns.Commands.UpdateLandingPageTemplate;
 using VinculoBackend.Application.Campaigns.Commands.UpsertLandingPageConfiguration;
 using VinculoBackend.Application.Campaigns.Models;
 using VinculoBackend.Application.Campaigns.Queries.ExportLandingPageAbuseReport;
+using VinculoBackend.Application.Campaigns.Queries.ExportLandingPageBlockRules;
 using VinculoBackend.Application.Campaigns.Queries.GetCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.ExportCampaignReport;
 using VinculoBackend.Application.Campaigns.Queries.ExportLandingPagePerformance;
@@ -77,6 +78,7 @@ public sealed class Campaigns : IEndpointGroup
         groupBuilder.MapGet(GetLandingAbuseReport, "Landing/Abuse");
         groupBuilder.MapGet(ExportLandingAbuseReport, "Landing/Abuse/Export");
         groupBuilder.MapGet(GetLandingBlockRules, "Landing/BlockRules");
+        groupBuilder.MapGet(ExportLandingBlockRules, "Landing/BlockRules/Export");
         groupBuilder.MapGet(GetLandingPerformance, "Landing/Performance");
         groupBuilder.MapGet(ExportLandingPerformance, "Landing/Performance/Export");
         groupBuilder.MapGet(PreviewLanding, "Landing/{targetType}/{targetId}/Preview");
@@ -167,10 +169,31 @@ public sealed class Campaigns : IEndpointGroup
         Guid? targetId,
         bool includeInactive,
         bool includeExpired,
+        string? source,
+        string? fingerprintHash,
+        bool? active,
+        bool? expired,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new GetLandingPageBlockRulesQuery(targetType, targetId, includeInactive, includeExpired), cancellationToken);
+        var result = await sender.Send(new GetLandingPageBlockRulesQuery(targetType, targetId, includeInactive, includeExpired, source, fingerprintHash, active, expired), cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<FileContentHttpResult> ExportLandingBlockRules(
+        ISender sender,
+        string? format,
+        string? targetType,
+        Guid? targetId,
+        bool includeInactive,
+        bool includeExpired,
+        string? source,
+        string? fingerprintHash,
+        bool? active,
+        bool? expired,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportLandingPageBlockRulesQuery(format ?? "csv", targetType, targetId, includeInactive, includeExpired, source, fingerprintHash, active, expired), cancellationToken);
+        return TypedResults.File(result.Content, result.ContentType, result.FileName);
     }
 
     public static async Task<Ok<LandingPagePerformanceDto>> GetLandingPerformance(

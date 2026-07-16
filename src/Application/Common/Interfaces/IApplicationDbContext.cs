@@ -42,6 +42,8 @@ public interface IApplicationDbContext
 
     DbSet<LandingPageSubmissionAttempt> LandingPageSubmissionAttempts { get; }
 
+    DbSet<OperationalAlert> OperationalAlerts { get; }
+
     DbSet<Donation> Donations { get; }
 
     DbSet<DonationProject> DonationProjects { get; }

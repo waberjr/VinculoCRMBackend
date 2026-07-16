@@ -1,0 +1,20 @@
+using VinculoBackend.Domain.Enums;
+
+namespace VinculoBackend.Application.OperationalAlerts.Models;
+
+public sealed class OperationalAlertDto
+{
+    public Guid Id { get; init; }
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public OperationalAlertSeverity Severity { get; init; }
+    public OperationalAlertStatus Status { get; init; }
+    public string Source { get; init; } = string.Empty;
+    public string? RelatedEntityType { get; init; }
+    public Guid? RelatedEntityId { get; init; }
+    public string? ActionUrl { get; init; }
+    public DateTimeOffset OccurredAtUtc { get; init; }
+    public DateTimeOffset? AcknowledgedAtUtc { get; init; }
+    public DateTimeOffset? ResolvedAtUtc { get; init; }
+    public string? ResolutionNote { get; init; }
+}

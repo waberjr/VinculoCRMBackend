@@ -242,6 +242,32 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             $"{targetName} recebeu {recentBlocked + 1} bloqueios na ultima hora.",
             now,
             null));
+
+        var hasOpenOperationalAlert = await _context.OperationalAlerts
+            .IgnoreQueryFilters()
+            .AnyAsync(alert =>
+                !alert.IsDeleted &&
+                alert.OrganizationId == organizationId &&
+                alert.Source == "LandingProtection" &&
+                alert.RelatedEntityType == targetType &&
+                alert.RelatedEntityId == targetId &&
+                alert.Status != OperationalAlertStatus.Resolved,
+                cancellationToken);
+        if (hasOpenOperationalAlert)
+        {
+            return;
+        }
+
+        _context.OperationalAlerts.Add(OperationalAlert.Create(
+            organizationId,
+            "Protecao da landing em alerta alto",
+            $"{targetName} recebeu {recentBlocked + 1} bloqueios na ultima hora. Revise as regras, origem e fingerprints.",
+            OperationalAlertSeverity.High,
+            "LandingProtection",
+            targetType,
+            targetId,
+            $"/captacao/protecao?targetType={targetType}&targetId={targetId}&blocked=true",
+            now));
     }
 
     private static LandingPageSubmissionAttempt SubmissionAttempt(
