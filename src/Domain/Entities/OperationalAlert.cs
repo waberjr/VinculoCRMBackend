@@ -13,6 +13,8 @@ public class OperationalAlert : OrganizationEntity
     public string? RelatedEntityType { get; private set; }
     public Guid? RelatedEntityId { get; private set; }
     public string? ActionUrl { get; private set; }
+    public string? AssignedUserId { get; private set; }
+    public DateTimeOffset? DueAtUtc { get; private set; }
     public DateTimeOffset OccurredAtUtc { get; private set; }
     public DateTimeOffset? AcknowledgedAtUtc { get; private set; }
     public string? AcknowledgedByUserId { get; private set; }
@@ -29,6 +31,8 @@ public class OperationalAlert : OrganizationEntity
         string? relatedEntityType,
         Guid? relatedEntityId,
         string? actionUrl,
+        string? assignedUserId,
+        DateTimeOffset? dueAtUtc,
         DateTimeOffset occurredAtUtc)
     {
         var alert = new OperationalAlert
@@ -44,7 +48,26 @@ public class OperationalAlert : OrganizationEntity
         alert.RelatedEntityType = TrimToNull(relatedEntityType);
         alert.RelatedEntityId = relatedEntityId;
         alert.ActionUrl = TrimToNull(actionUrl);
+        alert.AssignedUserId = TrimToNull(assignedUserId);
+        alert.DueAtUtc = dueAtUtc;
         return alert;
+    }
+
+    public void Refresh(string? description, OperationalAlertSeverity severity, string? assignedUserId, DateTimeOffset? dueAtUtc, DateTimeOffset occurredAtUtc)
+    {
+        if (Status == OperationalAlertStatus.Resolved)
+        {
+            Status = OperationalAlertStatus.Open;
+            ResolvedAtUtc = null;
+            ResolvedByUserId = null;
+            ResolutionNote = null;
+        }
+
+        Description = TrimToNull(description);
+        Severity = severity;
+        AssignedUserId = TrimToNull(assignedUserId);
+        DueAtUtc = dueAtUtc;
+        OccurredAtUtc = occurredAtUtc;
     }
 
     public void Acknowledge(string? userId, DateTimeOffset acknowledgedAtUtc)
@@ -57,6 +80,17 @@ public class OperationalAlert : OrganizationEntity
         Status = OperationalAlertStatus.Acknowledged;
         AcknowledgedAtUtc = acknowledgedAtUtc;
         AcknowledgedByUserId = TrimToNull(userId);
+    }
+
+    public void Assign(string? userId, DateTimeOffset? dueAtUtc)
+    {
+        if (Status == OperationalAlertStatus.Resolved)
+        {
+            throw new InvalidOperationDomainException("Alertas resolvidos nao podem ser atribuidos.");
+        }
+
+        AssignedUserId = TrimToNull(userId);
+        DueAtUtc = dueAtUtc;
     }
 
     public void Resolve(string? userId, string? note, DateTimeOffset resolvedAtUtc)

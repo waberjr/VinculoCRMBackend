@@ -35,4 +35,6 @@ public sealed class DashboardOverviewDto
     public IReadOnlyCollection<FunnelStageDto> Funnel { get; init; } = [];
     public IReadOnlyCollection<TeamPerformanceDto> TeamPerformance { get; init; } = [];
     public IReadOnlyCollection<OperationalHealthItemDto> OperationalHealth { get; init; } = [];
+    public int OpenOperationalAlertsCount { get; init; }
+    public int HighOperationalAlertsCount { get; init; }
 }

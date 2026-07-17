@@ -13,6 +13,8 @@ public sealed class OperationalAlertDto
     public string? RelatedEntityType { get; init; }
     public Guid? RelatedEntityId { get; init; }
     public string? ActionUrl { get; init; }
+    public string? AssignedUserId { get; init; }
+    public DateTimeOffset? DueAtUtc { get; init; }
     public DateTimeOffset OccurredAtUtc { get; init; }
     public DateTimeOffset? AcknowledgedAtUtc { get; init; }
     public DateTimeOffset? ResolvedAtUtc { get; init; }

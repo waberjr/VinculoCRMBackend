@@ -267,6 +267,8 @@ public sealed class SubmitPublicLeadCommandHandler : IRequestHandler<SubmitPubli
             targetType,
             targetId,
             $"/captacao/protecao?targetType={targetType}&targetId={targetId}&blocked=true",
+            null,
+            now.AddHours(4),
             now));
     }
 

@@ -1,6 +1,7 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.OperationalAlerts.Models;
+using VinculoBackend.Application.OperationalAlerts.Commands.SyncOperationalAlerts;
 using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlerts;
@@ -23,16 +24,19 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly ISender _sender;
 
-    public GetOperationalAlertsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetOperationalAlertsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, ISender sender)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _sender = sender;
     }
 
     public async Task<PaginatedResult<OperationalAlertDto>> Handle(GetOperationalAlertsQuery request, CancellationToken cancellationToken)
     {
         _ = RequiredOrganization.From(_organizationContext);
+        await _sender.Send(new SyncOperationalAlertsCommand(), cancellationToken);
         var query = _context.OperationalAlerts.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(request.Search))
@@ -95,6 +99,8 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
                 RelatedEntityType = alert.RelatedEntityType,
                 RelatedEntityId = alert.RelatedEntityId,
                 ActionUrl = alert.ActionUrl,
+                AssignedUserId = alert.AssignedUserId,
+                DueAtUtc = alert.DueAtUtc,
                 OccurredAtUtc = alert.OccurredAtUtc,
                 AcknowledgedAtUtc = alert.AcknowledgedAtUtc,
                 ResolvedAtUtc = alert.ResolvedAtUtc,

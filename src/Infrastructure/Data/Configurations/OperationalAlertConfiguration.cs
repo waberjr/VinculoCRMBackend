@@ -13,6 +13,7 @@ public sealed class OperationalAlertConfiguration : IEntityTypeConfiguration<Ope
         builder.Property(entity => entity.Source).HasMaxLength(80).IsRequired();
         builder.Property(entity => entity.RelatedEntityType).HasMaxLength(80);
         builder.Property(entity => entity.ActionUrl).HasMaxLength(360);
+        builder.Property(entity => entity.AssignedUserId).HasMaxLength(450);
         builder.Property(entity => entity.AcknowledgedByUserId).HasMaxLength(450);
         builder.Property(entity => entity.ResolvedByUserId).HasMaxLength(450);
         builder.Property(entity => entity.ResolutionNote).HasMaxLength(600);

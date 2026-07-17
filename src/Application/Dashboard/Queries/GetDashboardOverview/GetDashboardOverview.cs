@@ -2,6 +2,7 @@ using System.Globalization;
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Dashboard.Models;
+using VinculoBackend.Application.OperationalAlerts.Commands.SyncOperationalAlerts;
 using VinculoBackend.Domain.Enums;
 
 namespace VinculoBackend.Application.Dashboard.Queries.GetDashboardOverview;
@@ -18,20 +19,24 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly TimeProvider _timeProvider;
+    private readonly ISender _sender;
 
     public GetDashboardOverviewQueryHandler(
         IApplicationDbContext context,
         IOrganizationContext organizationContext,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ISender sender)
     {
         _context = context;
         _organizationContext = organizationContext;
         _timeProvider = timeProvider;
+        _sender = sender;
     }
 
     public async Task<DashboardOverviewDto> Handle(GetDashboardOverviewQuery request, CancellationToken cancellationToken)
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
+        await _sender.Send(new SyncOperationalAlertsCommand(), cancellationToken);
         var today = _timeProvider.GetUtcNow();
         var start = request.StartDateUtc ?? new DateTimeOffset(today.Year, today.Month, 1, 0, 0, 0, TimeSpan.Zero);
         var end = request.EndDateUtc ?? start.AddMonths(1).AddTicks(-1);
@@ -121,6 +126,11 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
             await _context.Donors.AsNoTracking().CountAsync(donor => donor.AllowsCommunication && !donor.DoNotContact, cancellationToken) * 100m / totalDonors);
         var openTasks = await _context.RelationshipTasks.AsNoTracking().CountAsync(task =>
             task.Status == RelationshipTaskStatus.Open || task.Status == RelationshipTaskStatus.InProgress, cancellationToken);
+        var openOperationalAlerts = await _context.OperationalAlerts.AsNoTracking().CountAsync(alert =>
+            alert.Status != OperationalAlertStatus.Resolved, cancellationToken);
+        var highOperationalAlerts = await _context.OperationalAlerts.AsNoTracking().CountAsync(alert =>
+            alert.Status != OperationalAlertStatus.Resolved &&
+            (alert.Severity == OperationalAlertSeverity.High || alert.Severity == OperationalAlertSeverity.Critical), cancellationToken);
 
         return new DashboardOverviewDto
         {
@@ -158,6 +168,7 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
                 new("priority-risk-donors", "Doadores em risco", $"{atRiskDonors} doadores precisam de acao de retencao.", "/doadores", new Dictionary<string, string> { ["segment"] = "AtRisk" }, atRiskDonors > 0 ? "yellow" : "blue"),
                 new("priority-leads", "Leads sem conversao", $"{leadsWithoutDonation} cadastros ainda sem primeira contribuição.", "/doadores", new Dictionary<string, string> { ["segment"] = "LeadsWithoutDonation" }, "blue"),
                 new("priority-documents", "Cadastros incompletos", $"{missingDocuments} doadores estáo sem documento cadastrado.", "/doadores", new Dictionary<string, string> { ["documentStatus"] = "Missing" }, missingDocuments > 0 ? "yellow" : "blue"),
+                new("priority-alerts", "Alertas operacionais", $"{openOperationalAlerts} alertas abertos para a equipe.", "/alertas", new Dictionary<string, string> { ["status"] = "Open" }, highOperationalAlerts > 0 ? "red" : openOperationalAlerts > 0 ? "yellow" : "blue"),
             ],
             Funnel =
             [
@@ -173,7 +184,10 @@ public sealed class GetDashboardOverviewQueryHandler : IRequestHandler<GetDashbo
                 new("Sem contato registrado", Math.Max(totalDonors - contactedDonors, 0).ToString(CultureInfo.InvariantCulture), totalDonors - contactedDonors > 0 ? "red" : "green"),
                 new("Consentimento OK", $"{consentOk}%", consentOk >= 80 ? "green" : "yellow"),
                 new("Tarefas abertas", openTasks.ToString(CultureInfo.InvariantCulture), openTasks > 0 ? "blue" : "green"),
+                new("Alertas abertos", openOperationalAlerts.ToString(CultureInfo.InvariantCulture), highOperationalAlerts > 0 ? "red" : openOperationalAlerts > 0 ? "yellow" : "green"),
             ],
+            OpenOperationalAlertsCount = openOperationalAlerts,
+            HighOperationalAlertsCount = highOperationalAlerts,
         };
     }
 

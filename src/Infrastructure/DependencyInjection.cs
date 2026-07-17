@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using VinculoBackend.Application.ImpactProjects.Services;
 using VinculoBackend.Application.Campaigns.Services;
+using VinculoBackend.Application.OperationalAlerts.Services;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -66,5 +67,6 @@ public static class DependencyInjection
         services.AddScoped<ILandingPagePerformancePdfExporter, QuestPdfLandingPagePerformancePdfExporter>();
         services.AddScoped<ILandingPageAbuseReportPdfExporter, QuestPdfLandingPageAbuseReportPdfExporter>();
         services.AddScoped<ILandingPageBlockRulesPdfExporter, QuestPdfLandingPageBlockRulesPdfExporter>();
+        services.AddScoped<IOperationalAlertsPdfExporter, QuestPdfOperationalAlertsPdfExporter>();
     }
 }
