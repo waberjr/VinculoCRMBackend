@@ -6,6 +6,7 @@ using VinculoBackend.Application.OperationalAlerts.Commands.ResolveOperationalAl
 using VinculoBackend.Application.OperationalAlerts.Models;
 using VinculoBackend.Application.OperationalAlerts.Queries.ExportOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlerts;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAudit;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
 using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
@@ -20,6 +21,7 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapGet(GetAlerts);
         groupBuilder.MapGet(GetSummary, "Summary");
         groupBuilder.MapGet(GetRules, "Rules");
+        groupBuilder.MapGet(GetAudit, "{id}/Audit");
         groupBuilder.MapGet(ExportAlerts, "Export");
         groupBuilder.MapPut(UpsertRule, "Rules/{source}");
         groupBuilder.MapPost(AssignAlert, "{id}/Assign");
@@ -64,6 +66,12 @@ public sealed class OperationalAlerts : IEndpointGroup
     public static async Task<Ok<IReadOnlyCollection<OperationalAlertRuleDto>>> GetRules(ISender sender, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetOperationalAlertRulesQuery(), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<OperationalAlertAuditEntryDto>>> GetAudit(ISender sender, Guid id, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalAlertAuditQuery(id), cancellationToken);
         return TypedResults.Ok(result);
     }
 

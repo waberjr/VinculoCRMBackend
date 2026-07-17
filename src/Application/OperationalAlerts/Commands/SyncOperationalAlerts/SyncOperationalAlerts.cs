@@ -68,7 +68,104 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
             now,
             cancellationToken);
 
+        await SyncLowConversionAlerts(organizationId, rules["CampaignLowConversion"], "campaign", now, cancellationToken);
+        await SyncLowConversionAlerts(organizationId, rules["ProjectLowConversion"], "project", now, cancellationToken);
+
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SyncLowConversionAlerts(
+        Guid organizationId,
+        OperationalAlertRule rule,
+        string targetType,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var start = now.AddDays(-30);
+        var pages = await LandingPages(targetType, cancellationToken);
+        var views = await _context.LandingPageViews
+            .AsNoTracking()
+            .Where(view => view.TargetType == targetType && view.ViewedAtUtc >= start)
+            .GroupBy(view => view.TargetId)
+            .Select(group => new { TargetId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.TargetId, item => item.Count, cancellationToken);
+        var leads = await _context.DonorTimelineEntries
+            .AsNoTracking()
+            .Where(entry =>
+                entry.RelatedEntityType == targetType &&
+                entry.RelatedEntityId != null &&
+                entry.Title == "Interesse pela landing page" &&
+                entry.OccurredAtUtc >= start)
+            .GroupBy(entry => entry.RelatedEntityId!.Value)
+            .Select(group => new { TargetId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.TargetId, item => item.Count, cancellationToken);
+
+        foreach (var page in pages)
+        {
+            var viewsCount = views.GetValueOrDefault(page.TargetId);
+            var leadsCount = leads.GetValueOrDefault(page.TargetId);
+            var conversion = viewsCount <= 0 ? 0 : Math.Round(leadsCount * 100m / viewsCount, 2);
+            var shouldAlert = rule.ShouldAlert(viewsCount) && conversion < 5;
+            var source = rule.Source;
+            var alert = await _context.OperationalAlerts
+                .IgnoreQueryFilters()
+                .FirstOrDefaultAsync(entity =>
+                    !entity.IsDeleted &&
+                    entity.OrganizationId == organizationId &&
+                    entity.Source == source &&
+                    entity.RelatedEntityType == targetType &&
+                    entity.RelatedEntityId == page.TargetId &&
+                    entity.Status != OperationalAlertStatus.Resolved,
+                    cancellationToken);
+
+            if (!shouldAlert)
+            {
+                if (alert is not null)
+                {
+                    alert.Resolve(null, "Resolvido automaticamente porque a conversao saiu da zona de alerta.", now);
+                }
+
+                continue;
+            }
+
+            var description = $"{page.Name} teve {viewsCount} visitas e {leadsCount} leads nos ultimos 30 dias ({conversion}% de conversao).";
+            if (alert is null)
+            {
+                _context.OperationalAlerts.Add(OperationalAlert.Create(
+                    organizationId,
+                    targetType == "campaign" ? "Campanha com baixa conversao" : "Projeto com baixa conversao",
+                    description,
+                    rule.SeverityFor(viewsCount),
+                    source,
+                    targetType,
+                    page.TargetId,
+                    $"/captacao/desempenho?targetType={targetType}",
+                    rule.AssignedUserId,
+                    now.AddHours(rule.DueInHours),
+                    now));
+                continue;
+            }
+
+            alert.Refresh(description, rule.SeverityFor(viewsCount), alert.AssignedUserId ?? rule.AssignedUserId, alert.DueAtUtc ?? now.AddHours(rule.DueInHours), now);
+        }
+    }
+
+    private async Task<IReadOnlyCollection<LandingTarget>> LandingPages(string targetType, CancellationToken cancellationToken)
+    {
+        if (targetType == "campaign")
+        {
+            return await _context.LandingPages
+                .AsNoTracking()
+                .Where(page => page.TargetType == "campaign" && page.IsActive && page.IsPublished)
+                .Join(_context.Campaigns.AsNoTracking(), page => page.TargetId, campaign => campaign.Id, (page, campaign) => new LandingTarget(page.TargetId, campaign.Name))
+                .ToArrayAsync(cancellationToken);
+        }
+
+        return await _context.LandingPages
+            .AsNoTracking()
+            .Where(page => page.TargetType == "project" && page.IsActive && page.IsPublished)
+            .Join(_context.Projects.AsNoTracking(), page => page.TargetId, project => project.Id, (page, project) => new LandingTarget(page.TargetId, project.Name))
+            .ToArrayAsync(cancellationToken);
     }
 
     private async Task<Dictionary<string, OperationalAlertRule>> Rules(Guid organizationId, CancellationToken cancellationToken)
@@ -134,4 +231,6 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
 
         alert.Refresh(description, rule.SeverityFor(count), alert.AssignedUserId ?? rule.AssignedUserId, alert.DueAtUtc ?? now.AddHours(rule.DueInHours), now);
     }
+
+    private sealed record LandingTarget(Guid TargetId, string Name);
 }

@@ -20,3 +20,14 @@ public sealed class OperationalAlertDto
     public DateTimeOffset? ResolvedAtUtc { get; init; }
     public string? ResolutionNote { get; init; }
 }
+
+public sealed class OperationalAlertAuditEntryDto
+{
+    public Guid Id { get; init; }
+    public Guid OperationalAlertId { get; init; }
+    public string Action { get; init; } = string.Empty;
+    public string Title { get; init; } = string.Empty;
+    public string? Description { get; init; }
+    public string? CreatedByUserId { get; init; }
+    public DateTimeOffset OccurredAtUtc { get; init; }
+}
