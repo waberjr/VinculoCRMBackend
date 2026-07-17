@@ -44,6 +44,10 @@ public interface IApplicationDbContext
 
     DbSet<OperationalAlert> OperationalAlerts { get; }
 
+    DbSet<OperationalAlertRule> OperationalAlertRules { get; }
+
+    DbSet<OperationalAlertAuditEntry> OperationalAlertAuditEntries { get; }
+
     DbSet<Donation> Donations { get; }
 
     DbSet<DonationProject> DonationProjects { get; }

@@ -1,5 +1,6 @@
 using VinculoBackend.Application.Common.Interfaces;
 using VinculoBackend.Application.Common.Models;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
 
@@ -24,17 +25,16 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
         var now = _timeProvider.GetUtcNow();
+        var rules = await Rules(organizationId, cancellationToken);
 
         var atRiskDonors = await _context.Donors.AsNoTracking().CountAsync(donor => donor.Status == DonorStatus.AtRisk, cancellationToken);
         await UpsertAggregateAlert(
             organizationId,
-            "DonorRisk",
+            rules["DonorRisk"],
             "Doadores em risco exigem retorno",
             $"{atRiskDonors} doadores estao marcados como em risco.",
             atRiskDonors,
-            OperationalAlertSeverity.Warning,
             "/doadores?segment=AtRisk",
-            now.AddDays(1),
             now,
             cancellationToken);
 
@@ -46,13 +46,11 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
             cancellationToken);
         await UpsertAggregateAlert(
             organizationId,
-            "OverdueTasks",
+            rules["OverdueTasks"],
             "Tarefas vencidas acumuladas",
             $"{overdueTasks} tarefas estao vencidas e ainda abertas.",
             overdueTasks,
-            overdueTasks >= 10 ? OperationalAlertSeverity.High : OperationalAlertSeverity.Warning,
             "/tarefas?due=Overdue",
-            now.AddHours(8),
             now,
             cancellationToken);
 
@@ -62,31 +60,40 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
             cancellationToken);
         await UpsertAggregateAlert(
             organizationId,
-            "PendingReceipts",
+            rules["PendingReceipts"],
             "Recibos pendentes de emissao",
             $"{pendingReceipts} doacoes confirmadas ainda nao possuem recibo valido.",
             pendingReceipts,
-            pendingReceipts >= 10 ? OperationalAlertSeverity.High : OperationalAlertSeverity.Warning,
             "/recibos?status=Pending",
-            now.AddDays(2),
             now,
             cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    private async Task<Dictionary<string, OperationalAlertRule>> Rules(Guid organizationId, CancellationToken cancellationToken)
+    {
+        var defaults = GetOperationalAlertRulesQueryHandler.DefaultRules(organizationId).ToDictionary(rule => rule.Source);
+        var stored = await _context.OperationalAlertRules.ToArrayAsync(cancellationToken);
+        foreach (var rule in stored)
+        {
+            defaults[rule.Source] = rule;
+        }
+
+        return defaults;
+    }
+
     private async Task UpsertAggregateAlert(
         Guid organizationId,
-        string source,
+        OperationalAlertRule rule,
         string title,
         string description,
         int count,
-        OperationalAlertSeverity severity,
         string actionUrl,
-        DateTimeOffset dueAtUtc,
         DateTimeOffset now,
         CancellationToken cancellationToken)
     {
+        var source = rule.Source;
         var alert = await _context.OperationalAlerts
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(entity =>
@@ -98,11 +105,11 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
                 entity.Status != OperationalAlertStatus.Resolved,
                 cancellationToken);
 
-        if (count <= 0)
+        if (!rule.ShouldAlert(count))
         {
             if (alert is not null)
             {
-                alert.Resolve(null, "Resolvido automaticamente porque a condicao deixou de existir.", now);
+                alert.Resolve(null, rule.IsEnabled ? "Resolvido automaticamente porque a condicao deixou de existir." : "Resolvido automaticamente porque a regra foi desativada.", now);
             }
 
             return;
@@ -114,17 +121,17 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
                 organizationId,
                 title,
                 description,
-                severity,
+                rule.SeverityFor(count),
                 source,
                 "OperationalAggregate",
                 null,
                 actionUrl,
-                null,
-                dueAtUtc,
+                rule.AssignedUserId,
+                now.AddHours(rule.DueInHours),
                 now));
             return;
         }
 
-        alert.Refresh(description, severity, alert.AssignedUserId, alert.DueAtUtc ?? dueAtUtc, now);
+        alert.Refresh(description, rule.SeverityFor(count), alert.AssignedUserId ?? rule.AssignedUserId, alert.DueAtUtc ?? now.AddHours(rule.DueInHours), now);
     }
 }

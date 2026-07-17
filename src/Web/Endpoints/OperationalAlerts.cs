@@ -6,7 +6,9 @@ using VinculoBackend.Application.OperationalAlerts.Commands.ResolveOperationalAl
 using VinculoBackend.Application.OperationalAlerts.Models;
 using VinculoBackend.Application.OperationalAlerts.Queries.ExportOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlerts;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
+using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
 
 namespace VinculoBackend.Web.Endpoints;
 
@@ -17,7 +19,9 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetAlerts);
         groupBuilder.MapGet(GetSummary, "Summary");
+        groupBuilder.MapGet(GetRules, "Rules");
         groupBuilder.MapGet(ExportAlerts, "Export");
+        groupBuilder.MapPut(UpsertRule, "Rules/{source}");
         groupBuilder.MapPost(AssignAlert, "{id}/Assign");
         groupBuilder.MapPost(AcknowledgeAlert, "{id}/Acknowledge");
         groupBuilder.MapPost(ResolveAlert, "{id}/Resolve");
@@ -29,6 +33,8 @@ public sealed class OperationalAlerts : IEndpointGroup
         string? severity,
         string? status,
         string? source,
+        string? assignedUserId,
+        bool? overdueOnly,
         string? relatedEntityType,
         Guid? relatedEntityId,
         DateTimeOffset? startDateUtc,
@@ -43,6 +49,8 @@ public sealed class OperationalAlerts : IEndpointGroup
             Severity = severity,
             Status = status,
             Source = source,
+            AssignedUserId = assignedUserId,
+            OverdueOnly = overdueOnly,
             RelatedEntityType = relatedEntityType,
             RelatedEntityId = relatedEntityId,
             StartDateUtc = startDateUtc,
@@ -50,6 +58,12 @@ public sealed class OperationalAlerts : IEndpointGroup
             PageNumber = pageNumber <= 0 ? 1 : pageNumber,
             PageSize = pageSize <= 0 ? 20 : pageSize,
         }, cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<OperationalAlertRuleDto>>> GetRules(ISender sender, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalAlertRulesQuery(), cancellationToken);
         return TypedResults.Ok(result);
     }
 
@@ -66,12 +80,20 @@ public sealed class OperationalAlerts : IEndpointGroup
         string? severity,
         string? status,
         string? source,
+        string? assignedUserId,
+        bool? overdueOnly,
         DateTimeOffset? startDateUtc,
         DateTimeOffset? endDateUtc,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ExportOperationalAlertsQuery(format ?? "csv", search, severity, status, source, startDateUtc, endDateUtc), cancellationToken);
+        var result = await sender.Send(new ExportOperationalAlertsQuery(format ?? "csv", search, severity, status, source, assignedUserId, overdueOnly, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    public static async Task<NoContent> UpsertRule(ISender sender, string source, UpsertOperationalAlertRuleCommand command, CancellationToken cancellationToken)
+    {
+        await sender.Send(command with { Source = source }, cancellationToken);
+        return TypedResults.NoContent();
     }
 
     public static async Task<NoContent> AssignAlert(ISender sender, Guid id, AssignOperationalAlertCommand command, CancellationToken cancellationToken)

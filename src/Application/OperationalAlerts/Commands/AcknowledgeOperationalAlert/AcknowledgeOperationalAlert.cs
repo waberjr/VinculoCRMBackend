@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.OperationalAlerts.Services;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.OperationalAlerts.Commands.AcknowledgeOperationalAlert;
@@ -26,7 +27,9 @@ public sealed class AcknowledgeOperationalAlertCommandHandler : IRequestHandler<
             throw new Common.Exceptions.NotFoundException(nameof(OperationalAlert), request.Id.ToString());
         }
 
-        alert.Acknowledge(_user.Id, _timeProvider.GetUtcNow());
+        var now = _timeProvider.GetUtcNow();
+        alert.Acknowledge(_user.Id, now);
+        _context.OperationalAlertAuditEntries.Add(OperationalAlertAudit.Create(alert, "Acknowledge", "Alerta assumido", null, now, _user.Id));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

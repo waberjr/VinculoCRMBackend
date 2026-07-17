@@ -12,6 +12,8 @@ public sealed record GetOperationalAlertsQuery : IRequest<PaginatedResult<Operat
     public string? Severity { get; init; }
     public string? Status { get; init; }
     public string? Source { get; init; }
+    public string? AssignedUserId { get; init; }
+    public bool? OverdueOnly { get; init; }
     public string? RelatedEntityType { get; init; }
     public Guid? RelatedEntityId { get; init; }
     public DateTimeOffset? StartDateUtc { get; init; }
@@ -25,12 +27,14 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
     private readonly ISender _sender;
+    private readonly TimeProvider _timeProvider;
 
-    public GetOperationalAlertsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, ISender sender)
+    public GetOperationalAlertsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, ISender sender, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
         _sender = sender;
+        _timeProvider = timeProvider;
     }
 
     public async Task<PaginatedResult<OperationalAlertDto>> Handle(GetOperationalAlertsQuery request, CancellationToken cancellationToken)
@@ -61,6 +65,21 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
         {
             var source = request.Source.Trim();
             query = query.Where(alert => alert.Source == source);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.AssignedUserId))
+        {
+            var assignedUserId = request.AssignedUserId.Trim();
+            query = query.Where(alert => alert.AssignedUserId == assignedUserId);
+        }
+
+        if (request.OverdueOnly == true)
+        {
+            var now = _timeProvider.GetUtcNow();
+            query = query.Where(alert =>
+                alert.Status != OperationalAlertStatus.Resolved &&
+                alert.DueAtUtc != null &&
+                alert.DueAtUtc < now);
         }
 
         if (!string.IsNullOrWhiteSpace(request.RelatedEntityType))

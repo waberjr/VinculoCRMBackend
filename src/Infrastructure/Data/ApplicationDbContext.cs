@@ -56,6 +56,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<OperationalAlert> OperationalAlerts => Set<OperationalAlert>();
 
+    public DbSet<OperationalAlertRule> OperationalAlertRules => Set<OperationalAlertRule>();
+
+    public DbSet<OperationalAlertAuditEntry> OperationalAlertAuditEntries => Set<OperationalAlertAuditEntry>();
+
     public DbSet<Donation> Donations => Set<Donation>();
 
     public DbSet<DonationProject> DonationProjects => Set<DonationProject>();
@@ -103,6 +107,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<LandingPageView>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<LandingPageSubmissionAttempt>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<OperationalAlert>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<OperationalAlertRule>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<OperationalAlertAuditEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Donation>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonationProject>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Receipt>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));

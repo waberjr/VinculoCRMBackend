@@ -1,4 +1,5 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.OperationalAlerts.Services;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.OperationalAlerts.Commands.ResolveOperationalAlert;
@@ -26,7 +27,9 @@ public sealed class ResolveOperationalAlertCommandHandler : IRequestHandler<Reso
             throw new Common.Exceptions.NotFoundException(nameof(OperationalAlert), request.Id.ToString());
         }
 
-        alert.Resolve(_user.Id, request.Note, _timeProvider.GetUtcNow());
+        var now = _timeProvider.GetUtcNow();
+        alert.Resolve(_user.Id, request.Note, now);
+        _context.OperationalAlertAuditEntries.Add(OperationalAlertAudit.Create(alert, "Resolve", "Alerta resolvido", request.Note, now, _user.Id));
         await _context.SaveChangesAsync(cancellationToken);
     }
 }

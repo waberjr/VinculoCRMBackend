@@ -11,6 +11,8 @@ public sealed record ExportOperationalAlertsQuery(
     string? Severity = null,
     string? Status = null,
     string? Source = null,
+    string? AssignedUserId = null,
+    bool? OverdueOnly = null,
     DateTimeOffset? StartDateUtc = null,
     DateTimeOffset? EndDateUtc = null) : IRequest<OperationalAlertsExportDto>;
 
@@ -35,6 +37,8 @@ public sealed class ExportOperationalAlertsQueryHandler : IRequestHandler<Export
             Severity = request.Severity,
             Status = request.Status,
             Source = request.Source,
+            AssignedUserId = request.AssignedUserId,
+            OverdueOnly = request.OverdueOnly,
             StartDateUtc = request.StartDateUtc,
             EndDateUtc = request.EndDateUtc,
             PageNumber = 1,
