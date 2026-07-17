@@ -14,11 +14,18 @@ public sealed class OperationalAlertDto
     public Guid? RelatedEntityId { get; init; }
     public string? ActionUrl { get; init; }
     public string? AssignedUserId { get; init; }
+    public string? AssignedUserName { get; init; }
     public DateTimeOffset? DueAtUtc { get; init; }
     public DateTimeOffset OccurredAtUtc { get; init; }
     public DateTimeOffset? AcknowledgedAtUtc { get; init; }
     public DateTimeOffset? ResolvedAtUtc { get; init; }
     public string? ResolutionNote { get; init; }
+}
+
+public sealed class OperationalAlertDetailDto
+{
+    public OperationalAlertDto Alert { get; init; } = new();
+    public IReadOnlyCollection<OperationalAlertAuditEntryDto> AuditEntries { get; init; } = [];
 }
 
 public sealed class OperationalAlertAuditEntryDto

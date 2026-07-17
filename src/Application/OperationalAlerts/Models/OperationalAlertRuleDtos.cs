@@ -8,5 +8,6 @@ public sealed class OperationalAlertRuleDto
     public int WarningThreshold { get; init; }
     public int HighThreshold { get; init; }
     public int DueInHours { get; init; }
+    public decimal? LowConversionThresholdPercent { get; init; }
     public string? AssignedUserId { get; init; }
 }

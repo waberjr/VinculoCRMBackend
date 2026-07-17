@@ -37,6 +37,7 @@ public sealed class QuestPdfOperationalAlertsPdfExporter : IOperationalAlertsPdf
                             columns.RelativeColumn();
                             columns.RelativeColumn();
                             columns.RelativeColumn(1.4f);
+                            columns.RelativeColumn(1.6f);
                         });
                         table.Header(header =>
                         {
@@ -45,6 +46,7 @@ public sealed class QuestPdfOperationalAlertsPdfExporter : IOperationalAlertsPdf
                             header.Cell().Text("Sev.").SemiBold();
                             header.Cell().Text("Status").SemiBold();
                             header.Cell().Text("Prazo").SemiBold();
+                            header.Cell().Text("Responsavel").SemiBold();
                         });
 
                         foreach (var alert in alerts.Take(60))
@@ -54,6 +56,7 @@ public sealed class QuestPdfOperationalAlertsPdfExporter : IOperationalAlertsPdf
                             table.Cell().Text(alert.Severity.ToString());
                             table.Cell().Text(alert.Status.ToString());
                             table.Cell().Text(alert.DueAtUtc?.ToString("dd/MM/yyyy HH:mm") ?? "-");
+                            table.Cell().Text(alert.AssignedUserName ?? alert.AssignedUserId ?? "-");
                         }
                     });
                 });

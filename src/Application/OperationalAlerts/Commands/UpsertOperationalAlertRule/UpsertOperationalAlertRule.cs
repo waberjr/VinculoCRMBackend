@@ -10,6 +10,7 @@ public sealed record UpsertOperationalAlertRuleCommand(
     int WarningThreshold,
     int HighThreshold,
     int DueInHours,
+    decimal? LowConversionThresholdPercent,
     string? AssignedUserId) : IRequest<Guid>;
 
 public sealed class UpsertOperationalAlertRuleCommandHandler : IRequestHandler<UpsertOperationalAlertRuleCommand, Guid>
@@ -37,12 +38,13 @@ public sealed class UpsertOperationalAlertRuleCommandHandler : IRequestHandler<U
                 request.WarningThreshold,
                 request.HighThreshold,
                 request.DueInHours,
+                request.LowConversionThresholdPercent,
                 request.AssignedUserId);
             _context.OperationalAlertRules.Add(rule);
         }
         else
         {
-            rule.Update(request.IsEnabled, request.WarningThreshold, request.HighThreshold, request.DueInHours, request.AssignedUserId);
+            rule.Update(request.IsEnabled, request.WarningThreshold, request.HighThreshold, request.DueInHours, request.LowConversionThresholdPercent, request.AssignedUserId);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

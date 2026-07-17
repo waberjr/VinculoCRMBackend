@@ -30,6 +30,7 @@ public sealed class GetOperationalAlertRulesQueryHandler : IRequestHandler<GetOp
                 WarningThreshold = rule.WarningThreshold,
                 HighThreshold = rule.HighThreshold,
                 DueInHours = rule.DueInHours,
+                LowConversionThresholdPercent = rule.LowConversionThresholdPercent,
                 AssignedUserId = rule.AssignedUserId,
             })
             .ToArrayAsync(cancellationToken);
@@ -47,16 +48,17 @@ public sealed class GetOperationalAlertRulesQueryHandler : IRequestHandler<GetOp
             WarningThreshold = rule.WarningThreshold,
             HighThreshold = rule.HighThreshold,
             DueInHours = rule.DueInHours,
+            LowConversionThresholdPercent = rule.LowConversionThresholdPercent,
             AssignedUserId = rule.AssignedUserId,
         }).ToArray();
     }
 
     public static IReadOnlyCollection<Domain.Entities.OperationalAlertRule> DefaultRules(Guid organizationId) =>
     [
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "DonorRisk", true, 1, 10, 24, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "OverdueTasks", true, 1, 10, 8, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "PendingReceipts", true, 1, 10, 48, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "CampaignLowConversion", true, 30, 100, 48, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "ProjectLowConversion", true, 30, 100, 48, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "DonorRisk", true, 1, 10, 24, null, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "OverdueTasks", true, 1, 10, 8, null, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "PendingReceipts", true, 1, 10, 48, null, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "CampaignLowConversion", true, 30, 100, 48, 5, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "ProjectLowConversion", true, 30, 100, 48, 5, null),
     ];
 }

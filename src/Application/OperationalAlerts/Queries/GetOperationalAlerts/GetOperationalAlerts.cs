@@ -25,13 +25,15 @@ public sealed record GetOperationalAlertsQuery : IRequest<PaginatedResult<Operat
 public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperationalAlertsQuery, PaginatedResult<OperationalAlertDto>>
 {
     private readonly IApplicationDbContext _context;
+    private readonly IIdentityService _identityService;
     private readonly IOrganizationContext _organizationContext;
     private readonly ISender _sender;
     private readonly TimeProvider _timeProvider;
 
-    public GetOperationalAlertsQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, ISender sender, TimeProvider timeProvider)
+    public GetOperationalAlertsQueryHandler(IApplicationDbContext context, IIdentityService identityService, IOrganizationContext organizationContext, ISender sender, TimeProvider timeProvider)
     {
         _context = context;
+        _identityService = identityService;
         _organizationContext = organizationContext;
         _sender = sender;
         _timeProvider = timeProvider;
@@ -126,12 +128,65 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
                 ResolutionNote = alert.ResolutionNote,
             });
 
-        return await PaginatedResult<OperationalAlertDto>.CreateAsync(
+        var result = await PaginatedResult<OperationalAlertDto>.CreateAsync(
             projected,
             request.PageNumber <= 0 ? 1 : request.PageNumber,
             request.PageSize <= 0 ? 20 : request.PageSize,
             cancellationToken);
+
+        return await WithAssignedUserNames(result);
     }
+
+    private async Task<PaginatedResult<OperationalAlertDto>> WithAssignedUserNames(PaginatedResult<OperationalAlertDto> result)
+    {
+        var assignedUserIds = result.Items
+            .Select(alert => alert.AssignedUserId)
+            .Where(userId => !string.IsNullOrWhiteSpace(userId))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+
+        if (assignedUserIds.Length == 0)
+        {
+            return result;
+        }
+
+        var names = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var userId in assignedUserIds)
+        {
+            names[userId!] = await _identityService.GetUserNameAsync(userId!);
+        }
+
+        return new PaginatedResult<OperationalAlertDto>
+        {
+            Items = result.Items.Select(alert => alert.AssignedUserId is not null && names.TryGetValue(alert.AssignedUserId, out var name)
+                ? Copy(alert, name)
+                : alert).ToArray(),
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalPages = result.TotalPages,
+            TotalCount = result.TotalCount,
+        };
+    }
+
+    private static OperationalAlertDto Copy(OperationalAlertDto alert, string? assignedUserName) => new()
+    {
+        Id = alert.Id,
+        Title = alert.Title,
+        Description = alert.Description,
+        Severity = alert.Severity,
+        Status = alert.Status,
+        Source = alert.Source,
+        RelatedEntityType = alert.RelatedEntityType,
+        RelatedEntityId = alert.RelatedEntityId,
+        ActionUrl = alert.ActionUrl,
+        AssignedUserId = alert.AssignedUserId,
+        AssignedUserName = assignedUserName,
+        DueAtUtc = alert.DueAtUtc,
+        OccurredAtUtc = alert.OccurredAtUtc,
+        AcknowledgedAtUtc = alert.AcknowledgedAtUtc,
+        ResolvedAtUtc = alert.ResolvedAtUtc,
+        ResolutionNote = alert.ResolutionNote,
+    };
 
     private static bool TryParse<TEnum>(string? value, out TEnum result)
         where TEnum : struct

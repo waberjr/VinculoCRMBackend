@@ -10,6 +10,7 @@ public sealed class OperationalAlertRuleConfiguration : IEntityTypeConfiguration
     {
         builder.Property(entity => entity.Source).HasMaxLength(80).IsRequired();
         builder.Property(entity => entity.AssignedUserId).HasMaxLength(450);
+        builder.Property(entity => entity.LowConversionThresholdPercent).HasPrecision(5, 2);
         builder.HasIndex(entity => new { entity.OrganizationId, entity.Source }).IsUnique();
     }
 }

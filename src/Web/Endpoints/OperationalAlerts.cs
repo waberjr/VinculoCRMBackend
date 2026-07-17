@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Http.HttpResults;
+using VinculoBackend.Application.OperationalAlerts.Commands.AddOperationalAlertNote;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.OperationalAlerts.Commands.AcknowledgeOperationalAlert;
 using VinculoBackend.Application.OperationalAlerts.Commands.AssignOperationalAlert;
@@ -7,6 +8,7 @@ using VinculoBackend.Application.OperationalAlerts.Models;
 using VinculoBackend.Application.OperationalAlerts.Queries.ExportOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAudit;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertDetail;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
 using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
@@ -21,11 +23,13 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapGet(GetAlerts);
         groupBuilder.MapGet(GetSummary, "Summary");
         groupBuilder.MapGet(GetRules, "Rules");
+        groupBuilder.MapGet(GetDetail, "{id}");
         groupBuilder.MapGet(GetAudit, "{id}/Audit");
         groupBuilder.MapGet(ExportAlerts, "Export");
         groupBuilder.MapPut(UpsertRule, "Rules/{source}");
         groupBuilder.MapPost(AssignAlert, "{id}/Assign");
         groupBuilder.MapPost(AcknowledgeAlert, "{id}/Acknowledge");
+        groupBuilder.MapPost(AddNote, "{id}/Notes");
         groupBuilder.MapPost(ResolveAlert, "{id}/Resolve");
     }
 
@@ -69,6 +73,12 @@ public sealed class OperationalAlerts : IEndpointGroup
         return TypedResults.Ok(result);
     }
 
+    public static async Task<Ok<OperationalAlertDetailDto>> GetDetail(ISender sender, Guid id, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalAlertDetailQuery(id), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
     public static async Task<Ok<IReadOnlyCollection<OperationalAlertAuditEntryDto>>> GetAudit(ISender sender, Guid id, CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetOperationalAlertAuditQuery(id), cancellationToken);
@@ -90,11 +100,13 @@ public sealed class OperationalAlerts : IEndpointGroup
         string? source,
         string? assignedUserId,
         bool? overdueOnly,
+        string? relatedEntityType,
+        Guid? relatedEntityId,
         DateTimeOffset? startDateUtc,
         DateTimeOffset? endDateUtc,
         CancellationToken cancellationToken)
     {
-        var result = await sender.Send(new ExportOperationalAlertsQuery(format ?? "csv", search, severity, status, source, assignedUserId, overdueOnly, startDateUtc, endDateUtc), cancellationToken);
+        var result = await sender.Send(new ExportOperationalAlertsQuery(format ?? "csv", search, severity, status, source, assignedUserId, overdueOnly, relatedEntityType, relatedEntityId, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.File(result.Content, result.ContentType, result.FileName);
     }
 
@@ -113,6 +125,12 @@ public sealed class OperationalAlerts : IEndpointGroup
     public static async Task<NoContent> AcknowledgeAlert(ISender sender, Guid id, CancellationToken cancellationToken)
     {
         await sender.Send(new AcknowledgeOperationalAlertCommand(id), cancellationToken);
+        return TypedResults.NoContent();
+    }
+
+    public static async Task<NoContent> AddNote(ISender sender, Guid id, AddOperationalAlertNoteCommand command, CancellationToken cancellationToken)
+    {
+        await sender.Send(command with { Id = id }, cancellationToken);
         return TypedResults.NoContent();
     }
 

@@ -10,6 +10,7 @@ public class OperationalAlertRule : OrganizationEntity
     public int WarningThreshold { get; private set; } = 1;
     public int HighThreshold { get; private set; } = 10;
     public int DueInHours { get; private set; } = 24;
+    public decimal? LowConversionThresholdPercent { get; private set; }
     public string? AssignedUserId { get; private set; }
 
     public static OperationalAlertRule Create(
@@ -19,6 +20,7 @@ public class OperationalAlertRule : OrganizationEntity
         int warningThreshold,
         int highThreshold,
         int dueInHours,
+        decimal? lowConversionThresholdPercent,
         string? assignedUserId)
     {
         var rule = new OperationalAlertRule
@@ -26,11 +28,11 @@ public class OperationalAlertRule : OrganizationEntity
             OrganizationId = organizationId,
             Source = Required(source, "Informe a origem da regra."),
         };
-        rule.Update(isEnabled, warningThreshold, highThreshold, dueInHours, assignedUserId);
+        rule.Update(isEnabled, warningThreshold, highThreshold, dueInHours, lowConversionThresholdPercent, assignedUserId);
         return rule;
     }
 
-    public void Update(bool isEnabled, int warningThreshold, int highThreshold, int dueInHours, string? assignedUserId)
+    public void Update(bool isEnabled, int warningThreshold, int highThreshold, int dueInHours, decimal? lowConversionThresholdPercent, string? assignedUserId)
     {
         if (warningThreshold < 1)
         {
@@ -47,10 +49,16 @@ public class OperationalAlertRule : OrganizationEntity
             throw new DomainValidationException("O prazo deve estar entre 1 e 720 horas.");
         }
 
+        if (lowConversionThresholdPercent is < 0 or > 100)
+        {
+            throw new DomainValidationException("O percentual de baixa conversao deve estar entre 0 e 100.");
+        }
+
         IsEnabled = isEnabled;
         WarningThreshold = warningThreshold;
         HighThreshold = highThreshold;
         DueInHours = dueInHours;
+        LowConversionThresholdPercent = lowConversionThresholdPercent;
         AssignedUserId = TrimToNull(assignedUserId);
     }
 

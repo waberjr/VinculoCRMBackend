@@ -13,6 +13,8 @@ public sealed record ExportOperationalAlertsQuery(
     string? Source = null,
     string? AssignedUserId = null,
     bool? OverdueOnly = null,
+    string? RelatedEntityType = null,
+    Guid? RelatedEntityId = null,
     DateTimeOffset? StartDateUtc = null,
     DateTimeOffset? EndDateUtc = null) : IRequest<OperationalAlertsExportDto>;
 
@@ -39,6 +41,8 @@ public sealed class ExportOperationalAlertsQueryHandler : IRequestHandler<Export
             Source = request.Source,
             AssignedUserId = request.AssignedUserId,
             OverdueOnly = request.OverdueOnly,
+            RelatedEntityType = request.RelatedEntityType,
+            RelatedEntityId = request.RelatedEntityId,
             StartDateUtc = request.StartDateUtc,
             EndDateUtc = request.EndDateUtc,
             PageNumber = 1,
@@ -64,7 +68,7 @@ public sealed class ExportOperationalAlertsQueryHandler : IRequestHandler<Export
                 alert.Severity,
                 alert.Status,
                 Csv(alert.Source),
-                Csv(alert.AssignedUserId ?? string.Empty),
+                Csv(alert.AssignedUserName ?? alert.AssignedUserId ?? string.Empty),
                 alert.DueAtUtc?.ToString("O") ?? string.Empty,
                 Csv(alert.ResolutionNote ?? string.Empty)));
         }

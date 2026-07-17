@@ -105,7 +105,8 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
             var viewsCount = views.GetValueOrDefault(page.TargetId);
             var leadsCount = leads.GetValueOrDefault(page.TargetId);
             var conversion = viewsCount <= 0 ? 0 : Math.Round(leadsCount * 100m / viewsCount, 2);
-            var shouldAlert = rule.ShouldAlert(viewsCount) && conversion < 5;
+            var lowConversionThreshold = rule.LowConversionThresholdPercent ?? 5;
+            var shouldAlert = rule.ShouldAlert(viewsCount) && conversion < lowConversionThreshold;
             var source = rule.Source;
             var alert = await _context.OperationalAlerts
                 .IgnoreQueryFilters()
@@ -128,7 +129,7 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
                 continue;
             }
 
-            var description = $"{page.Name} teve {viewsCount} visitas e {leadsCount} leads nos ultimos 30 dias ({conversion}% de conversao).";
+            var description = $"{page.Name} teve {viewsCount} visitas e {leadsCount} leads nos ultimos 30 dias ({conversion}% de conversao; limite configurado: {lowConversionThreshold}%).";
             if (alert is null)
             {
                 _context.OperationalAlerts.Add(OperationalAlert.Create(
