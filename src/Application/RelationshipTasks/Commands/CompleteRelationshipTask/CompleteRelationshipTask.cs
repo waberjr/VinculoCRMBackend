@@ -115,6 +115,24 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                     $"{task.Title}: {request.CompletionNote?.Trim() ?? "Sem nota."}",
                     now,
                     _user.Id));
+
+                var hasIncompleteLinkedTasks = await _context.RelationshipTasks.AsNoTracking().AnyAsync(entity =>
+                    entity.OperationalAlertId == task.OperationalAlertId &&
+                    entity.Id != task.Id &&
+                    entity.Status != RelationshipTaskStatus.Completed,
+                    cancellationToken);
+                if (!hasIncompleteLinkedTasks && alert.Status != OperationalAlertStatus.Resolved)
+                {
+                    const string resolutionNote = "Resolvido automaticamente porque todas as tarefas vinculadas foram concluidas.";
+                    alert.Resolve(_user.Id, resolutionNote, now);
+                    _context.OperationalAlertAuditEntries.Add(OperationalAlertAudit.Create(
+                        alert,
+                        "AutoResolve",
+                        "Alerta resolvido automaticamente",
+                        resolutionNote,
+                        now,
+                        _user.Id));
+                }
             }
         }
 

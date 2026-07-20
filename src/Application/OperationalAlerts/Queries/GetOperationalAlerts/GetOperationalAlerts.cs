@@ -128,8 +128,13 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
                 ResolutionNote = alert.ResolutionNote,
                 OpenTasksCount = _context.RelationshipTasks.Count(task =>
                     task.OperationalAlertId == alert.Id &&
-                    task.Status != RelationshipTaskStatus.Completed &&
-                    task.Status != RelationshipTaskStatus.Cancelled),
+                    task.Status == RelationshipTaskStatus.Open),
+                InProgressTasksCount = _context.RelationshipTasks.Count(task =>
+                    task.OperationalAlertId == alert.Id &&
+                    task.Status == RelationshipTaskStatus.InProgress),
+                CompletedTasksCount = _context.RelationshipTasks.Count(task =>
+                    task.OperationalAlertId == alert.Id &&
+                    task.Status == RelationshipTaskStatus.Completed),
             });
 
         var result = await PaginatedResult<OperationalAlertDto>.CreateAsync(
@@ -191,6 +196,8 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
         ResolvedAtUtc = alert.ResolvedAtUtc,
         ResolutionNote = alert.ResolutionNote,
         OpenTasksCount = alert.OpenTasksCount,
+        InProgressTasksCount = alert.InProgressTasksCount,
+        CompletedTasksCount = alert.CompletedTasksCount,
     };
 
     private static bool TryParse<TEnum>(string? value, out TEnum result)

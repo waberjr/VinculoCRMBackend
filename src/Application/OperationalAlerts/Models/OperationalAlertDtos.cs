@@ -22,6 +22,8 @@ public sealed class OperationalAlertDto
     public DateTimeOffset? ResolvedAtUtc { get; init; }
     public string? ResolutionNote { get; init; }
     public int OpenTasksCount { get; init; }
+    public int InProgressTasksCount { get; init; }
+    public int CompletedTasksCount { get; init; }
 }
 
 public sealed class OperationalAlertDetailDto
