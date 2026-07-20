@@ -60,6 +60,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
 
     public DbSet<OperationalAlertAuditEntry> OperationalAlertAuditEntries => Set<OperationalAlertAuditEntry>();
 
+    public DbSet<OperationalProductivityGoalAuditEntry> OperationalProductivityGoalAuditEntries => Set<OperationalProductivityGoalAuditEntry>();
+
     public DbSet<Donation> Donations => Set<Donation>();
 
     public DbSet<DonationProject> DonationProjects => Set<DonationProject>();
@@ -109,6 +111,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>, IApplica
         builder.Entity<OperationalAlert>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<OperationalAlertRule>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<OperationalAlertAuditEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
+        builder.Entity<OperationalProductivityGoalAuditEntry>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Donation>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<DonationProject>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));
         builder.Entity<Receipt>().HasQueryFilter(e => !e.IsDeleted && (!_organizationContext.HasOrganization || e.OrganizationId == _organizationContext.OrganizationId));

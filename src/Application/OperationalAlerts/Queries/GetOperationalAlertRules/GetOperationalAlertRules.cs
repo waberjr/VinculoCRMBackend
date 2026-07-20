@@ -62,5 +62,7 @@ public sealed class GetOperationalAlertRulesQueryHandler : IRequestHandler<GetOp
         Domain.Entities.OperationalAlertRule.Create(organizationId, "PendingReceipts", true, 1, 10, 48, null, true, null),
         Domain.Entities.OperationalAlertRule.Create(organizationId, "CampaignLowConversion", true, 30, 100, 48, 5, true, null),
         Domain.Entities.OperationalAlertRule.Create(organizationId, "ProjectLowConversion", true, 30, 100, 48, 5, true, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "OperationalGoalBelowTarget", true, 1, 5, 24, null, true, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "OperationalSlaBreach", true, 1, 5, 8, null, true, null),
     ];
 }

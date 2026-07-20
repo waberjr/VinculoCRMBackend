@@ -17,7 +17,8 @@ public sealed record OperationalProductivityDto(
     int CompletedTasksCount,
     int OverdueCompletedTasksCount,
     int ResolvedAlertsCount,
-    IReadOnlyCollection<OperationalProductivityItemDto> Items);
+    IReadOnlyCollection<OperationalProductivityItemDto> Items,
+    IReadOnlyCollection<OperationalProductivityWeekDto> Weeks);
 
 public sealed record OperationalProductivityItemDto(
     string? AssignedUserId,
@@ -28,6 +29,12 @@ public sealed record OperationalProductivityItemDto(
     int ResolvedAlertsCount,
     int? OperationalTaskGoalMonthly,
     int? OperationalSlaHours);
+
+public sealed record OperationalProductivityWeekDto(
+    DateTimeOffset WeekStartDateUtc,
+    int CreatedTasksCount,
+    int CompletedTasksCount,
+    int ResolvedAlertsCount);
 
 public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<GetOperationalProductivityQuery, OperationalProductivityDto>
 {
@@ -146,6 +153,7 @@ public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<Get
             .OrderByDescending(item => item.CompletedTasksCount + item.ResolvedAlertsCount)
             .ThenBy(item => item.AssignedUserName)
             .ToArray();
+        var weeks = await Weekly(tasks, alerts, start, end, cancellationToken);
 
         return new OperationalProductivityDto(
             start,
@@ -154,6 +162,67 @@ public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<Get
             orderedItems.Sum(item => item.CompletedTasksCount),
             orderedItems.Sum(item => item.OverdueCompletedTasksCount),
             orderedItems.Sum(item => item.ResolvedAlertsCount),
-            orderedItems);
+            orderedItems,
+            weeks);
+    }
+
+    private static async Task<IReadOnlyCollection<OperationalProductivityWeekDto>> Weekly(
+        IQueryable<Domain.Entities.RelationshipTask> tasks,
+        IQueryable<Domain.Entities.OperationalAlert> alerts,
+        DateTimeOffset start,
+        DateTimeOffset end,
+        CancellationToken cancellationToken)
+    {
+        var taskEvents = await tasks
+            .Where(task =>
+                (task.Created >= start && task.Created <= end) ||
+                (task.Status == RelationshipTaskStatus.Completed && task.CompletedAtUtc != null && task.CompletedAtUtc >= start && task.CompletedAtUtc <= end))
+            .Select(task => new
+            {
+                task.Created,
+                task.CompletedAtUtc,
+                IsCompleted = task.Status == RelationshipTaskStatus.Completed,
+            })
+            .ToArrayAsync(cancellationToken);
+        var resolvedAlerts = await alerts
+            .Where(alert => alert.Status == OperationalAlertStatus.Resolved && alert.ResolvedAtUtc != null && alert.ResolvedAtUtc >= start && alert.ResolvedAtUtc <= end)
+            .Select(alert => alert.ResolvedAtUtc!.Value)
+            .ToArrayAsync(cancellationToken);
+
+        var weeks = new Dictionary<DateTimeOffset, (int Created, int Completed, int Resolved)>();
+        foreach (var task in taskEvents)
+        {
+            if (task.Created >= start && task.Created <= end)
+            {
+                Add(WeekStart(task.Created), created: 1, completed: 0, resolved: 0);
+            }
+
+            if (task.IsCompleted && task.CompletedAtUtc is not null)
+            {
+                Add(WeekStart(task.CompletedAtUtc.Value), created: 0, completed: 1, resolved: 0);
+            }
+        }
+
+        foreach (var resolvedAt in resolvedAlerts)
+        {
+            Add(WeekStart(resolvedAt), created: 0, completed: 0, resolved: 1);
+        }
+
+        return weeks
+            .OrderBy(item => item.Key)
+            .Select(item => new OperationalProductivityWeekDto(item.Key, item.Value.Created, item.Value.Completed, item.Value.Resolved))
+            .ToArray();
+
+        void Add(DateTimeOffset weekStart, int created, int completed, int resolved)
+        {
+            var current = weeks.GetValueOrDefault(weekStart);
+            weeks[weekStart] = (current.Created + created, current.Completed + completed, current.Resolved + resolved);
+        }
+    }
+
+    private static DateTimeOffset WeekStart(DateTimeOffset date)
+    {
+        var offset = ((int)date.DayOfWeek + 6) % 7;
+        return new DateTimeOffset(date.Date.AddDays(-offset), TimeSpan.Zero);
     }
 }

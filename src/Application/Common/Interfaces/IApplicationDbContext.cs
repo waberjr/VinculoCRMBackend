@@ -48,6 +48,8 @@ public interface IApplicationDbContext
 
     DbSet<OperationalAlertAuditEntry> OperationalAlertAuditEntries { get; }
 
+    DbSet<OperationalProductivityGoalAuditEntry> OperationalProductivityGoalAuditEntries { get; }
+
     DbSet<Donation> Donations { get; }
 
     DbSet<DonationProject> DonationProjects { get; }

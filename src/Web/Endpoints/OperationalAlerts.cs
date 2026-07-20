@@ -17,6 +17,7 @@ using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRu
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
 using VinculoBackend.Application.OperationalAlerts.Queries.ExportOperationalProductivity;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalProductivity;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalProductivityGoalAudit;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalWorkload;
 using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
 
@@ -32,6 +33,7 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapGet(GetSummary, "Summary");
         groupBuilder.MapGet(GetWorkload, "Workload");
         groupBuilder.MapGet(GetProductivity, "Productivity");
+        groupBuilder.MapGet(GetProductivityGoalAudit, "Productivity/Goals/Audit");
         groupBuilder.MapGet(ExportProductivity, "Productivity/Export");
         groupBuilder.MapGet(GetRules, "Rules");
         groupBuilder.MapGet(GetDetail, "{id}");
@@ -81,6 +83,15 @@ public sealed class OperationalAlerts : IEndpointGroup
     {
         var result = await sender.Send(new ExportOperationalProductivityQuery(format ?? "csv", assignedUserId, source, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.File(result.Content, result.ContentType, result.FileName);
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<OperationalProductivityGoalAuditEntryDto>>> GetProductivityGoalAudit(
+        ISender sender,
+        string? userId,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalProductivityGoalAuditQuery(userId), cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Ok<IReadOnlyCollection<Guid>>> GetAlertIds(

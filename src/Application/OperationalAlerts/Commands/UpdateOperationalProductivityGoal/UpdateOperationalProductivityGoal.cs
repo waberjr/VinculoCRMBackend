@@ -14,11 +14,15 @@ public sealed class UpdateOperationalProductivityGoalCommandHandler : IRequestHa
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly IUser _user;
+    private readonly TimeProvider _timeProvider;
 
-    public UpdateOperationalProductivityGoalCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public UpdateOperationalProductivityGoalCommandHandler(IApplicationDbContext context, IOrganizationContext organizationContext, IUser user, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _user = user;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(UpdateOperationalProductivityGoalCommand request, CancellationToken cancellationToken)
@@ -35,8 +39,28 @@ public sealed class UpdateOperationalProductivityGoalCommandHandler : IRequestHa
             throw new global::VinculoBackend.Application.Common.Exceptions.NotFoundException(nameof(OrganizationMember), request.UserId);
         }
 
-        member.OperationalTaskGoalMonthly = request.OperationalTaskGoalMonthly is null ? null : Math.Max(0, request.OperationalTaskGoalMonthly.Value);
-        member.OperationalSlaHours = request.OperationalSlaHours is null ? null : Math.Max(1, request.OperationalSlaHours.Value);
+        var previousGoal = member.OperationalTaskGoalMonthly;
+        var previousSla = member.OperationalSlaHours;
+        int? newGoal = request.OperationalTaskGoalMonthly is null ? null : Math.Max(0, request.OperationalTaskGoalMonthly.Value);
+        int? newSla = request.OperationalSlaHours is null ? null : Math.Max(1, request.OperationalSlaHours.Value);
+
+        member.OperationalTaskGoalMonthly = newGoal;
+        member.OperationalSlaHours = newSla;
+
+        if (previousGoal != newGoal || previousSla != newSla)
+        {
+            _context.OperationalProductivityGoalAuditEntries.Add(new OperationalProductivityGoalAuditEntry
+            {
+                OrganizationId = organizationId,
+                UserId = member.UserId,
+                PreviousTaskGoalMonthly = previousGoal,
+                NewTaskGoalMonthly = newGoal,
+                PreviousSlaHours = previousSla,
+                NewSlaHours = newSla,
+                ChangedByUserId = _user.Id,
+                ChangedAtUtc = _timeProvider.GetUtcNow(),
+            });
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
     }

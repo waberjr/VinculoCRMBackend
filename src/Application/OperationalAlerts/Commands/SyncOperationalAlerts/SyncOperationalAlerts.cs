@@ -70,8 +70,97 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
 
         await SyncLowConversionAlerts(organizationId, rules["CampaignLowConversion"], "campaign", now, cancellationToken);
         await SyncLowConversionAlerts(organizationId, rules["ProjectLowConversion"], "project", now, cancellationToken);
+        await SyncOperationalGoalAlerts(organizationId, rules["OperationalGoalBelowTarget"], now, cancellationToken);
+        await SyncOperationalSlaAlerts(organizationId, rules["OperationalSlaBreach"], now, cancellationToken);
 
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SyncOperationalGoalAlerts(
+        Guid organizationId,
+        OperationalAlertRule rule,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var monthStart = new DateTimeOffset(now.Year, now.Month, 1, 0, 0, 0, TimeSpan.Zero);
+        var daysInMonth = DateTime.DaysInMonth(now.Year, now.Month);
+        var expectedRatio = Math.Clamp((decimal)now.Day / daysInMonth, 0, 1);
+        var members = await _context.OrganizationMembers
+            .AsNoTracking()
+            .Where(member => member.OrganizationId == organizationId && member.IsActive && member.OperationalTaskGoalMonthly != null && member.OperationalTaskGoalMonthly > 0)
+            .Select(member => new { member.UserId, Goal = member.OperationalTaskGoalMonthly!.Value })
+            .ToArrayAsync(cancellationToken);
+        var completed = await _context.RelationshipTasks
+            .AsNoTracking()
+            .Where(task =>
+                task.DonorId == null &&
+                task.OperationalAlertId != null &&
+                task.AssignedUserId != null &&
+                task.Status == RelationshipTaskStatus.Completed &&
+                task.CompletedAtUtc != null &&
+                task.CompletedAtUtc >= monthStart &&
+                task.CompletedAtUtc <= now)
+            .GroupBy(task => task.AssignedUserId)
+            .Select(group => new { AssignedUserId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.AssignedUserId!, item => item.Count, cancellationToken);
+
+        foreach (var member in members)
+        {
+            var expected = Math.Max(1, (int)Math.Ceiling(member.Goal * expectedRatio));
+            var done = completed.GetValueOrDefault(member.UserId);
+            var shortfall = Math.Max(0, expected - done);
+            await UpsertUserAlert(
+                organizationId,
+                rule,
+                member.UserId,
+                "Responsavel abaixo da meta operacional",
+                $"Meta mensal: {member.Goal}. Esperado ate hoje: {expected}. Concluidas no mes: {done}.",
+                shortfall,
+                "/operacao/trabalho",
+                now,
+                cancellationToken);
+        }
+    }
+
+    private async Task SyncOperationalSlaAlerts(
+        Guid organizationId,
+        OperationalAlertRule rule,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var members = await _context.OrganizationMembers
+            .AsNoTracking()
+            .Where(member => member.OrganizationId == organizationId && member.IsActive && member.OperationalSlaHours != null && member.OperationalSlaHours > 0)
+            .Select(member => member.UserId)
+            .ToArrayAsync(cancellationToken);
+        var overdueTasks = await _context.RelationshipTasks
+            .AsNoTracking()
+            .Where(task =>
+                task.DonorId == null &&
+                task.OperationalAlertId != null &&
+                task.AssignedUserId != null &&
+                task.DueAtUtc != null &&
+                task.DueAtUtc < now &&
+                task.Status != RelationshipTaskStatus.Completed &&
+                task.Status != RelationshipTaskStatus.Cancelled)
+            .GroupBy(task => task.AssignedUserId)
+            .Select(group => new { AssignedUserId = group.Key, Count = group.Count() })
+            .ToDictionaryAsync(item => item.AssignedUserId!, item => item.Count, cancellationToken);
+
+        foreach (var userId in members)
+        {
+            var count = overdueTasks.GetValueOrDefault(userId);
+            await UpsertUserAlert(
+                organizationId,
+                rule,
+                userId,
+                "Responsavel com SLA operacional vencido",
+                $"{count} tarefas operacionais atribuidas estao vencidas.",
+                count,
+                "/operacao/trabalho",
+                now,
+                cancellationToken);
+        }
     }
 
     private async Task SyncLowConversionAlerts(
@@ -231,6 +320,60 @@ public sealed class SyncOperationalAlertsCommandHandler : IRequestHandler<SyncOp
         }
 
         alert.Refresh(description, rule.SeverityFor(count), alert.AssignedUserId ?? rule.AssignedUserId, alert.DueAtUtc ?? now.AddHours(rule.DueInHours), now);
+    }
+
+    private async Task UpsertUserAlert(
+        Guid organizationId,
+        OperationalAlertRule rule,
+        string assignedUserId,
+        string title,
+        string description,
+        int count,
+        string actionUrl,
+        DateTimeOffset now,
+        CancellationToken cancellationToken)
+    {
+        var source = rule.Source;
+        var alert = await _context.OperationalAlerts
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(entity =>
+                !entity.IsDeleted &&
+                entity.OrganizationId == organizationId &&
+                entity.Source == source &&
+                entity.RelatedEntityType == "OperationalUser" &&
+                entity.RelatedEntityId == null &&
+                entity.AssignedUserId == assignedUserId &&
+                entity.Status != OperationalAlertStatus.Resolved,
+                cancellationToken);
+
+        if (!rule.ShouldAlert(count))
+        {
+            if (alert is not null)
+            {
+                alert.Resolve(null, rule.IsEnabled ? "Resolvido automaticamente porque a condicao deixou de existir." : "Resolvido automaticamente porque a regra foi desativada.", now);
+            }
+
+            return;
+        }
+
+        if (alert is null)
+        {
+            _context.OperationalAlerts.Add(OperationalAlert.Create(
+                organizationId,
+                title,
+                description,
+                rule.SeverityFor(count),
+                source,
+                "OperationalUser",
+                null,
+                actionUrl,
+                assignedUserId,
+                now.AddHours(rule.DueInHours),
+                now));
+            return;
+        }
+
+        alert.Refresh(description, rule.SeverityFor(count), assignedUserId, alert.DueAtUtc ?? now.AddHours(rule.DueInHours), now);
     }
 
     private sealed record LandingTarget(Guid TargetId, string Name);
