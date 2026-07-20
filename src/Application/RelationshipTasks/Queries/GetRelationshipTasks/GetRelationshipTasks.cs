@@ -12,6 +12,7 @@ public record GetRelationshipTasksQuery : IRequest<PaginatedResult<RelationshipT
     public string? DonorName { get; init; }
     public Guid? CampaignId { get; init; }
     public Guid? OperationalAlertId { get; init; }
+    public bool? OperationalOnly { get; init; }
     public string? Status { get; init; }
     public string? Type { get; init; }
     public string? Priority { get; init; }
@@ -54,6 +55,7 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
 
         if (request.CampaignId is not null) query = query.Where(task => task.CampaignId == request.CampaignId);
         if (request.OperationalAlertId is not null) query = query.Where(task => task.OperationalAlertId == request.OperationalAlertId);
+        if (request.OperationalOnly == true) query = query.Where(task => task.DonorId == null && task.OperationalAlertId != null);
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
             var status = SystemOptionMapper.Parse<RelationshipTaskStatus>(request.Status);

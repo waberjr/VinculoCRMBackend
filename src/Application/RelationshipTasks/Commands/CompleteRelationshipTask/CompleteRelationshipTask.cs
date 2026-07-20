@@ -4,6 +4,7 @@ using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
 using FluentValidation.Results;
+using VinculoBackend.Application.OperationalAlerts.Services;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CompleteRelationshipTask;
 
@@ -100,6 +101,21 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 RelatedEntityType = nameof(RelationshipTask),
                 RelatedEntityId = task.Id,
             });
+        }
+
+        if (task.OperationalAlertId is not null)
+        {
+            var alert = await _context.OperationalAlerts.FirstOrDefaultAsync(entity => entity.Id == task.OperationalAlertId, cancellationToken);
+            if (alert is not null)
+            {
+                _context.OperationalAlertAuditEntries.Add(OperationalAlertAudit.Create(
+                    alert,
+                    "TaskCompleted",
+                    "Tarefa vinculada concluida",
+                    $"{task.Title}: {request.CompletionNote?.Trim() ?? "Sem nota."}",
+                    now,
+                    _user.Id));
+            }
         }
 
         await _context.SaveChangesAsync(cancellationToken);

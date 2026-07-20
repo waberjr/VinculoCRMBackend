@@ -44,6 +44,10 @@ public sealed class GetOperationalAlertDetailQueryHandler : IRequestHandler<GetO
                 AcknowledgedAtUtc = entity.AcknowledgedAtUtc,
                 ResolvedAtUtc = entity.ResolvedAtUtc,
                 ResolutionNote = entity.ResolutionNote,
+                OpenTasksCount = _context.RelationshipTasks.Count(task =>
+                    task.OperationalAlertId == entity.Id &&
+                    task.Status != Domain.Enums.RelationshipTaskStatus.Completed &&
+                    task.Status != Domain.Enums.RelationshipTaskStatus.Cancelled),
             })
             .FirstOrDefaultAsync(cancellationToken);
         if (alert is null)
@@ -104,5 +108,6 @@ public sealed class GetOperationalAlertDetailQueryHandler : IRequestHandler<GetO
         AcknowledgedAtUtc = alert.AcknowledgedAtUtc,
         ResolvedAtUtc = alert.ResolvedAtUtc,
         ResolutionNote = alert.ResolutionNote,
+        OpenTasksCount = alert.OpenTasksCount,
     };
 }

@@ -126,6 +126,10 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
                 AcknowledgedAtUtc = alert.AcknowledgedAtUtc,
                 ResolvedAtUtc = alert.ResolvedAtUtc,
                 ResolutionNote = alert.ResolutionNote,
+                OpenTasksCount = _context.RelationshipTasks.Count(task =>
+                    task.OperationalAlertId == alert.Id &&
+                    task.Status != RelationshipTaskStatus.Completed &&
+                    task.Status != RelationshipTaskStatus.Cancelled),
             });
 
         var result = await PaginatedResult<OperationalAlertDto>.CreateAsync(
@@ -186,6 +190,7 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
         AcknowledgedAtUtc = alert.AcknowledgedAtUtc,
         ResolvedAtUtc = alert.ResolvedAtUtc,
         ResolutionNote = alert.ResolutionNote,
+        OpenTasksCount = alert.OpenTasksCount,
     };
 
     private static bool TryParse<TEnum>(string? value, out TEnum result)
