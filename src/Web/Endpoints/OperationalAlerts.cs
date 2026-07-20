@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using VinculoBackend.Application.OperationalAlerts.Commands.AddOperationalAlertNote;
 using VinculoBackend.Application.OperationalAlerts.Commands.BulkAcknowledgeOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Commands.CreateTasksFromOperationalAlerts;
+using VinculoBackend.Application.OperationalAlerts.Commands.UpdateOperationalProductivityGoal;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.OperationalAlerts.Commands.AcknowledgeOperationalAlert;
 using VinculoBackend.Application.OperationalAlerts.Commands.AssignOperationalAlert;
@@ -14,6 +15,7 @@ using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAu
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertDetail;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
+using VinculoBackend.Application.OperationalAlerts.Queries.ExportOperationalProductivity;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalProductivity;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalWorkload;
 using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
@@ -30,6 +32,7 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapGet(GetSummary, "Summary");
         groupBuilder.MapGet(GetWorkload, "Workload");
         groupBuilder.MapGet(GetProductivity, "Productivity");
+        groupBuilder.MapGet(ExportProductivity, "Productivity/Export");
         groupBuilder.MapGet(GetRules, "Rules");
         groupBuilder.MapGet(GetDetail, "{id}");
         groupBuilder.MapGet(GetAudit, "{id}/Audit");
@@ -39,6 +42,7 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapPost(AcknowledgeAlert, "{id}/Acknowledge");
         groupBuilder.MapPost(BulkAcknowledge, "BulkAcknowledge");
         groupBuilder.MapPost(CreateTasksFromAlerts, "BulkCreateTasks");
+        groupBuilder.MapPut(UpdateProductivityGoal, "Productivity/Goals/{userId}");
         groupBuilder.MapPost(AddNote, "{id}/Notes");
         groupBuilder.MapPost(ResolveAlert, "{id}/Resolve");
     }
@@ -64,6 +68,19 @@ public sealed class OperationalAlerts : IEndpointGroup
     {
         var result = await sender.Send(new GetOperationalProductivityQuery(assignedUserId, source, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<FileContentHttpResult> ExportProductivity(
+        ISender sender,
+        string? format,
+        string? assignedUserId,
+        string? source,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new ExportOperationalProductivityQuery(format ?? "csv", assignedUserId, source, startDateUtc, endDateUtc), cancellationToken);
+        return TypedResults.File(result.Content, result.ContentType, result.FileName);
     }
 
     public static async Task<Ok<IReadOnlyCollection<Guid>>> GetAlertIds(
@@ -202,6 +219,12 @@ public sealed class OperationalAlerts : IEndpointGroup
     {
         var result = await sender.Send(command, cancellationToken);
         return TypedResults.Ok(result);
+    }
+
+    public static async Task<NoContent> UpdateProductivityGoal(ISender sender, string userId, UpdateOperationalProductivityGoalCommand command, CancellationToken cancellationToken)
+    {
+        await sender.Send(command with { UserId = userId }, cancellationToken);
+        return TypedResults.NoContent();
     }
 
     public static async Task<NoContent> AddNote(ISender sender, Guid id, AddOperationalAlertNoteCommand command, CancellationToken cancellationToken)

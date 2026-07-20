@@ -68,5 +68,6 @@ public static class DependencyInjection
         services.AddScoped<ILandingPageAbuseReportPdfExporter, QuestPdfLandingPageAbuseReportPdfExporter>();
         services.AddScoped<ILandingPageBlockRulesPdfExporter, QuestPdfLandingPageBlockRulesPdfExporter>();
         services.AddScoped<IOperationalAlertsPdfExporter, QuestPdfOperationalAlertsPdfExporter>();
+        services.AddScoped<IOperationalProductivityPdfExporter, QuestPdfOperationalProductivityPdfExporter>();
     }
 }

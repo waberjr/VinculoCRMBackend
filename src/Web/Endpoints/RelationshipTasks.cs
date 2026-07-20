@@ -5,6 +5,7 @@ using VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTa
 using VinculoBackend.Application.RelationshipTasks.Commands.CreateTasksFromSegment;
 using VinculoBackend.Application.RelationshipTasks.Models;
 using VinculoBackend.Application.RelationshipTasks.Queries.GetRelationshipTasks;
+using VinculoBackend.Application.RelationshipTasks.Commands.ReopenRelationshipTask;
 using VinculoBackend.Application.RelationshipTasks.Commands.StartRelationshipTask;
 using VinculoBackend.Application.RelationshipTasks.Commands.UpdateRelationshipTask;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -24,6 +25,7 @@ public sealed class RelationshipTasks : IEndpointGroup
         groupBuilder.MapPost(CreateTasksFromSegment, "BulkCreateFromSegment");
         groupBuilder.MapPut(UpdateTask, "{id}");
         groupBuilder.MapPost(StartTask, "{id}/Start");
+        groupBuilder.MapPost(ReopenTask, "{id}/Reopen");
         groupBuilder.MapPost(CompleteTask, "{id}/Complete");
         groupBuilder.MapPost(CancelTask, "{id}/Cancel");
     }
@@ -100,6 +102,12 @@ public sealed class RelationshipTasks : IEndpointGroup
     public static async Task<NoContent> StartTask(ISender sender, Guid id)
     {
         await sender.Send(new StartRelationshipTaskCommand(id));
+        return TypedResults.NoContent();
+    }
+
+    public static async Task<NoContent> ReopenTask(ISender sender, Guid id)
+    {
+        await sender.Send(new ReopenRelationshipTaskCommand(id));
         return TypedResults.NoContent();
     }
 

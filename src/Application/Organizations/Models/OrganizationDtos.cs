@@ -12,7 +12,9 @@ public sealed record OrganizationMemberResponse(
     string DisplayName,
     string Email,
     string Role,
-    bool IsActive);
+    bool IsActive,
+    int? OperationalTaskGoalMonthly = null,
+    int? OperationalSlaHours = null);
 
 public sealed record OrganizationInvitationResponse(
     Guid Id,

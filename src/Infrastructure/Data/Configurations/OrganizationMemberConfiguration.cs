@@ -10,6 +10,8 @@ public class OrganizationMemberConfiguration : IEntityTypeConfiguration<Organiza
     {
         builder.Property(e => e.UserId).HasMaxLength(450).IsRequired();
         builder.Property(e => e.Role).HasMaxLength(40).IsRequired();
+        builder.Property(e => e.OperationalTaskGoalMonthly);
+        builder.Property(e => e.OperationalSlaHours);
         builder.HasIndex(e => new { e.OrganizationId, e.UserId })
             .IsUnique()
             .HasFilter("\"IsDeleted\" = false");

@@ -84,6 +84,16 @@ public class RelationshipTask : OrganizationEntity
         Status = RelationshipTaskStatus.InProgress;
     }
 
+    public void Reopen()
+    {
+        if (Status != RelationshipTaskStatus.InProgress)
+        {
+            throw new InvalidOperationDomainException("Apenas tarefas em andamento podem voltar para abertas.");
+        }
+
+        Status = RelationshipTaskStatus.Open;
+    }
+
     public void Complete(ContactOutcome? outcome, string? completionNote, DateTimeOffset completedAtUtc)
     {
         if (Status is not (RelationshipTaskStatus.Open or RelationshipTaskStatus.InProgress))

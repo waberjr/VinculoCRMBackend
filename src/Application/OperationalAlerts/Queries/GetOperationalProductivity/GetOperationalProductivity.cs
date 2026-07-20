@@ -25,7 +25,9 @@ public sealed record OperationalProductivityItemDto(
     int CreatedTasksCount,
     int CompletedTasksCount,
     int OverdueCompletedTasksCount,
-    int ResolvedAlertsCount);
+    int ResolvedAlertsCount,
+    int? OperationalTaskGoalMonthly,
+    int? OperationalSlaHours);
 
 public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<GetOperationalProductivityQuery, OperationalProductivityDto>
 {
@@ -106,6 +108,17 @@ public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<Get
             .Concat(resolvedAlertGroups.Select(group => group.AssignedUserId))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
+        var memberGoalRows = await _context.OrganizationMembers
+            .AsNoTracking()
+            .Where(member => member.IsActive && userIds.Contains(member.UserId))
+            .Select(member => new
+            {
+                member.UserId,
+                member.OperationalTaskGoalMonthly,
+                member.OperationalSlaHours,
+            })
+            .ToArrayAsync(cancellationToken);
+        var memberGoals = memberGoalRows.ToDictionary(member => member.UserId, StringComparer.Ordinal);
 
         var items = new List<OperationalProductivityItemDto>();
         foreach (var userId in userIds)
@@ -116,6 +129,7 @@ public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<Get
             var name = string.IsNullOrWhiteSpace(userId)
                 ? "Sem responsavel"
                 : await _identityService.GetUserNameAsync(userId);
+            memberGoals.TryGetValue(userId ?? string.Empty, out var memberGoal);
 
             items.Add(new OperationalProductivityItemDto(
                 userId,
@@ -123,7 +137,9 @@ public sealed class GetOperationalProductivityQueryHandler : IRequestHandler<Get
                 createdTasks,
                 completedTaskGroup?.Count ?? 0,
                 completedTaskGroup?.OverdueCount ?? 0,
-                resolvedAlerts));
+                resolvedAlerts,
+                memberGoal?.OperationalTaskGoalMonthly,
+                memberGoal?.OperationalSlaHours));
         }
 
         var orderedItems = items

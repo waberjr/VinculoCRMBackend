@@ -162,7 +162,9 @@ public sealed class OrganizationAdministrationService : IOrganizationAdministrat
                 item.DisplayName,
                 item.User.Email ?? string.Empty,
                 item.Member.Role,
-                item.Member.IsActive))
+                item.Member.IsActive,
+                item.Member.OperationalTaskGoalMonthly,
+                item.Member.OperationalSlaHours))
             .ToListAsync(cancellationToken);
 
         var invitations = await _context.OrganizationInvitations
