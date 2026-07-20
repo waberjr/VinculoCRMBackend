@@ -11,6 +11,7 @@ public sealed record UpsertOperationalAlertRuleCommand(
     int HighThreshold,
     int DueInHours,
     decimal? LowConversionThresholdPercent,
+    bool IgnoreCancelledTasksForAutoResolution,
     string? AssignedUserId) : IRequest<Guid>;
 
 public sealed class UpsertOperationalAlertRuleCommandHandler : IRequestHandler<UpsertOperationalAlertRuleCommand, Guid>
@@ -39,12 +40,13 @@ public sealed class UpsertOperationalAlertRuleCommandHandler : IRequestHandler<U
                 request.HighThreshold,
                 request.DueInHours,
                 request.LowConversionThresholdPercent,
+                request.IgnoreCancelledTasksForAutoResolution,
                 request.AssignedUserId);
             _context.OperationalAlertRules.Add(rule);
         }
         else
         {
-            rule.Update(request.IsEnabled, request.WarningThreshold, request.HighThreshold, request.DueInHours, request.LowConversionThresholdPercent, request.AssignedUserId);
+            rule.Update(request.IsEnabled, request.WarningThreshold, request.HighThreshold, request.DueInHours, request.LowConversionThresholdPercent, request.IgnoreCancelledTasksForAutoResolution, request.AssignedUserId);
         }
 
         await _context.SaveChangesAsync(cancellationToken);

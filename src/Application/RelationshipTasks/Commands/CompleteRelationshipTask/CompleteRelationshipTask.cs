@@ -116,11 +116,18 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                     now,
                     _user.Id));
 
-                var hasIncompleteLinkedTasks = await _context.RelationshipTasks.AsNoTracking().AnyAsync(entity =>
+                var ignoreCancelledTasks = await _context.OperationalAlertRules
+                    .AsNoTracking()
+                    .Where(rule => rule.Source == alert.Source)
+                    .Select(rule => (bool?)rule.IgnoreCancelledTasksForAutoResolution)
+                    .FirstOrDefaultAsync(cancellationToken) ?? true;
+                var linkedTasks = _context.RelationshipTasks.AsNoTracking().Where(entity =>
                     entity.OperationalAlertId == task.OperationalAlertId &&
-                    entity.Id != task.Id &&
-                    entity.Status != RelationshipTaskStatus.Completed,
-                    cancellationToken);
+                    entity.Id != task.Id);
+                linkedTasks = ignoreCancelledTasks
+                    ? linkedTasks.Where(entity => entity.Status != RelationshipTaskStatus.Completed && entity.Status != RelationshipTaskStatus.Cancelled)
+                    : linkedTasks.Where(entity => entity.Status != RelationshipTaskStatus.Completed);
+                var hasIncompleteLinkedTasks = await linkedTasks.AnyAsync(cancellationToken);
                 if (!hasIncompleteLinkedTasks && alert.Status != OperationalAlertStatus.Resolved)
                 {
                     const string resolutionNote = "Resolvido automaticamente porque todas as tarefas vinculadas foram concluidas.";

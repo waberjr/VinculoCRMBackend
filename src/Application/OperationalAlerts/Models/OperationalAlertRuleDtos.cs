@@ -9,5 +9,6 @@ public sealed class OperationalAlertRuleDto
     public int HighThreshold { get; init; }
     public int DueInHours { get; init; }
     public decimal? LowConversionThresholdPercent { get; init; }
+    public bool IgnoreCancelledTasksForAutoResolution { get; init; }
     public string? AssignedUserId { get; init; }
 }

@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using VinculoBackend.Application.OperationalAlerts.Commands.AddOperationalAlertNote;
+using VinculoBackend.Application.OperationalAlerts.Commands.BulkAcknowledgeOperationalAlerts;
+using VinculoBackend.Application.OperationalAlerts.Commands.CreateTasksFromOperationalAlerts;
 using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.OperationalAlerts.Commands.AcknowledgeOperationalAlert;
 using VinculoBackend.Application.OperationalAlerts.Commands.AssignOperationalAlert;
@@ -29,6 +31,8 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapPut(UpsertRule, "Rules/{source}");
         groupBuilder.MapPost(AssignAlert, "{id}/Assign");
         groupBuilder.MapPost(AcknowledgeAlert, "{id}/Acknowledge");
+        groupBuilder.MapPost(BulkAcknowledge, "BulkAcknowledge");
+        groupBuilder.MapPost(CreateTasksFromAlerts, "BulkCreateTasks");
         groupBuilder.MapPost(AddNote, "{id}/Notes");
         groupBuilder.MapPost(ResolveAlert, "{id}/Resolve");
     }
@@ -126,6 +130,18 @@ public sealed class OperationalAlerts : IEndpointGroup
     {
         await sender.Send(new AcknowledgeOperationalAlertCommand(id), cancellationToken);
         return TypedResults.NoContent();
+    }
+
+    public static async Task<Ok<int>> BulkAcknowledge(ISender sender, BulkAcknowledgeOperationalAlertsCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<int>> CreateTasksFromAlerts(ISender sender, CreateTasksFromOperationalAlertsCommand command, CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(command, cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<NoContent> AddNote(ISender sender, Guid id, AddOperationalAlertNoteCommand command, CancellationToken cancellationToken)

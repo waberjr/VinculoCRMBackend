@@ -11,6 +11,7 @@ public class OperationalAlertRule : OrganizationEntity
     public int HighThreshold { get; private set; } = 10;
     public int DueInHours { get; private set; } = 24;
     public decimal? LowConversionThresholdPercent { get; private set; }
+    public bool IgnoreCancelledTasksForAutoResolution { get; private set; } = true;
     public string? AssignedUserId { get; private set; }
 
     public static OperationalAlertRule Create(
@@ -21,6 +22,7 @@ public class OperationalAlertRule : OrganizationEntity
         int highThreshold,
         int dueInHours,
         decimal? lowConversionThresholdPercent,
+        bool ignoreCancelledTasksForAutoResolution,
         string? assignedUserId)
     {
         var rule = new OperationalAlertRule
@@ -28,11 +30,11 @@ public class OperationalAlertRule : OrganizationEntity
             OrganizationId = organizationId,
             Source = Required(source, "Informe a origem da regra."),
         };
-        rule.Update(isEnabled, warningThreshold, highThreshold, dueInHours, lowConversionThresholdPercent, assignedUserId);
+        rule.Update(isEnabled, warningThreshold, highThreshold, dueInHours, lowConversionThresholdPercent, ignoreCancelledTasksForAutoResolution, assignedUserId);
         return rule;
     }
 
-    public void Update(bool isEnabled, int warningThreshold, int highThreshold, int dueInHours, decimal? lowConversionThresholdPercent, string? assignedUserId)
+    public void Update(bool isEnabled, int warningThreshold, int highThreshold, int dueInHours, decimal? lowConversionThresholdPercent, bool ignoreCancelledTasksForAutoResolution, string? assignedUserId)
     {
         if (warningThreshold < 1)
         {
@@ -59,6 +61,7 @@ public class OperationalAlertRule : OrganizationEntity
         HighThreshold = highThreshold;
         DueInHours = dueInHours;
         LowConversionThresholdPercent = lowConversionThresholdPercent;
+        IgnoreCancelledTasksForAutoResolution = ignoreCancelledTasksForAutoResolution;
         AssignedUserId = TrimToNull(assignedUserId);
     }
 

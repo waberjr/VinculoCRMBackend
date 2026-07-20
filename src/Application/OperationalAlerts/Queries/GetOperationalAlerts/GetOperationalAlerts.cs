@@ -135,6 +135,16 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
                 CompletedTasksCount = _context.RelationshipTasks.Count(task =>
                     task.OperationalAlertId == alert.Id &&
                     task.Status == RelationshipTaskStatus.Completed),
+                LastCompletedTaskTitle = _context.RelationshipTasks
+                    .Where(task => task.OperationalAlertId == alert.Id && task.Status == RelationshipTaskStatus.Completed)
+                    .OrderByDescending(task => task.CompletedAtUtc)
+                    .Select(task => task.Title)
+                    .FirstOrDefault(),
+                LastCompletedTaskCompletedAtUtc = _context.RelationshipTasks
+                    .Where(task => task.OperationalAlertId == alert.Id && task.Status == RelationshipTaskStatus.Completed)
+                    .OrderByDescending(task => task.CompletedAtUtc)
+                    .Select(task => task.CompletedAtUtc)
+                    .FirstOrDefault(),
             });
 
         var result = await PaginatedResult<OperationalAlertDto>.CreateAsync(
@@ -198,6 +208,8 @@ public sealed class GetOperationalAlertsQueryHandler : IRequestHandler<GetOperat
         OpenTasksCount = alert.OpenTasksCount,
         InProgressTasksCount = alert.InProgressTasksCount,
         CompletedTasksCount = alert.CompletedTasksCount,
+        LastCompletedTaskTitle = alert.LastCompletedTaskTitle,
+        LastCompletedTaskCompletedAtUtc = alert.LastCompletedTaskCompletedAtUtc,
     };
 
     private static bool TryParse<TEnum>(string? value, out TEnum result)

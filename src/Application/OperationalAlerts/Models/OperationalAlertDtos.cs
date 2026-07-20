@@ -24,6 +24,8 @@ public sealed class OperationalAlertDto
     public int OpenTasksCount { get; init; }
     public int InProgressTasksCount { get; init; }
     public int CompletedTasksCount { get; init; }
+    public string? LastCompletedTaskTitle { get; init; }
+    public DateTimeOffset? LastCompletedTaskCompletedAtUtc { get; init; }
 }
 
 public sealed class OperationalAlertDetailDto

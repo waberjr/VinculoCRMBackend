@@ -31,6 +31,7 @@ public sealed class GetOperationalAlertRulesQueryHandler : IRequestHandler<GetOp
                 HighThreshold = rule.HighThreshold,
                 DueInHours = rule.DueInHours,
                 LowConversionThresholdPercent = rule.LowConversionThresholdPercent,
+                IgnoreCancelledTasksForAutoResolution = rule.IgnoreCancelledTasksForAutoResolution,
                 AssignedUserId = rule.AssignedUserId,
             })
             .ToArrayAsync(cancellationToken);
@@ -49,16 +50,17 @@ public sealed class GetOperationalAlertRulesQueryHandler : IRequestHandler<GetOp
             HighThreshold = rule.HighThreshold,
             DueInHours = rule.DueInHours,
             LowConversionThresholdPercent = rule.LowConversionThresholdPercent,
+            IgnoreCancelledTasksForAutoResolution = rule.IgnoreCancelledTasksForAutoResolution,
             AssignedUserId = rule.AssignedUserId,
         }).ToArray();
     }
 
     public static IReadOnlyCollection<Domain.Entities.OperationalAlertRule> DefaultRules(Guid organizationId) =>
     [
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "DonorRisk", true, 1, 10, 24, null, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "OverdueTasks", true, 1, 10, 8, null, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "PendingReceipts", true, 1, 10, 48, null, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "CampaignLowConversion", true, 30, 100, 48, 5, null),
-        Domain.Entities.OperationalAlertRule.Create(organizationId, "ProjectLowConversion", true, 30, 100, 48, 5, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "DonorRisk", true, 1, 10, 24, null, true, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "OverdueTasks", true, 1, 10, 8, null, true, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "PendingReceipts", true, 1, 10, 48, null, true, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "CampaignLowConversion", true, 30, 100, 48, 5, true, null),
+        Domain.Entities.OperationalAlertRule.Create(organizationId, "ProjectLowConversion", true, 30, 100, 48, 5, true, null),
     ];
 }

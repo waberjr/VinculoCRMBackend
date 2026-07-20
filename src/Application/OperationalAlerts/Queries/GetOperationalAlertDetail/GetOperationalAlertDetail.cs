@@ -53,6 +53,16 @@ public sealed class GetOperationalAlertDetailQueryHandler : IRequestHandler<GetO
                 CompletedTasksCount = _context.RelationshipTasks.Count(task =>
                     task.OperationalAlertId == entity.Id &&
                     task.Status == Domain.Enums.RelationshipTaskStatus.Completed),
+                LastCompletedTaskTitle = _context.RelationshipTasks
+                    .Where(task => task.OperationalAlertId == entity.Id && task.Status == Domain.Enums.RelationshipTaskStatus.Completed)
+                    .OrderByDescending(task => task.CompletedAtUtc)
+                    .Select(task => task.Title)
+                    .FirstOrDefault(),
+                LastCompletedTaskCompletedAtUtc = _context.RelationshipTasks
+                    .Where(task => task.OperationalAlertId == entity.Id && task.Status == Domain.Enums.RelationshipTaskStatus.Completed)
+                    .OrderByDescending(task => task.CompletedAtUtc)
+                    .Select(task => task.CompletedAtUtc)
+                    .FirstOrDefault(),
             })
             .FirstOrDefaultAsync(cancellationToken);
         if (alert is null)
@@ -116,5 +126,7 @@ public sealed class GetOperationalAlertDetailQueryHandler : IRequestHandler<GetO
         OpenTasksCount = alert.OpenTasksCount,
         InProgressTasksCount = alert.InProgressTasksCount,
         CompletedTasksCount = alert.CompletedTasksCount,
+        LastCompletedTaskTitle = alert.LastCompletedTaskTitle,
+        LastCompletedTaskCompletedAtUtc = alert.LastCompletedTaskCompletedAtUtc,
     };
 }
