@@ -79,6 +79,7 @@ public sealed class CreateTasksFromSegmentCommandHandler : IRequestHandler<Creat
                 donor.Id,
                 null,
                 null,
+                null,
                 request.Title,
                 request.Description,
                 request.AssignedUserId,

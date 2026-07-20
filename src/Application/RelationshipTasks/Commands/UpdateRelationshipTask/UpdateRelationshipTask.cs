@@ -9,9 +9,10 @@ namespace VinculoBackend.Application.RelationshipTasks.Commands.UpdateRelationsh
 public record UpdateRelationshipTaskCommand : IRequest
 {
     public Guid Id { get; init; }
-    public Guid DonorId { get; init; }
+    public Guid? DonorId { get; init; }
     public Guid? CampaignId { get; init; }
     public Guid? DonationId { get; init; }
+    public Guid? OperationalAlertId { get; init; }
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? AssignedUserId { get; init; }
@@ -51,13 +52,18 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             throw new Common.Exceptions.NotFoundException(nameof(RelationshipTask), request.Id.ToString());
         }
 
-        var donor = await _context.Donors.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == request.DonorId, cancellationToken);
-        if (donor is null)
+        Donor? donor = null;
+        if (request.DonorId is not null)
         {
-            throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
+            donor = await _context.Donors.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == request.DonorId, cancellationToken);
+            if (donor is null)
+            {
+                throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.Value.ToString());
+            }
         }
 
-        if ((donor.DoNotContact || !donor.AllowsCommunication) &&
+        if (donor is not null &&
+            (donor.DoNotContact || !donor.AllowsCommunication) &&
             (!request.ConfirmBlockedContact || string.IsNullOrWhiteSpace(request.BlockedContactJustification)))
         {
             throw new Common.Exceptions.ValidationException(
@@ -76,7 +82,7 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
         {
             var donationBelongsToDonor = await _context.Donations
                 .AsNoTracking()
-                .AnyAsync(donation => donation.Id == request.DonationId && donation.DonorId == request.DonorId, cancellationToken);
+                .AnyAsync(donation => donation.Id == request.DonationId && request.DonorId != null && donation.DonorId == request.DonorId, cancellationToken);
 
             if (!donationBelongsToDonor)
             {
@@ -91,6 +97,7 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             request.DonorId,
             request.CampaignId,
             request.DonationId,
+            request.OperationalAlertId,
             request.Title,
             request.Description,
             request.AssignedUserId,
@@ -98,18 +105,21 @@ public sealed class UpdateRelationshipTaskCommandHandler : IRequestHandler<Updat
             SystemOptionMapper.Parse<TaskPriority>(request.Priority),
             request.DueAtUtc);
 
-        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        if (task.DonorId is not null)
         {
-            OrganizationId = task.OrganizationId,
-            DonorId = task.DonorId,
-            Type = TimelineEntryType.Task,
-            Title = "Tarefa atualizada",
-            Description = task.Title,
-            OccurredAtUtc = _timeProvider.GetUtcNow(),
-            CreatedByUserId = _user.Id,
-            RelatedEntityType = nameof(RelationshipTask),
-            RelatedEntityId = task.Id,
-        });
+            _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+            {
+                OrganizationId = task.OrganizationId,
+                DonorId = task.DonorId.Value,
+                Type = TimelineEntryType.Task,
+                Title = "Tarefa atualizada",
+                Description = task.Title,
+                OccurredAtUtc = _timeProvider.GetUtcNow(),
+                CreatedByUserId = _user.Id,
+                RelatedEntityType = nameof(RelationshipTask),
+                RelatedEntityId = task.Id,
+            });
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
     }

@@ -1,6 +1,8 @@
 using VinculoBackend.Application.Common.Interfaces;
+using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.OperationalAlerts.Models;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAudit;
+using VinculoBackend.Application.RelationshipTasks.Models;
 using VinculoBackend.Domain.Entities;
 
 namespace VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertDetail;
@@ -53,10 +55,34 @@ public sealed class GetOperationalAlertDetailQueryHandler : IRequestHandler<GetO
             ? null
             : await _identityService.GetUserNameAsync(alert.AssignedUserId);
         var auditEntries = await _sender.Send(new GetOperationalAlertAuditQuery(request.Id), cancellationToken);
+        var tasks = await _context.RelationshipTasks
+            .AsNoTracking()
+            .Where(task => task.OperationalAlertId == request.Id)
+            .OrderBy(task => task.DueAtUtc ?? DateTimeOffset.MaxValue)
+            .Select(task => new RelationshipTaskListItemDto
+            {
+                Id = task.Id,
+                DonorId = task.DonorId,
+                DonorName = task.Donor == null ? null : task.Donor.FullName,
+                CampaignId = task.CampaignId,
+                CampaignName = task.Campaign == null ? null : task.Campaign.Name,
+                OperationalAlertId = task.OperationalAlertId,
+                Title = task.Title,
+                Description = task.Description,
+                AssignedUserId = task.AssignedUserId,
+                DueAtUtc = task.DueAtUtc,
+                CompletedAtUtc = task.CompletedAtUtc,
+                Type = SystemOptionMapper.ToOptionDto(task.Type),
+                Priority = SystemOptionMapper.ToOptionDto(task.Priority),
+                Status = SystemOptionMapper.ToOptionDto(task.Status),
+                ContactOutcome = task.ContactOutcome == null ? null : SystemOptionMapper.ToOptionDto(task.ContactOutcome.Value),
+            })
+            .ToArrayAsync(cancellationToken);
         return new OperationalAlertDetailDto
         {
             Alert = Copy(alert, assignedUserName),
             AuditEntries = auditEntries,
+            Tasks = tasks,
         };
     }
 

@@ -4,7 +4,9 @@ public sealed class CreateRelationshipTaskCommandValidator : AbstractValidator<C
 {
     public CreateRelationshipTaskCommandValidator()
     {
-        RuleFor(v => v.DonorId).NotEmpty();
+        RuleFor(v => v)
+            .Must(v => v.DonorId is not null || v.OperationalAlertId is not null)
+            .WithMessage("Informe um doador ou um alerta operacional para criar a tarefa.");
         RuleFor(v => v.Title).NotEmpty().MaximumLength(180);
         RuleFor(v => v.Description).MaximumLength(1000);
         RuleFor(v => v.Type).NotEmpty().MaximumLength(80);

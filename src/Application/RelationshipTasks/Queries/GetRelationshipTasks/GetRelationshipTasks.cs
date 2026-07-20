@@ -11,6 +11,7 @@ public record GetRelationshipTasksQuery : IRequest<PaginatedResult<RelationshipT
     public Guid? DonorId { get; init; }
     public string? DonorName { get; init; }
     public Guid? CampaignId { get; init; }
+    public Guid? OperationalAlertId { get; init; }
     public string? Status { get; init; }
     public string? Type { get; init; }
     public string? Priority { get; init; }
@@ -41,17 +42,18 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToLower();
-            query = query.Where(task => task.Title.ToLower().Contains(search) || task.Donor.FullName.ToLower().Contains(search));
+            query = query.Where(task => task.Title.ToLower().Contains(search) || (task.Donor != null && task.Donor.FullName.ToLower().Contains(search)));
         }
 
         if (request.DonorId is not null) query = query.Where(task => task.DonorId == request.DonorId);
         if (!string.IsNullOrWhiteSpace(request.DonorName))
         {
             var donorName = request.DonorName.Trim().ToLower();
-            query = query.Where(task => task.Donor.FullName.ToLower() == donorName);
+            query = query.Where(task => task.Donor != null && task.Donor.FullName.ToLower() == donorName);
         }
 
         if (request.CampaignId is not null) query = query.Where(task => task.CampaignId == request.CampaignId);
+        if (request.OperationalAlertId is not null) query = query.Where(task => task.OperationalAlertId == request.OperationalAlertId);
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
             var status = SystemOptionMapper.Parse<RelationshipTaskStatus>(request.Status);
@@ -80,9 +82,10 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
             {
                 Id = task.Id,
                 DonorId = task.DonorId,
-                DonorName = task.Donor.FullName,
+                DonorName = task.Donor == null ? null : task.Donor.FullName,
                 CampaignId = task.CampaignId,
                 CampaignName = task.Campaign == null ? null : task.Campaign.Name,
+                OperationalAlertId = task.OperationalAlertId,
                 Title = task.Title,
                 Description = task.Description,
                 AssignedUserId = task.AssignedUserId,

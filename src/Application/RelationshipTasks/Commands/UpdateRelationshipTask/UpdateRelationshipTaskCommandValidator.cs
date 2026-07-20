@@ -5,7 +5,9 @@ public sealed class UpdateRelationshipTaskCommandValidator : AbstractValidator<U
     public UpdateRelationshipTaskCommandValidator()
     {
         RuleFor(v => v.Id).NotEmpty();
-        RuleFor(v => v.DonorId).NotEmpty();
+        RuleFor(v => v)
+            .Must(v => v.DonorId is not null || v.OperationalAlertId is not null)
+            .WithMessage("Informe um doador ou um alerta operacional para atualizar a tarefa.");
         RuleFor(v => v.Title).NotEmpty().MaximumLength(180);
         RuleFor(v => v.Description).MaximumLength(1000);
         RuleFor(v => v.Type).NotEmpty().MaximumLength(80);

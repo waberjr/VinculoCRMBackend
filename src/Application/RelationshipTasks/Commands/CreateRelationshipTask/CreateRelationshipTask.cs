@@ -3,15 +3,17 @@ using VinculoBackend.Application.Common.Models;
 using VinculoBackend.Application.Common.Exceptions;
 using VinculoBackend.Domain.Entities;
 using VinculoBackend.Domain.Enums;
+using VinculoBackend.Application.OperationalAlerts.Services;
 using FluentValidation.Results;
 
 namespace VinculoBackend.Application.RelationshipTasks.Commands.CreateRelationshipTask;
 
 public record CreateRelationshipTaskCommand : IRequest<Guid>
 {
-    public Guid DonorId { get; init; }
+    public Guid? DonorId { get; init; }
     public Guid? CampaignId { get; init; }
     public Guid? DonationId { get; init; }
+    public Guid? OperationalAlertId { get; init; }
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? AssignedUserId { get; init; }
@@ -45,15 +47,19 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
     {
         var organizationId = RequiredOrganization.From(_organizationContext);
 
-        var donor = await _context.Donors
-            .AsNoTracking()
-            .FirstOrDefaultAsync(entity => entity.Id == request.DonorId, cancellationToken);
-        if (donor is null)
+        Donor? donor = null;
+        if (request.DonorId is not null)
         {
-            throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.ToString());
+            donor = await _context.Donors
+                .AsNoTracking()
+                .FirstOrDefaultAsync(entity => entity.Id == request.DonorId, cancellationToken);
+            if (donor is null)
+            {
+                throw new Common.Exceptions.NotFoundException(nameof(Donor), request.DonorId.Value.ToString());
+            }
         }
 
-        if (donor.DoNotContact || !donor.AllowsCommunication)
+        if (donor is not null && (donor.DoNotContact || !donor.AllowsCommunication))
         {
             if (!request.ConfirmBlockedContact || string.IsNullOrWhiteSpace(request.BlockedContactJustification))
             {
@@ -74,7 +80,7 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
         {
             var donationBelongsToDonor = await _context.Donations
                 .AsNoTracking()
-                .AnyAsync(donation => donation.Id == request.DonationId && donation.DonorId == request.DonorId, cancellationToken);
+                .AnyAsync(donation => donation.Id == request.DonationId && request.DonorId != null && donation.DonorId == request.DonorId, cancellationToken);
 
             if (!donationBelongsToDonor)
             {
@@ -85,11 +91,22 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             }
         }
 
+        OperationalAlert? alert = null;
+        if (request.OperationalAlertId is not null)
+        {
+            alert = await _context.OperationalAlerts.FirstOrDefaultAsync(entity => entity.Id == request.OperationalAlertId, cancellationToken);
+            if (alert is null)
+            {
+                throw new Common.Exceptions.NotFoundException(nameof(OperationalAlert), request.OperationalAlertId.Value.ToString());
+            }
+        }
+
         var task = RelationshipTask.Create(
             organizationId,
             request.DonorId,
             request.CampaignId,
             request.DonationId,
+            request.OperationalAlertId,
             request.Title,
             request.Description,
             request.AssignedUserId,
@@ -99,18 +116,32 @@ public sealed class CreateRelationshipTaskCommandHandler : IRequestHandler<Creat
             request.DueAtUtc);
 
         _context.RelationshipTasks.Add(task);
-        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        if (task.DonorId is not null)
         {
-            OrganizationId = organizationId,
-            DonorId = task.DonorId,
-            Type = TimelineEntryType.Task,
-            Title = "Tarefa criada",
-            Description = task.Title,
-            OccurredAtUtc = _timeProvider.GetUtcNow(),
-            CreatedByUserId = _user.Id,
-            RelatedEntityType = nameof(RelationshipTask),
-            RelatedEntityId = task.Id,
-        });
+            _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+            {
+                OrganizationId = organizationId,
+                DonorId = task.DonorId.Value,
+                Type = TimelineEntryType.Task,
+                Title = "Tarefa criada",
+                Description = task.Title,
+                OccurredAtUtc = _timeProvider.GetUtcNow(),
+                CreatedByUserId = _user.Id,
+                RelatedEntityType = nameof(RelationshipTask),
+                RelatedEntityId = task.Id,
+            });
+        }
+
+        if (alert is not null)
+        {
+            _context.OperationalAlertAuditEntries.Add(OperationalAlertAudit.Create(
+                alert,
+                "TaskCreated",
+                "Tarefa criada a partir do alerta",
+                $"Tarefa {task.Id}: {task.Title}",
+                _timeProvider.GetUtcNow(),
+                _user.Id));
+        }
         await _context.SaveChangesAsync(cancellationToken);
 
         return task.Id;

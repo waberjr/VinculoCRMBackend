@@ -47,7 +47,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
         var outcome = string.IsNullOrWhiteSpace(request.Outcome) ? (ContactOutcome?)null : SystemOptionMapper.Parse<ContactOutcome>(request.Outcome);
         task.Complete(outcome, request.CompletionNote, now);
 
-        if (outcome == ContactOutcome.DoNotContact)
+        if (outcome == ContactOutcome.DoNotContact && task.DonorId is not null)
         {
             var donor = await _context.Donors.FirstOrDefaultAsync(entity => entity.Id == task.DonorId, cancellationToken);
             if (donor is not null)
@@ -57,7 +57,7 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 _context.DonorTimelineEntries.Add(new DonorTimelineEntry
                 {
                     OrganizationId = task.OrganizationId,
-                    DonorId = task.DonorId,
+                    DonorId = task.DonorId.Value,
                     Type = TimelineEntryType.Contact,
                     Title = "Contato bloqueado",
                     Description = donor.DoNotContactReason,
@@ -69,13 +69,14 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
             }
         }
 
-        if (outcome == ContactOutcome.RequestedCallback && request.FollowUpAtUtc is not null)
+        if (outcome == ContactOutcome.RequestedCallback && request.FollowUpAtUtc is not null && task.DonorId is not null)
         {
             _context.RelationshipTasks.Add(RelationshipTask.Create(
                 task.OrganizationId,
                 task.DonorId,
                 task.CampaignId,
                 null,
+                task.OperationalAlertId,
                 "Retorno solicitado",
                 "Follow-up criado automaticamente ao concluir tarefa.",
                 task.AssignedUserId,
@@ -85,18 +86,21 @@ public sealed class CompleteRelationshipTaskCommandHandler : IRequestHandler<Com
                 request.FollowUpAtUtc));
         }
 
-        _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+        if (task.DonorId is not null)
         {
-            OrganizationId = task.OrganizationId,
-            DonorId = task.DonorId,
-            Type = TimelineEntryType.Contact,
-            Title = "Tarefa concluida",
-            Description = request.CompletionNote?.Trim(),
-            OccurredAtUtc = task.CompletedAtUtc!.Value,
-            CreatedByUserId = _user.Id,
-            RelatedEntityType = nameof(RelationshipTask),
-            RelatedEntityId = task.Id,
-        });
+            _context.DonorTimelineEntries.Add(new DonorTimelineEntry
+            {
+                OrganizationId = task.OrganizationId,
+                DonorId = task.DonorId.Value,
+                Type = TimelineEntryType.Contact,
+                Title = "Tarefa concluida",
+                Description = request.CompletionNote?.Trim(),
+                OccurredAtUtc = task.CompletedAtUtc!.Value,
+                CreatedByUserId = _user.Id,
+                RelatedEntityType = nameof(RelationshipTask),
+                RelatedEntityId = task.Id,
+            });
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
     }

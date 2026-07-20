@@ -1,4 +1,5 @@
 using VinculoBackend.Domain.Enums;
+using VinculoBackend.Application.RelationshipTasks.Models;
 
 namespace VinculoBackend.Application.OperationalAlerts.Models;
 
@@ -26,6 +27,7 @@ public sealed class OperationalAlertDetailDto
 {
     public OperationalAlertDto Alert { get; init; } = new();
     public IReadOnlyCollection<OperationalAlertAuditEntryDto> AuditEntries { get; init; } = [];
+    public IReadOnlyCollection<RelationshipTaskListItemDto> Tasks { get; init; } = [];
 }
 
 public sealed class OperationalAlertAuditEntryDto
@@ -36,5 +38,6 @@ public sealed class OperationalAlertAuditEntryDto
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string? CreatedByUserId { get; init; }
+    public string? CreatedByUserName { get; init; }
     public DateTimeOffset OccurredAtUtc { get; init; }
 }

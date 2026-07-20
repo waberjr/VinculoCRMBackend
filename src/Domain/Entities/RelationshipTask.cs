@@ -5,12 +5,13 @@ namespace VinculoBackend.Domain.Entities;
 
 public class RelationshipTask : OrganizationEntity
 {
-    public Guid DonorId { get; set; }
-    public Donor Donor { get; set; } = null!;
+    public Guid? DonorId { get; set; }
+    public Donor? Donor { get; set; }
     public Guid? CampaignId { get; set; }
     public Campaign? Campaign { get; set; }
     public Guid? DonationId { get; set; }
     public Donation? Donation { get; set; }
+    public Guid? OperationalAlertId { get; set; }
     public string? AssignedUserId { get; set; }
     public string? CreatedByUserId { get; set; }
     public TaskType Type { get; set; }
@@ -25,9 +26,10 @@ public class RelationshipTask : OrganizationEntity
 
     public static RelationshipTask Create(
         Guid organizationId,
-        Guid donorId,
+        Guid? donorId,
         Guid? campaignId,
         Guid? donationId,
+        Guid? operationalAlertId,
         string title,
         string? description,
         string? assignedUserId,
@@ -42,15 +44,16 @@ public class RelationshipTask : OrganizationEntity
             Status = RelationshipTaskStatus.Open,
             CreatedByUserId = createdByUserId,
         };
-        task.Update(donorId, campaignId, donationId, title, description, assignedUserId, type, priority, dueAtUtc);
+        task.Update(donorId, campaignId, donationId, operationalAlertId, title, description, assignedUserId, type, priority, dueAtUtc);
 
         return task;
     }
 
     public void Update(
-        Guid donorId,
+        Guid? donorId,
         Guid? campaignId,
         Guid? donationId,
+        Guid? operationalAlertId,
         string title,
         string? description,
         string? assignedUserId,
@@ -63,6 +66,7 @@ public class RelationshipTask : OrganizationEntity
         DonorId = donorId;
         CampaignId = campaignId;
         DonationId = donationId;
+        OperationalAlertId = operationalAlertId;
         Description = TrimToNull(description);
         AssignedUserId = assignedUserId;
         Type = type;
