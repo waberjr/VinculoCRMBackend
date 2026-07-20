@@ -14,6 +14,7 @@ using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAu
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertDetail;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalProductivity;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalWorkload;
 using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
 
@@ -28,6 +29,7 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapGet(GetAlertIds, "Ids");
         groupBuilder.MapGet(GetSummary, "Summary");
         groupBuilder.MapGet(GetWorkload, "Workload");
+        groupBuilder.MapGet(GetProductivity, "Productivity");
         groupBuilder.MapGet(GetRules, "Rules");
         groupBuilder.MapGet(GetDetail, "{id}");
         groupBuilder.MapGet(GetAudit, "{id}/Audit");
@@ -49,6 +51,18 @@ public sealed class OperationalAlerts : IEndpointGroup
         CancellationToken cancellationToken)
     {
         var result = await sender.Send(new GetOperationalWorkloadQuery(assignedUserId, source, overdueOnly), cancellationToken);
+        return TypedResults.Ok(result);
+    }
+
+    public static async Task<Ok<OperationalProductivityDto>> GetProductivity(
+        ISender sender,
+        string? assignedUserId,
+        string? source,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalProductivityQuery(assignedUserId, source, startDateUtc, endDateUtc), cancellationToken);
         return TypedResults.Ok(result);
     }
 
