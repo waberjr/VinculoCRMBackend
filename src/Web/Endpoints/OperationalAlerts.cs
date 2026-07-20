@@ -14,6 +14,7 @@ using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAu
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertDetail;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertRules;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertsSummary;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalWorkload;
 using VinculoBackend.Application.OperationalAlerts.Commands.UpsertOperationalAlertRule;
 
 namespace VinculoBackend.Web.Endpoints;
@@ -26,6 +27,7 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapGet(GetAlerts);
         groupBuilder.MapGet(GetAlertIds, "Ids");
         groupBuilder.MapGet(GetSummary, "Summary");
+        groupBuilder.MapGet(GetWorkload, "Workload");
         groupBuilder.MapGet(GetRules, "Rules");
         groupBuilder.MapGet(GetDetail, "{id}");
         groupBuilder.MapGet(GetAudit, "{id}/Audit");
@@ -37,6 +39,17 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapPost(CreateTasksFromAlerts, "BulkCreateTasks");
         groupBuilder.MapPost(AddNote, "{id}/Notes");
         groupBuilder.MapPost(ResolveAlert, "{id}/Resolve");
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<OperationalWorkloadItemDto>>> GetWorkload(
+        ISender sender,
+        string? assignedUserId,
+        string? source,
+        bool? overdueOnly,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalWorkloadQuery(assignedUserId, source, overdueOnly), cancellationToken);
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Ok<IReadOnlyCollection<Guid>>> GetAlertIds(

@@ -17,6 +17,8 @@ public record GetRelationshipTasksQuery : IRequest<PaginatedResult<RelationshipT
     public string? Type { get; init; }
     public string? Priority { get; init; }
     public string? AssignedUserId { get; init; }
+    public string? AlertSource { get; init; }
+    public bool? OverdueOnly { get; init; }
     public DateTimeOffset? DueFromUtc { get; init; }
     public DateTimeOffset? DueToUtc { get; init; }
     public int PageNumber { get; init; } = 1;
@@ -27,11 +29,13 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
 {
     private readonly IApplicationDbContext _context;
     private readonly IOrganizationContext _organizationContext;
+    private readonly TimeProvider _timeProvider;
 
-    public GetRelationshipTasksQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext)
+    public GetRelationshipTasksQueryHandler(IApplicationDbContext context, IOrganizationContext organizationContext, TimeProvider timeProvider)
     {
         _context = context;
         _organizationContext = organizationContext;
+        _timeProvider = timeProvider;
     }
 
     public async Task<PaginatedResult<RelationshipTaskListItemDto>> Handle(GetRelationshipTasksQuery request, CancellationToken cancellationToken)
@@ -74,6 +78,24 @@ public sealed class GetRelationshipTasksQueryHandler : IRequestHandler<GetRelati
             query = query.Where(task => task.Type == type);
         }
         if (!string.IsNullOrWhiteSpace(request.AssignedUserId)) query = query.Where(task => task.AssignedUserId == request.AssignedUserId);
+        if (!string.IsNullOrWhiteSpace(request.AlertSource))
+        {
+            var alertSource = request.AlertSource.Trim();
+            query = query.Where(task =>
+                task.OperationalAlertId != null &&
+                _context.OperationalAlerts.Any(alert => alert.Id == task.OperationalAlertId && alert.Source == alertSource));
+        }
+
+        if (request.OverdueOnly == true)
+        {
+            var now = _timeProvider.GetUtcNow();
+            query = query.Where(task =>
+                task.Status != RelationshipTaskStatus.Completed &&
+                task.Status != RelationshipTaskStatus.Cancelled &&
+                task.DueAtUtc != null &&
+                task.DueAtUtc < now);
+        }
+
         if (request.DueFromUtc is not null) query = query.Where(task => task.DueAtUtc >= request.DueFromUtc);
         if (request.DueToUtc is not null) query = query.Where(task => task.DueAtUtc <= request.DueToUtc);
 
