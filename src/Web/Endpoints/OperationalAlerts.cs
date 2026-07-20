@@ -7,6 +7,7 @@ using VinculoBackend.Application.OperationalAlerts.Commands.AcknowledgeOperation
 using VinculoBackend.Application.OperationalAlerts.Commands.AssignOperationalAlert;
 using VinculoBackend.Application.OperationalAlerts.Commands.ResolveOperationalAlert;
 using VinculoBackend.Application.OperationalAlerts.Models;
+using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertIds;
 using VinculoBackend.Application.OperationalAlerts.Queries.ExportOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlerts;
 using VinculoBackend.Application.OperationalAlerts.Queries.GetOperationalAlertAudit;
@@ -23,6 +24,7 @@ public sealed class OperationalAlerts : IEndpointGroup
     {
         groupBuilder.RequireAuthorization();
         groupBuilder.MapGet(GetAlerts);
+        groupBuilder.MapGet(GetAlertIds, "Ids");
         groupBuilder.MapGet(GetSummary, "Summary");
         groupBuilder.MapGet(GetRules, "Rules");
         groupBuilder.MapGet(GetDetail, "{id}");
@@ -35,6 +37,37 @@ public sealed class OperationalAlerts : IEndpointGroup
         groupBuilder.MapPost(CreateTasksFromAlerts, "BulkCreateTasks");
         groupBuilder.MapPost(AddNote, "{id}/Notes");
         groupBuilder.MapPost(ResolveAlert, "{id}/Resolve");
+    }
+
+    public static async Task<Ok<IReadOnlyCollection<Guid>>> GetAlertIds(
+        ISender sender,
+        string? search,
+        string? severity,
+        string? status,
+        string? source,
+        string? assignedUserId,
+        bool? overdueOnly,
+        string? relatedEntityType,
+        Guid? relatedEntityId,
+        DateTimeOffset? startDateUtc,
+        DateTimeOffset? endDateUtc,
+        CancellationToken cancellationToken)
+    {
+        var result = await sender.Send(new GetOperationalAlertIdsQuery
+        {
+            Search = search,
+            Severity = severity,
+            Status = status,
+            Source = source,
+            AssignedUserId = assignedUserId,
+            OverdueOnly = overdueOnly,
+            RelatedEntityType = relatedEntityType,
+            RelatedEntityId = relatedEntityId,
+            StartDateUtc = startDateUtc,
+            EndDateUtc = endDateUtc,
+        }, cancellationToken);
+
+        return TypedResults.Ok(result);
     }
 
     public static async Task<Ok<PaginatedResult<OperationalAlertDto>>> GetAlerts(
